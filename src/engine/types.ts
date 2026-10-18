@@ -14,7 +14,7 @@ export type WinLine =
   | { type: 'col'; index: 0 | 1 | 2 }
   | { type: 'diag'; direction: 'main' | 'anti' };
 
-export type GameMode = 'pvp' | 'pve';
+export type GameMode = 'pvp' | 'pve' | 'online';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 
