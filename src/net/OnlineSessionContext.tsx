@@ -10,14 +10,13 @@ import {
   type ReactNode,
 } from 'react';
 import { RoomSession, type SessionSnapshot } from './RoomSession';
-import { createBroadcastTransport, type RoomTransport } from './transport';
-import { generatePlayerId, roomChannelName, type RoomRole } from './protocol';
+import { createRoomTransport } from './createRoomTransport';
+import { generatePlayerId, type RoomRole } from './protocol';
 
 export interface OpenRoomOptions {
   role: RoomRole;
   roomCode: string;
   name: string;
-  transport?: RoomTransport;
 }
 
 interface OnlineSessionValue {
@@ -45,8 +44,7 @@ export function OnlineSessionProvider({
       roomCode: options.roomCode,
       myId: generatePlayerId(),
       myName: options.name.trim().toUpperCase(),
-      transport:
-        options.transport ?? createBroadcastTransport(roomChannelName(options.roomCode)),
+      transport: createRoomTransport(options.roomCode),
     });
     sessionRef.current = room;
     setSession(room);

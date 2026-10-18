@@ -8,24 +8,26 @@ const localStorageMock = {
   clear: vi.fn(),
 };
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true,
+  });
 
-Object.defineProperty(window, 'matchMedia', {
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-  writable: true,
-});
+  Object.defineProperty(window, 'matchMedia', {
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+    writable: true,
+  });
+}
 
 function createAudioContextMock() {
   return {
@@ -61,15 +63,17 @@ const audioCtor = vi.fn(
   (): AudioContextMock => createAudioContextMock(),
 ) as unknown as AudioContextMockCtor;
 
-Object.defineProperty(window, 'AudioContext', {
-  value: audioCtor,
-  writable: true,
-});
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'AudioContext', {
+    value: audioCtor,
+    writable: true,
+  });
 
-Object.defineProperty(window, 'webkitAudioContext', {
-  value: audioCtor,
-  writable: true,
-});
+  Object.defineProperty(window, 'webkitAudioContext', {
+    value: audioCtor,
+    writable: true,
+  });
+}
 
 if (typeof (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel === 'undefined') {
   class BroadcastChannelPolyfill {
