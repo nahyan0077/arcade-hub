@@ -146,3 +146,43 @@ test('hint highlights the recommended cell', async ({ page }, testInfo) => {
   await page.getByRole('button', { name: 'Hint' }).click();
   await expect(page.getByTestId('hint-cell')).toHaveCount(0);
 });
+
+test('mute silences sounds, unmute restores them, mute survives reload', async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { __osc: number }).__osc = 0;
+    const Orig = (window as unknown as { AudioContext: typeof AudioContext }).AudioContext;
+    (window as unknown as { AudioContext: unknown }).AudioContext = class extends Orig {
+      createOscillator() {
+        (window as unknown as { __osc: number }).__osc += 1;
+        return super.createOscillator();
+      }
+    };
+    (window as unknown as { webkitAudioContext: unknown }).webkitAudioContext = (
+      window as unknown as { AudioContext: unknown }
+    ).AudioContext;
+  });
+
+  const oscCount = () =>
+    page.evaluate(() => (window as unknown as { __osc: number }).__osc);
+
+  await startGame(page);
+
+  await cell(page, 0).click();
+  await expect.poll(oscCount).toBeGreaterThan(0);
+  const baseline = await oscCount();
+
+  await page.getByRole('button', { name: 'Mute sound' }).click();
+  await cell(page, 4).click();
+  await cell(page, 8).click();
+  expect(await oscCount()).toBe(baseline);
+
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Unmute sound' })).toBeVisible();
+  const baselineAfterReload = await oscCount();
+  await cell(page, 2).click();
+  expect(await oscCount()).toBe(baselineAfterReload);
+
+  await page.getByRole('button', { name: 'Unmute sound' }).click();
+  await cell(page, 6).click();
+  await expect.poll(oscCount).toBeGreaterThan(baselineAfterReload);
+});
