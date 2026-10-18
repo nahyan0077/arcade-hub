@@ -4,8 +4,15 @@ import "./start.css";
 import toast, { Toaster } from "react-hot-toast";
 import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
 import type { AIDifficulty } from "../../engine";
+import { useOnlineSession } from "../../net/OnlineSessionContext";
+import {
+  generateRoomCode,
+  isValidRoomCode,
+  normalizeRoomCode,
+} from "../../net/protocol";
 
-type GameMode = "pvp" | "pve";
+type GameMode = "pvp" | "pve" | "online";
+type OnlineAction = "create" | "join";
 
 const optionClass = (active: boolean): string =>
   `rounded-lg border-2 px-4 py-2 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
@@ -16,11 +23,14 @@ const optionClass = (active: boolean): string =>
 
 export const Start = () => {
   const navigate = useNavigate();
+  const { openRoom } = useOnlineSession();
 
   const [playerType, setPlayerType] = useState("");
   const [name, setName] = useState("");
   const [mode, setMode] = useState<GameMode>("pvp");
   const [difficulty, setDifficulty] = useState<AIDifficulty>("medium");
+  const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
+  const [joinCode, setJoinCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -29,74 +39,85 @@ export const Start = () => {
     }
   }, [playerType]);
 
-  const handleSelectPlayerType = (type: string) => {
-    setPlayerType(type);
+  const showToast = (message: string) => {
+    toast.error(message, {
+      icon: "❌ ",
+      style: {
+        borderRadius: "10px",
+        background: "#030303",
+        color: "#fff",
+      },
+    });
   };
 
   const handleStart = () => {
     if (!name) {
-      toast.error("Please Enter your name", {
-        icon: "❌ ",
-        style: {
-          borderRadius: "10px",
-          background: "#030303",
-          color: "#fff",
-        },
-      });
+      showToast("Please Enter your name");
       return;
-    }else if(!playerType){
-        toast.error("Please select the player type", {
-            icon: "❌ ",
-            style: {
-              borderRadius: "10px",
-              background: "#030303",
-              color: "#fff",
-            },
-          });
-          return
+    }
+    if (mode === "online") {
+      if (onlineAction === "join") {
+        const code = normalizeRoomCode(joinCode);
+        if (!isValidRoomCode(code)) {
+          showToast("Enter a valid 6-character room code");
+          return;
+        }
+        openRoom({ role: "guest", roomCode: code, name });
+      } else {
+        openRoom({ role: "host", roomCode: generateRoomCode(), name });
+      }
+      navigate("/lobby");
+      return;
+    }
+    if (!playerType) {
+      showToast("Please select the player type");
+      return;
     }
     navigate("/game", { state: { playerType, name, mode, difficulty } });
   };
 
   return (
     <div className="flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
-        <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" > 
+        <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" >
             <h2 className="text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
             <h2 className="text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" > TAC </h2>
             <h2 className="text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" > TOE </h2>
         </div>
       <Toaster />
 
-      <div className="flex gap-4">
+      {mode !== "online" && (
+        <div className="flex gap-4">
+          <button
+            type="button"
+            aria-label="Play as X"
+            aria-pressed={playerType === "X"}
+            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+              playerType === "X"
+                ? "border-blue-600 bg-blue-100 text-blue-600"
+                : "border-gray-500 text-blue-600"
+            }`}
+            onClick={() => setPlayerType("X")}
+          >
+            X
+          </button>
 
-        <button
-          type="button"
-          aria-label="Play as X"
-          aria-pressed={playerType === "X"}
-          className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
-            playerType === "X"
-              ? "border-blue-600 bg-blue-100 text-blue-600"
-              : "border-gray-500 text-blue-600"
-          }`}
-          onClick={() => handleSelectPlayerType("X")}
-        >
-          X
-        </button>
+          <button
+            type="button"
+            aria-label="Play as O"
+            aria-pressed={playerType === "O"}
+            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
+              playerType === "O"
+                ? "border-red-600 bg-red-100 text-red-600"
+                : "border-gray-500 text-red-600"
+            }`}
+            onClick={() => setPlayerType("O")}
+          >
+            O
+          </button>
+        </div>
+      )}
+      {mode === "online" && <div className="mb-8" aria-hidden="true" />}
 
-        <button
-          type="button"
-          aria-label="Play as O"
-          aria-pressed={playerType === "O"}
-          className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
-            playerType === "O"
-              ? "border-red-600 bg-red-100 text-red-600"
-              : "border-gray-500 text-red-600"
-          }`}
-          onClick={() => handleSelectPlayerType("O")}
-        >
-          O
-        </button>
-      </div>
       <>
         <input
           className="box-content h-12 w-64 max-w-full p-4 border-4 border-gray-500 mb-6 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-2xl sm:text-4xl font-extrabold text-gray-900 focus:outline-none"
@@ -106,7 +127,7 @@ export const Start = () => {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <div className="mb-4 flex gap-3" role="group" aria-label="Opponent type">
+        <div className="mb-4 flex flex-wrap justify-center gap-3" role="group" aria-label="Game mode">
           <button
             type="button"
             aria-pressed={mode === "pvp"}
@@ -122,6 +143,14 @@ export const Start = () => {
             onClick={() => setMode("pve")}
           >
             vs AI
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "online"}
+            className={optionClass(mode === "online")}
+            onClick={() => setMode("online")}
+          >
+            Online
           </button>
         </div>
 
@@ -139,6 +168,39 @@ export const Start = () => {
                 {level.toUpperCase()}
               </button>
             ))}
+          </div>
+        )}
+
+        {mode === "online" && (
+          <div className="mb-4 flex flex-col items-center gap-3" role="group" aria-label="Online room">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                aria-pressed={onlineAction === "create"}
+                className={optionClass(onlineAction === "create")}
+                onClick={() => setOnlineAction("create")}
+              >
+                Create Room
+              </button>
+              <button
+                type="button"
+                aria-pressed={onlineAction === "join"}
+                className={optionClass(onlineAction === "join")}
+                onClick={() => setOnlineAction("join")}
+              >
+                Join Room
+              </button>
+            </div>
+            {onlineAction === "join" && (
+              <input
+                className="h-11 w-56 max-w-full rounded-lg border-2 border-zinc-600 bg-zinc-800 px-3 text-center text-lg font-bold uppercase tracking-widest text-gray-100 placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Room code"
+                aria-label="Room code"
+                maxLength={7}
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              />
+            )}
           </div>
         )}
 

@@ -1,0 +1,78 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { RoomSession } from './RoomSession';
+import { createBroadcastTransport, type RoomTransport } from './transport';
+import { generatePlayerId, roomChannelName, type RoomRole } from './protocol';
+
+export interface OpenRoomOptions {
+  role: RoomRole;
+  roomCode: string;
+  name: string;
+  transport?: RoomTransport;
+}
+
+interface OnlineSessionValue {
+  session: RoomSession | null;
+  openRoom: (options: OpenRoomOptions) => RoomSession;
+  closeRoom: () => void;
+}
+
+const OnlineSessionContext = createContext<OnlineSessionValue | null>(null);
+
+export function OnlineSessionProvider({
+  children,
+  initialSession = null,
+}: {
+  children: ReactNode;
+  initialSession?: RoomSession | null;
+}) {
+  const sessionRef = useRef<RoomSession | null>(initialSession);
+  const [session, setSession] = useState<RoomSession | null>(initialSession);
+
+  const openRoom = useCallback((options: OpenRoomOptions) => {
+    sessionRef.current?.destroy();
+    const room = new RoomSession({
+      role: options.role,
+      roomCode: options.roomCode,
+      myId: generatePlayerId(),
+      myName: options.name.trim().toUpperCase(),
+      transport:
+        options.transport ?? createBroadcastTransport(roomChannelName(options.roomCode)),
+    });
+    sessionRef.current = room;
+    setSession(room);
+    return room;
+  }, []);
+
+  const closeRoom = useCallback(() => {
+    sessionRef.current?.leave();
+    sessionRef.current = null;
+    setSession(null);
+  }, []);
+
+  const value = useMemo(
+    () => ({ session, openRoom, closeRoom }),
+    [session, openRoom, closeRoom],
+  );
+
+  return (
+    <OnlineSessionContext.Provider value={value}>
+      {children}
+    </OnlineSessionContext.Provider>
+  );
+}
+
+export function useOnlineSession(): OnlineSessionValue {
+  const value = useContext(OnlineSessionContext);
+  if (value === null) {
+    throw new Error('useOnlineSession must be used within OnlineSessionProvider');
+  }
+  return value;
+}
