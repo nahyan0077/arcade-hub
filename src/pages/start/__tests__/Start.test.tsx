@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { Start } from '../Start';
+import { OnlineSessionProvider, useOnlineSession } from '../../../net/OnlineSessionContext';
 
 function GameProbe() {
   const location = useLocation();
@@ -14,15 +16,42 @@ function GameProbe() {
   );
 }
 
+function LobbyProbe() {
+  const { session } = useOnlineSession();
+  const snapshot = session?.getSnapshot() ?? null;
+  return (
+    <div>
+      lobby screen
+      <span data-testid="lobby-snapshot">
+        {JSON.stringify(
+          snapshot && {
+            role: snapshot.role,
+            roomCode: snapshot.roomCode,
+            status: snapshot.status,
+            myName: snapshot.myName,
+          },
+        )}
+      </span>
+    </div>
+  );
+}
+
 function renderStart() {
   return render(
-    <MemoryRouter initialEntries={['/']}>
-      <Routes>
-        <Route path="/" element={<Start />} />
-        <Route path="/game" element={<GameProbe />} />
-      </Routes>
-    </MemoryRouter>,
+    <OnlineSessionProvider>
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<Start />} />
+          <Route path="/game" element={<GameProbe />} />
+          <Route path="/lobby" element={<LobbyProbe />} />
+        </Routes>
+      </MemoryRouter>
+    </OnlineSessionProvider>,
   );
+}
+
+function lobbySnapshot() {
+  return JSON.parse(screen.getByTestId('lobby-snapshot').textContent ?? 'null');
 }
 
 describe('Start screen', () => {
@@ -95,5 +124,87 @@ describe('Start screen', () => {
     await screen.findByText('game screen');
     const state = JSON.parse(screen.getByTestId('game-state').textContent ?? '{}');
     expect(state).toMatchObject({ mode: 'pvp', difficulty: 'medium' });
+  });
+});
+
+describe('Start screen online mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toast.dismiss();
+  });
+
+  it('reveals room actions only in online mode and hides mark selection', async () => {
+    const user = userEvent.setup();
+    renderStart();
+
+    expect(screen.queryByRole('group', { name: 'Online room' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Online' }));
+
+    const group = screen.getByRole('group', { name: 'Online room' });
+    expect(within(group).getByRole('button', { name: 'Create Room' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(group).getByRole('button', { name: 'Join Room' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: 'Play as X' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'AI difficulty' })).not.toBeInTheDocument();
+  });
+
+  it('creates a host room with a generated code and navigates to the lobby', async () => {
+    const user = userEvent.setup();
+    renderStart();
+
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Alice');
+    await user.click(screen.getByRole('button', { name: 'Online' }));
+    await user.click(screen.getByRole('button', { name: 'Create Room' }));
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    await screen.findByText('lobby screen');
+
+    const snapshot = lobbySnapshot();
+    expect(snapshot.role).toBe('host');
+    expect(snapshot.status).toBe('waiting');
+    expect(snapshot.myName).toBe('ALICE');
+    expect(snapshot.roomCode).toMatch(/^[A-Z0-9]{6}$/);
+  });
+
+  it('blocks join with an invalid room code', async () => {
+    const user = userEvent.setup();
+    renderStart();
+
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Bob');
+    await user.click(screen.getByRole('button', { name: 'Online' }));
+    await user.click(screen.getByRole('button', { name: 'Join Room' }));
+    await user.type(screen.getByRole('textbox', { name: 'Room code' }), '12');
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+
+    expect(await screen.findByText('Enter a valid 6-character room code')).toBeInTheDocument();
+    expect(screen.queryByText('lobby screen')).not.toBeInTheDocument();
+  });
+
+  it('joins an existing room and navigates to the lobby', async () => {
+    const user = userEvent.setup();
+    renderStart();
+
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Bob');
+    await user.click(screen.getByRole('button', { name: 'Online' }));
+    await user.click(screen.getByRole('button', { name: 'Join Room' }));
+    await user.type(screen.getByRole('textbox', { name: 'Room code' }), 'abc234');
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    await screen.findByText('lobby screen');
+
+    const snapshot = lobbySnapshot();
+    expect(snapshot.role).toBe('guest');
+    expect(snapshot.status).toBe('connecting');
+    expect(snapshot.roomCode).toBe('ABC234');
+  });
+
+  it('requires a name before creating a room', async () => {
+    const user = userEvent.setup();
+    renderStart();
+
+    await user.click(screen.getByRole('button', { name: 'Online' }));
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+
+    const messages = await screen.findAllByText('Please Enter your name');
+    expect(messages.length).toBeGreaterThan(0);
+    expect(screen.queryByText('lobby screen')).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Board } from "../../components/Board";
 import { useGame } from "../../hooks/useGame";
 import { isMuted, setMuted } from "../../sound/audio";
 import { AIDIFFICULTIES, PERSONALITIES, getBestMove } from "../../engine";
 import type { AIDifficulty, Player } from "../../engine";
+import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 
 const CONFETTI_COLORS = [
   "#3b82f6",
@@ -78,6 +79,9 @@ const ScoreBox: React.FC<{
 
 export const Home: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { session, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
+  const online = session !== null;
   const navState = (location.state ?? null) as NavState | null;
 
   const playerMark: Player = navState?.playerType === "O" ? "O" : "X";
@@ -88,18 +92,38 @@ export const Home: React.FC = () => {
   const aiMark: Player = playerMark === "X" ? "O" : "X";
   const aiName = PERSONALITIES[difficulty].name;
   const opponentLabel = isPve ? aiName : "PLAYER 2";
-  const playerNames: Record<Player, string> =
+  const localNames: Record<Player, string> =
     playerMark === "X"
       ? { X: playerName, O: opponentLabel }
       : { O: playerName, X: opponentLabel };
+  const playerNames: Record<Player, string> = online
+    ? onlineSnap?.role === "host"
+      ? { X: onlineSnap.myName, O: onlineSnap.opponentName ?? "PLAYER 2" }
+      : { X: onlineSnap?.opponentName ?? "PLAYER 2", O: onlineSnap?.myName ?? "PLAYER 2" }
+    : localNames;
 
   const { state, playMove, rematch, resetMatch } = useGame(
-    { playerNames, mode: isPve ? "pve" : "pvp", aiDifficulty: difficulty },
-    { humanMark: playerMark, aiDelayMs: AI_DELAY_MS },
+    {
+      playerNames,
+      mode: online ? "online" : isPve ? "pve" : "pvp",
+      aiDifficulty: difficulty,
+    },
+    { humanMark: playerMark, aiDelayMs: AI_DELAY_MS, session },
   );
   const [shaking, setShaking] = useState(false);
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [hintOn, setHintOn] = useState(false);
+
+  const myTurn = !online || state.currentPlayer === onlineSnap?.myMark;
+  const disconnected = online && onlineSnap?.status === "disconnected";
+  const rematchWaiting =
+    online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
+
+  useEffect(() => {
+    if (location.pathname === "/room" && !session) {
+      navigate("/", { replace: true });
+    }
+  }, [location.pathname, navigate, session]);
 
   const aiTurnPending =
     isPve && state.phase === "playing" && state.currentPlayer === aiMark;
@@ -115,6 +139,11 @@ export const Home: React.FC = () => {
     if (!moved) setShaking(true);
   };
 
+  const handleLeave = () => {
+    closeRoom();
+    navigate("/", { replace: true });
+  };
+
   const toggleSound = () => {
     const nextSoundOn = !soundOn;
     setMuted(!nextSoundOn);
@@ -125,12 +154,14 @@ export const Home: React.FC = () => {
   const isFinished = state.phase === "finished";
 
   const hintIndex =
-    hintOn && state.phase === "playing" && !aiTurnPending
+    hintOn && !online && state.phase === "playing" && !aiTurnPending
       ? getBestMove(state.board, state.currentPlayer)
       : null;
 
   let statusText: string;
-  if (state.result?.type === "win") {
+  if (disconnected) {
+    statusText = "Opponent disconnected";
+  } else if (state.result?.type === "win") {
     statusText = `${playerNames[state.result.player]} wins!`;
   } else if (state.result?.type === "draw") {
     statusText = "It's a draw!";
@@ -189,7 +220,7 @@ export const Home: React.FC = () => {
           board={state.board}
           onCellClick={handleCellClick}
           winningLine={winningLine}
-          interactionEnabled={!isFinished && !aiTurnPending}
+          interactionEnabled={!isFinished && !aiTurnPending && myTurn && !disconnected}
           hintIndex={hintIndex}
         />
       </div>
@@ -202,22 +233,35 @@ export const Home: React.FC = () => {
         >
           Rematch
         </button>
-        <button
-          type="button"
-          onClick={resetMatch}
-          className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
-        >
-          Reset Scores
-        </button>
-        <button
-          type="button"
-          onClick={() => setHintOn((on) => !on)}
-          aria-pressed={hintOn}
-          disabled={isFinished}
-          className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 disabled:opacity-40 sm:px-6 sm:py-3 sm:text-base"
-        >
-          Hint
-        </button>
+        {!online && (
+          <button
+            type="button"
+            onClick={resetMatch}
+            className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
+          >
+            Reset Scores
+          </button>
+        )}
+        {online && (
+          <button
+            type="button"
+            onClick={handleLeave}
+            className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
+          >
+            Leave Room
+          </button>
+        )}
+        {!online && (
+          <button
+            type="button"
+            onClick={() => setHintOn((on) => !on)}
+            aria-pressed={hintOn}
+            disabled={isFinished}
+            className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 disabled:opacity-40 sm:px-6 sm:py-3 sm:text-base"
+          >
+            Hint
+          </button>
+        )}
         <button
           type="button"
           onClick={toggleSound}
@@ -229,7 +273,7 @@ export const Home: React.FC = () => {
         </button>
       </div>
 
-      {isFinished && (
+      {isFinished && !disconnected && (
         <div
           role="dialog"
           aria-label="Game result"
@@ -246,18 +290,50 @@ export const Home: React.FC = () => {
               <button
                 type="button"
                 onClick={rematch}
-                className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+                disabled={rematchWaiting}
+                className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:opacity-50"
               >
-                Rematch
+                {rematchWaiting ? "Waiting…" : "Rematch"}
               </button>
-              <button
-                type="button"
-                onClick={resetMatch}
-                className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
-              >
-                New Game
-              </button>
+              {online ? (
+                <button
+                  type="button"
+                  onClick={handleLeave}
+                  className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+                >
+                  Leave Room
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={resetMatch}
+                  className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+                >
+                  New Game
+                </button>
+              )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {disconnected && (
+        <div
+          role="dialog"
+          aria-label="Opponent disconnected"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+        >
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
+            <p className="mb-6 text-2xl font-extrabold text-gray-100">
+              Opponent disconnected
+            </p>
+            <button
+              type="button"
+              onClick={handleLeave}
+              className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+            >
+              Back to menu
+            </button>
           </div>
         </div>
       )}
