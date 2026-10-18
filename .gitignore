@@ -28,3 +28,8 @@ dist-ssr
 
 # Test coverage
 coverage
+
+# Playwright
+test-results
+playwright-report
+e2e/screenshots
