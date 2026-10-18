@@ -41,6 +41,7 @@ describe('createInitialState', () => {
     expect(state.phase).toBe('waiting');
     expect(state.result).toBeNull();
     expect(state.scores).toEqual({ X: 0, O: 0 });
+    expect(state.draws).toBe(0);
     expect(state.mode).toBe('pvp');
     expect(state.moveHistory).toEqual([]);
   });
@@ -203,6 +204,16 @@ describe('makeMove', () => {
     }
     expect(newState.scores.X).toBe(0);
     expect(newState.scores.O).toBe(0);
+    expect(newState.draws).toBe(1);
+  });
+
+  it('does not increment draws on win', () => {
+    let newState = makeMove(state, 0);
+    newState = makeMove(newState, 3);
+    newState = makeMove(newState, 1);
+    newState = makeMove(newState, 4);
+    newState = makeMove(newState, 2);
+    expect(newState.draws).toBe(0);
   });
 
   it('stores boardBefore in move history', () => {
@@ -242,6 +253,7 @@ describe('restartGame', () => {
     expect(newState.result).toBeNull();
     expect(newState.moveHistory).toEqual([]);
     expect(newState.scores.X).toBe(1);
+    expect(newState.draws).toBe(state.draws);
   });
 
   it('alternates starting player after win', () => {
@@ -283,6 +295,7 @@ describe('newGame', () => {
     expect(newState.phase).toBe('waiting');
     expect(newState.result).toBeNull();
     expect(newState.scores).toEqual({ X: 0, O: 0 });
+    expect(newState.draws).toBe(0);
     expect(newState.moveHistory).toEqual([]);
   });
 });

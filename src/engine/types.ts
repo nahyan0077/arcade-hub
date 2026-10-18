@@ -24,6 +24,7 @@ export interface GameState {
   phase: GamePhase;
   result: GameResult | null;
   scores: Record<Player, number>;
+  draws: number;
   mode: GameMode;
   aiDifficulty: AIDifficulty;
   playerNames: Record<Player, string>;

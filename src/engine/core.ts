@@ -19,6 +19,7 @@ export function createInitialState(config: Partial<GameConfig> = {}): GameState 
     phase: 'waiting',
     result: null,
     scores: { X: 0, O: 0 },
+    draws: 0,
     mode: mergedConfig.mode,
     aiDifficulty: mergedConfig.aiDifficulty,
     playerNames: mergedConfig.playerNames,
@@ -83,8 +84,12 @@ export function makeMove(state: GameState, index: number): GameState {
   const nextPlayer = state.currentPlayer === 'X' ? 'O' : 'X';
 
   const newScores = { ...state.scores };
+  let newDraws = state.draws;
   if (result.type === 'win') {
     newScores[result.player]++;
+  }
+  if (result.type === 'draw') {
+    newDraws++;
   }
 
   return {
@@ -94,6 +99,7 @@ export function makeMove(state: GameState, index: number): GameState {
     phase: isFinished ? 'finished' : 'playing',
     result,
     scores: newScores,
+    draws: newDraws,
     moveHistory: [...state.moveHistory, move],
   };
 }
@@ -114,6 +120,7 @@ export function restartGame(state: GameState): GameState {
     currentPlayer: newStartingPlayer,
     phase: 'playing',
     result: null,
+    draws: state.draws,
     moveHistory: [],
   };
 }
