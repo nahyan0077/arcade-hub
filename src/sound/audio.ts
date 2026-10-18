@@ -7,16 +7,20 @@ type AudioContextCtor = new () => AudioContext;
 
 function getContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
-  const w = window as Window & { webkitAudioContext?: AudioContextCtor };
+  const w = window as Window & {
+    AudioContext?: AudioContextCtor;
+    webkitAudioContext?: AudioContextCtor;
+  };
   const Ctor = w.AudioContext ?? w.webkitAudioContext;
   if (!Ctor) return null;
   if (!audioContext) {
     audioContext = new Ctor();
   }
-  if (audioContext.state === 'suspended') {
-    void audioContext.resume();
+  const context = audioContext;
+  if (context.state === 'suspended') {
+    void context.resume();
   }
-  return audioContext;
+  return context;
 }
 
 interface ToneOptions {

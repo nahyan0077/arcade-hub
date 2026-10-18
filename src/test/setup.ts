@@ -39,9 +39,13 @@ function createAudioContextMock() {
 
 type AudioContextMock = ReturnType<typeof createAudioContextMock>;
 
-const audioCtor = vi.fn(() => createAudioContextMock()) as unknown as {
+type AudioContextMockCtor = ReturnType<typeof vi.fn> & {
   new (): AudioContextMock;
 };
+
+const audioCtor = vi.fn(
+  (): AudioContextMock => createAudioContextMock(),
+) as unknown as AudioContextMockCtor;
 
 Object.defineProperty(window, 'AudioContext', {
   value: audioCtor,
