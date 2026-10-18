@@ -116,16 +116,16 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-900 px-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-900 px-4 py-4">
       {state.result?.type === "win" && <Confetti />}
 
-      <h1 className="mb-8 select-none text-5xl font-extrabold">
+      <h1 className="select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
         <span className="text-blue-500">TIC</span>{" "}
         <span className="text-gray-100">TAC</span>{" "}
         <span className="text-red-500">TOE</span>
       </h1>
 
-      <div className="mb-6 flex items-center gap-4">
+      <div className="flex items-center gap-3 sm:gap-4">
         <ScoreBox
           label={playerNames.X}
           score={state.scores.X}
@@ -134,10 +134,10 @@ export const Home: React.FC = () => {
           testId="score-x"
         />
         <div className="text-center">
-          <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">
             Draws
           </div>
-          <div data-testid="score-draws" className="text-2xl font-bold text-gray-300">
+          <div data-testid="score-draws" className="text-xl font-bold text-gray-300 sm:text-2xl">
             {state.draws}
           </div>
         </div>
@@ -154,7 +154,7 @@ export const Home: React.FC = () => {
         role="status"
         aria-live="polite"
         data-testid="status"
-        className="mb-6 h-8 text-xl font-bold text-gray-200"
+        className="h-7 text-base font-bold text-gray-200 sm:text-lg"
       >
         {statusText}
       </p>
@@ -168,18 +168,18 @@ export const Home: React.FC = () => {
         />
       </div>
 
-      <div className="mt-8 flex items-center gap-3">
+      <div className="mt-2 flex items-center gap-2 sm:gap-3">
         <button
           type="button"
           onClick={rematch}
-          className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+          className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:px-6 sm:py-3 sm:text-base"
         >
           Rematch
         </button>
         <button
           type="button"
           onClick={resetMatch}
-          className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+          className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
         >
           Reset Scores
         </button>
@@ -188,7 +188,7 @@ export const Home: React.FC = () => {
           onClick={toggleSound}
           aria-pressed={!soundOn}
           aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-          className="rounded-xl bg-zinc-700 px-4 py-3 text-xl text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+          className="rounded-xl bg-zinc-700 px-3.5 py-2.5 text-lg text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-4 sm:py-3 sm:text-xl"
         >
           {soundOn ? "🔊" : "🔇"}
         </button>

@@ -6,6 +6,8 @@ const CELL_PX = 144;
 const GAP_PX = 16;
 const BOARD_PX = CELL_PX * 3 + GAP_PX * 2;
 
+const CELL_SIZE = "min(26vw, 16vh, 140px)";
+
 interface BoardProps {
   board: BoardData;
   onCellClick: (index: number) => void;
@@ -65,8 +67,11 @@ export const Board: React.FC<BoardProps> = ({
   const winningIndices = winningLine ? getWinningLineIndices(winningLine) : [];
 
   return (
-    <div className="relative inline-block">
-      <div className="grid grid-cols-3 gap-4">
+    <div
+      className="relative inline-block"
+      style={{ "--cell": CELL_SIZE } as React.CSSProperties}
+    >
+      <div className="grid grid-cols-3 gap-[calc(var(--cell)/9)]">
         {board.map((value, index) => {
           const isWinning = winningIndices.includes(index);
           const isEmpty = value === 0;
@@ -77,7 +82,7 @@ export const Board: React.FC<BoardProps> = ({
               aria-label={`cell ${index + 1}${isEmpty ? "" : `, ${value}`}`}
               disabled={!interactionEnabled || !isEmpty}
               onClick={() => onCellClick(index)}
-              className={`flex h-36 w-36 items-center justify-center rounded-lg transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+              className={`flex h-[var(--cell)] w-[var(--cell)] items-center justify-center rounded-[calc(var(--cell)/14)] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
                 isWinning
                   ? "bg-gray-500 animate-win-pulse"
                   : "bg-gray-600 hover:bg-gray-500 disabled:hover:bg-gray-600"
@@ -85,7 +90,7 @@ export const Board: React.FC<BoardProps> = ({
             >
               {value !== 0 && (
                 <span
-                  className={`select-none text-8xl font-bold animate-pop ${
+                  className={`select-none text-[calc(var(--cell)*0.55)] font-bold leading-none animate-pop ${
                     value === "X" ? "text-blue-500" : "text-red-500"
                   }`}
                 >
