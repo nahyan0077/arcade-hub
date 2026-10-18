@@ -2,12 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
+  useReducer,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
-import { RoomSession } from './RoomSession';
+import { RoomSession, type SessionSnapshot } from './RoomSession';
 import { createBroadcastTransport, type RoomTransport } from './transport';
 import { generatePlayerId, roomChannelName, type RoomRole } from './protocol';
 
@@ -75,4 +77,25 @@ export function useOnlineSession(): OnlineSessionValue {
     throw new Error('useOnlineSession must be used within OnlineSessionProvider');
   }
   return value;
+}
+
+export function useOnlineSessionSnapshot(): {
+  session: RoomSession | null;
+  snapshot: SessionSnapshot | null;
+  closeRoom: () => void;
+} {
+  // Lenient on purpose: Home is shared between local (/game) and online
+  // (/room) routes and may render outside the provider in tests.
+  const value = useContext(OnlineSessionContext);
+  const session = value?.session ?? null;
+  const closeRoom = value?.closeRoom ?? (() => {});
+  const [, force] = useReducer((n: number) => n + 1, 0);
+
+  useEffect(() => {
+    if (!session) return;
+    return session.subscribe(() => force());
+  }, [session]);
+
+  const snapshot = session ? session.getSnapshot() : null;
+  return { session, snapshot, closeRoom };
 }

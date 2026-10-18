@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { Home } from '../Home';
 import { localStorageMock, audioCtor } from '../../../test/setup';
 import { setMuted } from '../../../sound/audio';
+import { OnlineSessionProvider } from '../../../net/OnlineSessionContext';
+import { RoomSession } from '../../../net/RoomSession';
+import { createFakeTransportBus } from '../../../net/transport';
 
 const KEY = 'tic-tac-toe.scores.v1';
 
@@ -341,5 +344,165 @@ describe('coach hints', () => {
     await playSequence(user, [0, 3, 1, 4, 2]);
 
     expect(screen.getByRole('button', { name: 'Hint' })).toBeDisabled();
+  });
+});
+
+describe('online game screen', () => {
+  const live: RoomSession[] = [];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.getItem.mockReturnValue(null);
+    localStorageMock.setItem.mockReturnValue(undefined);
+    setMuted(false);
+  });
+
+  afterEach(() => {
+    for (const session of live) session.destroy();
+    live.length = 0;
+  });
+
+  function connectedPair() {
+    const bus = createFakeTransportBus();
+    const host = new RoomSession({
+      role: 'host',
+      roomCode: 'ABC234',
+      myId: 'host-1',
+      myName: 'ALICE',
+      transport: bus.createEndpoint(),
+      heartbeatMs: 100,
+      timeoutMs: 10_000,
+      joinTimeoutMs: 5_000,
+    });
+    const guest = new RoomSession({
+      role: 'guest',
+      roomCode: 'ABC234',
+      myId: 'guest-1',
+      myName: 'BOB',
+      transport: bus.createEndpoint(),
+      heartbeatMs: 100,
+      timeoutMs: 10_000,
+      joinTimeoutMs: 5_000,
+    });
+    host.start();
+    guest.start();
+    live.push(host, guest);
+    return { host, guest };
+  }
+
+  function mount(session: RoomSession) {
+    const view = render(
+      <OnlineSessionProvider initialSession={session}>
+        <MemoryRouter initialEntries={[{ pathname: '/room' }]}>
+          <Home />
+        </MemoryRouter>
+      </OnlineSessionProvider>,
+    );
+    return view.container;
+  }
+
+  function cellIn(container: HTMLElement, index: number) {
+    return within(container).getByLabelText(new RegExp(`^cell ${index + 1}(,.*)?$`));
+  }
+
+  async function hostWins(user: ReturnType<typeof userEvent.setup>, hostBoard: HTMLElement, guestBoard: HTMLElement) {
+    await user.click(cellIn(hostBoard, 0));
+    await user.click(cellIn(guestBoard, 3));
+    await user.click(cellIn(hostBoard, 1));
+    await user.click(cellIn(guestBoard, 4));
+    await user.click(cellIn(hostBoard, 2));
+    await within(hostBoard).findByRole('dialog', { name: 'Game result' });
+  }
+
+  it('shows both player names and enforces turn order', async () => {
+    const user = userEvent.setup();
+    const { host, guest } = connectedPair();
+    const hostBoard = mount(host);
+    const guestBoard = mount(guest);
+
+    expect(within(hostBoard).getByTestId('score-x')).toHaveTextContent('ALICE');
+    expect(within(hostBoard).getByTestId('score-o')).toHaveTextContent('BOB');
+    expect(within(guestBoard).getByTestId('score-x')).toHaveTextContent('ALICE');
+
+    expect(cellIn(guestBoard, 0)).toBeDisabled();
+
+    await user.click(cellIn(hostBoard, 0));
+    await waitFor(() => expect(cellIn(guestBoard, 0)).toHaveTextContent('X'));
+    expect(within(hostBoard).getByTestId('status')).toHaveTextContent("BOB's turn");
+
+    await user.click(cellIn(guestBoard, 4));
+    await waitFor(() => expect(cellIn(hostBoard, 4)).toHaveTextContent('O'));
+  });
+
+  it('scores a win in-session without persisting to localStorage', async () => {
+    const user = userEvent.setup();
+    const { host, guest } = connectedPair();
+    const hostBoard = mount(host);
+    const guestBoard = mount(guest);
+
+    await hostWins(user, hostBoard, guestBoard);
+
+    expect(within(hostBoard).getByTestId('score-x')).toHaveTextContent('1');
+    expect(within(guestBoard).getByTestId('score-x')).toHaveTextContent('1');
+    expect(localStorageMock.setItem).not.toHaveBeenCalledWith(KEY, expect.anything());
+  });
+
+  it('rematches only after both players request it', async () => {
+    const user = userEvent.setup();
+    const { host, guest } = connectedPair();
+    const hostBoard = mount(host);
+    const guestBoard = mount(guest);
+
+    await hostWins(user, hostBoard, guestBoard);
+
+    const hostDialog = within(hostBoard).getByRole('dialog', { name: 'Game result' });
+    await user.click(within(hostDialog).getByRole('button', { name: 'Rematch' }));
+
+    const waiting = within(hostBoard).getByRole('button', { name: 'Waiting…' });
+    expect(waiting).toBeDisabled();
+    expect(cellIn(guestBoard, 0)).toHaveTextContent('X');
+
+    const guestDialog = within(guestBoard).getByRole('dialog', { name: 'Game result' });
+    await user.click(within(guestDialog).getByRole('button', { name: 'Rematch' }));
+
+    await waitFor(() => {
+      expect(within(hostBoard).queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(cellIn(hostBoard, 0)).toBeEmptyDOMElement();
+    expect(cellIn(guestBoard, 0)).toBeEmptyDOMElement();
+    expect(within(hostBoard).getByTestId('score-x')).toHaveTextContent('1');
+  });
+
+  it('shows a disconnect dialog when the opponent leaves', async () => {
+    const user = userEvent.setup();
+    const { host, guest } = connectedPair();
+    const hostBoard = mount(host);
+    const guestBoard = mount(guest);
+
+    await user.click(within(guestBoard).getByRole('button', { name: 'Leave Room' }));
+
+    await waitFor(() =>
+      expect(
+        within(hostBoard).getByRole('dialog', { name: 'Opponent disconnected' }),
+      ).toBeInTheDocument(),
+    );
+    expect(within(hostBoard).getByTestId('status')).toHaveTextContent(
+      'Opponent disconnected',
+    );
+  });
+
+  it('redirects /room to the menu without a session', async () => {
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/room' }]}>
+        <OnlineSessionProvider>
+          <Routes>
+            <Route path="/" element={<div>start screen</div>} />
+            <Route path="/room" element={<Home />} />
+          </Routes>
+        </OnlineSessionProvider>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('start screen')).toBeInTheDocument();
   });
 });
