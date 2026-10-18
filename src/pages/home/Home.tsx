@@ -1,38 +1,231 @@
-import React, { useState } from "react";
-import { Board } from "../../components/Board";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
+import { Board } from "../../components/Board";
+import { useGame } from "../../hooks/useGame";
+import { isMuted, setMuted } from "../../sound/audio";
+import type { Player } from "../../engine";
 
-export const Home : React.FC = () => {
-    const location = useLocation()
-    const [box, setBox] = useState(Array(9).fill(0))
-    const [currentPlayer, setCurrentPlayer] = useState(location.state.playerType)
+const CONFETTI_COLORS = [
+  "#3b82f6",
+  "#ef4444",
+  "#facc15",
+  "#22c55e",
+  "#a855f7",
+  "#06b6d4",
+];
 
-    console.log(location.state);
-    
+const Confetti: React.FC = () => {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 40 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.6,
+        duration: 1.8 + Math.random() * 1.4,
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        size: 8 + Math.random() * 6,
+      })),
+    [],
+  );
 
-    const handleClickBox = (index:number) => {
-        console.log("Box clicked:", index);
-        if(box[index] != 0) return
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+      {pieces.map((piece) => (
+        <span
+          key={piece.id}
+          className="absolute top-0 animate-confetti-fall rounded-sm"
+          style={{
+            left: `${piece.left}%`,
+            width: piece.size,
+            height: piece.size * 0.6,
+            backgroundColor: piece.color,
+            animationDelay: `${piece.delay}s`,
+            animationDuration: `${piece.duration}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
-        const newBox = [...box]
-        newBox[index] = currentPlayer
-        setBox(newBox)
-
-        setCurrentPlayer(currentPlayer == "X" ? "O" : "X")
-    }
-
-    return (
-        <>
-        <div className="min-h-screen flex flex-col justify-center items-center justify-items-center bg-zinc-900" >
-            <div className="flex justify-center gap-24  w-full pb-5" > 
-                <h2 className="text-5xl mb-10 text-blue-600 font-extrabold" > TIC </h2>
-                <h2 className="text-5xl mb-10 text-gray-100 font-extrabold" > TAC </h2>
-                <h2 className="text-5xl mb-10 text-red-600 font-extrabold" > TOE </h2>
-            </div>            
-            <div className=" flex mx-auto  max-w-7xl justify-center" >
-                <Board box={box} click={handleClickBox} />
-            </div>
-        </div>
-        </>
-    )
+interface NavState {
+  playerType?: string;
+  name?: string;
 }
+
+const ScoreBox: React.FC<{
+  label: string;
+  score: number;
+  active: boolean;
+  accent: string;
+  testId: string;
+}> = ({ label, score, active, accent, testId }) => (
+  <div
+    data-testid={testId}
+    className={`rounded-xl border-2 px-6 py-3 text-center transition-colors ${
+      active ? "border-yellow-400 bg-zinc-800" : "border-zinc-700 bg-zinc-800/60"
+    }`}
+  >
+    <div className={`text-xs font-semibold uppercase tracking-wider ${accent}`}>{label}</div>
+    <div className="text-3xl font-extrabold text-gray-100">{score}</div>
+  </div>
+);
+
+export const Home: React.FC = () => {
+  const location = useLocation();
+  const navState = (location.state ?? null) as NavState | null;
+
+  const playerMark: Player = navState?.playerType === "O" ? "O" : "X";
+  const playerName = navState?.name?.trim().toUpperCase() || "PLAYER 1";
+  const playerNames: Record<Player, string> =
+    playerMark === "X"
+      ? { X: playerName, O: "PLAYER 2" }
+      : { O: playerName, X: "PLAYER 2" };
+
+  const { state, playMove, rematch, resetMatch } = useGame({ playerNames });
+  const [shaking, setShaking] = useState(false);
+  const [soundOn, setSoundOn] = useState(!isMuted());
+
+  useEffect(() => {
+    if (!shaking) return;
+    const timer = setTimeout(() => setShaking(false), 350);
+    return () => clearTimeout(timer);
+  }, [shaking]);
+
+  const handleCellClick = (index: number) => {
+    const moved = playMove(index);
+    if (!moved) setShaking(true);
+  };
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setMuted(next);
+    setSoundOn(next);
+  };
+
+  const winningLine = state.result?.type === "win" ? state.result.line : null;
+  const isFinished = state.phase === "finished";
+
+  let statusText: string;
+  if (state.result?.type === "win") {
+    statusText = `${playerNames[state.result.player]} wins!`;
+  } else if (state.result?.type === "draw") {
+    statusText = "It's a draw!";
+  } else {
+    statusText = `${playerNames[state.currentPlayer]}'s turn`;
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-900 px-4">
+      {state.result?.type === "win" && <Confetti />}
+
+      <h1 className="mb-8 select-none text-5xl font-extrabold">
+        <span className="text-blue-500">TIC</span>{" "}
+        <span className="text-gray-100">TAC</span>{" "}
+        <span className="text-red-500">TOE</span>
+      </h1>
+
+      <div className="mb-6 flex items-center gap-4">
+        <ScoreBox
+          label={playerNames.X}
+          score={state.scores.X}
+          active={!isFinished && state.currentPlayer === "X"}
+          accent="text-blue-500"
+          testId="score-x"
+        />
+        <div className="text-center">
+          <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            Draws
+          </div>
+          <div data-testid="score-draws" className="text-2xl font-bold text-gray-300">
+            {state.draws}
+          </div>
+        </div>
+        <ScoreBox
+          label={playerNames.O}
+          score={state.scores.O}
+          active={!isFinished && state.currentPlayer === "O"}
+          accent="text-red-500"
+          testId="score-o"
+        />
+      </div>
+
+      <p
+        role="status"
+        aria-live="polite"
+        data-testid="status"
+        className="mb-6 h-8 text-xl font-bold text-gray-200"
+      >
+        {statusText}
+      </p>
+
+      <div className={shaking ? "animate-shake" : ""}>
+        <Board
+          board={state.board}
+          onCellClick={handleCellClick}
+          winningLine={winningLine}
+          interactionEnabled={!isFinished}
+        />
+      </div>
+
+      <div className="mt-8 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={rematch}
+          className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+        >
+          Rematch
+        </button>
+        <button
+          type="button"
+          onClick={resetMatch}
+          className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+        >
+          Reset Scores
+        </button>
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={!soundOn}
+          aria-label={soundOn ? "Mute sound" : "Unmute sound"}
+          className="rounded-xl bg-zinc-700 px-4 py-3 text-xl text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+        >
+          {soundOn ? "🔊" : "🔇"}
+        </button>
+      </div>
+
+      {isFinished && (
+        <div
+          role="dialog"
+          aria-label="Game result"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+        >
+          <div className="mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
+            <p className="mb-1 text-sm font-semibold uppercase tracking-widest text-zinc-400">
+              {state.result?.type === "draw" ? "Match Over" : "Winner"}
+            </p>
+            <p className="mb-6 text-4xl font-extrabold text-gray-100">
+              {state.result?.type === "win" ? playerNames[state.result.player] : "Draw"}
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={rematch}
+                className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+              >
+                Rematch
+              </button>
+              <button
+                type="button"
+                onClick={resetMatch}
+                className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+              >
+                New Game
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
