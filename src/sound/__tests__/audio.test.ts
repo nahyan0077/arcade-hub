@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setMuted, isMuted } from '../audio';
-import { audioCtor } from '../../test/setup';
+import { audioCtor, localStorageMock } from '../../test/setup';
 
 async function loadFreshAudio() {
   vi.resetModules();
@@ -42,6 +42,22 @@ describe('sound effects', () => {
     expect(isMuted()).toBe(true);
     setMuted(false);
     expect(isMuted()).toBe(false);
+  });
+
+  it('persists mute choice to storage', async () => {
+    const mod = await loadFreshAudio();
+    mod.setMuted(true);
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('tic-tac-toe.muted.v1', 'true');
+    mod.setMuted(false);
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('tic-tac-toe.muted.v1', 'false');
+  });
+
+  it('restores mute from storage on load', async () => {
+    localStorageMock.getItem.mockReturnValueOnce('true');
+    const mod = await loadFreshAudio();
+    expect(mod.isMuted()).toBe(true);
+    mod.playEffect('win');
+    expect(audioCtor).not.toHaveBeenCalled();
   });
 
   it('reuses the same audio context across plays', async () => {

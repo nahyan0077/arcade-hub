@@ -3,7 +3,8 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { Home } from '../Home';
-import { localStorageMock } from '../../../test/setup';
+import { localStorageMock, audioCtor } from '../../../test/setup';
+import { setMuted } from '../../../sound/audio';
 
 const KEY = 'tic-tac-toe.scores.v1';
 
@@ -53,6 +54,7 @@ describe('Home game screen', () => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
     localStorageMock.setItem.mockReturnValue(undefined);
+    setMuted(false);
   });
 
   it('renders empty board with first player turn', () => {
@@ -172,6 +174,48 @@ describe('Home game screen', () => {
     expect(screen.getByRole('button', { name: 'Unmute sound' })).toBeInTheDocument();
   });
 
+  it('mute button silences subsequent moves and unmute restores them', async () => {
+    // Fresh module graph: audio caches one AudioContext per module lifetime,
+    // and beforeEach clears the ctor's call history — re-import Home so the
+    // audio module under test has a fresh, observable context.
+    vi.resetModules();
+    const { Home: FreshHome } = await import('../Home');
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/game', state: { playerType: 'X', name: 'Alice' } }]}>
+        <FreshHome />
+      </MemoryRouter>,
+    );
+    const user = userEvent.setup();
+
+    await user.click(cell(0));
+    const ctorSpy = audioCtor as unknown as ReturnType<typeof vi.fn>;
+    const results = ctorSpy.mock.results;
+    const context = results[results.length - 1]?.value as {
+      createOscillator: ReturnType<typeof vi.fn>;
+    };
+    expect(context).toBeDefined();
+    context.createOscillator.mockClear();
+
+    await user.click(screen.getByRole('button', { name: 'Mute sound' }));
+    await user.click(cell(4));
+    expect(context.createOscillator).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Unmute sound' }));
+    await user.click(cell(8));
+    expect(context.createOscillator).toHaveBeenCalled();
+  });
+
+  it('mute state survives a fresh mount', async () => {
+    const user = userEvent.setup();
+    const { unmount } = renderGame();
+
+    await user.click(screen.getByRole('button', { name: 'Mute sound' }));
+    unmount();
+    renderGame();
+
+    expect(screen.getByRole('button', { name: 'Unmute sound' })).toBeInTheDocument();
+  });
+
   it('shows the AI personality as opponent and scores a reply move', async () => {
     const user = userEvent.setup();
     renderPve();
@@ -260,6 +304,7 @@ describe('coach hints', () => {
     vi.clearAllMocks();
     localStorageMock.getItem.mockReturnValue(null);
     localStorageMock.setItem.mockReturnValue(undefined);
+    setMuted(false);
   });
 
   it('marks the best cell while the hint is on and clears it when off', async () => {

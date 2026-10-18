@@ -1,7 +1,18 @@
 export type SoundEffect = 'place-x' | 'place-o' | 'win' | 'draw' | 'invalid';
 
+const MUTE_STORAGE_KEY = 'tic-tac-toe.muted.v1';
+
+function loadMuted(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(MUTE_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 let audioContext: AudioContext | null = null;
-let muted = false;
+let muted = loadMuted();
 
 type AudioContextCtor = new () => AudioContext;
 
@@ -88,6 +99,11 @@ export function playEffect(effect: SoundEffect): void {
 
 export function setMuted(value: boolean): void {
   muted = value;
+  try {
+    window.localStorage.setItem(MUTE_STORAGE_KEY, String(value));
+  } catch {
+    // storage unavailable; mute still applies for this session
+  }
 }
 
 export function isMuted(): boolean {

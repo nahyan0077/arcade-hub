@@ -116,9 +116,9 @@ export const Home: React.FC = () => {
   };
 
   const toggleSound = () => {
-    const next = !soundOn;
-    setMuted(next);
-    setSoundOn(next);
+    const nextSoundOn = !soundOn;
+    setMuted(!nextSoundOn);
+    setSoundOn(nextSoundOn);
   };
 
   const winningLine = state.result?.type === "win" ? state.result.line : null;
