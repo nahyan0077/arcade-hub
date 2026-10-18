@@ -3,7 +3,8 @@ import { useLocation } from "react-router-dom";
 import { Board } from "../../components/Board";
 import { useGame } from "../../hooks/useGame";
 import { isMuted, setMuted } from "../../sound/audio";
-import type { Player } from "../../engine";
+import { AIDIFFICULTIES, PERSONALITIES, getBestMove } from "../../engine";
+import type { AIDifficulty, Player } from "../../engine";
 
 const CONFETTI_COLORS = [
   "#3b82f6",
@@ -13,6 +14,8 @@ const CONFETTI_COLORS = [
   "#a855f7",
   "#06b6d4",
 ];
+
+const AI_DELAY_MS = Number(import.meta.env.VITE_AI_DELAY_MS ?? 600);
 
 const Confetti: React.FC = () => {
   const pieces = useMemo(
@@ -51,6 +54,8 @@ const Confetti: React.FC = () => {
 interface NavState {
   playerType?: string;
   name?: string;
+  mode?: string;
+  difficulty?: string;
 }
 
 const ScoreBox: React.FC<{
@@ -77,14 +82,27 @@ export const Home: React.FC = () => {
 
   const playerMark: Player = navState?.playerType === "O" ? "O" : "X";
   const playerName = navState?.name?.trim().toUpperCase() || "PLAYER 1";
+  const isPve = navState?.mode === "pve";
+  const difficulty: AIDifficulty =
+    AIDIFFICULTIES.find((level) => level === navState?.difficulty) ?? "medium";
+  const aiMark: Player = playerMark === "X" ? "O" : "X";
+  const aiName = PERSONALITIES[difficulty].name;
+  const opponentLabel = isPve ? aiName : "PLAYER 2";
   const playerNames: Record<Player, string> =
     playerMark === "X"
-      ? { X: playerName, O: "PLAYER 2" }
-      : { O: playerName, X: "PLAYER 2" };
+      ? { X: playerName, O: opponentLabel }
+      : { O: playerName, X: opponentLabel };
 
-  const { state, playMove, rematch, resetMatch } = useGame({ playerNames });
+  const { state, playMove, rematch, resetMatch } = useGame(
+    { playerNames, mode: isPve ? "pve" : "pvp", aiDifficulty: difficulty },
+    { humanMark: playerMark, aiDelayMs: AI_DELAY_MS },
+  );
   const [shaking, setShaking] = useState(false);
   const [soundOn, setSoundOn] = useState(!isMuted());
+  const [hintOn, setHintOn] = useState(false);
+
+  const aiTurnPending =
+    isPve && state.phase === "playing" && state.currentPlayer === aiMark;
 
   useEffect(() => {
     if (!shaking) return;
@@ -106,11 +124,18 @@ export const Home: React.FC = () => {
   const winningLine = state.result?.type === "win" ? state.result.line : null;
   const isFinished = state.phase === "finished";
 
+  const hintIndex =
+    hintOn && state.phase === "playing" && !aiTurnPending
+      ? getBestMove(state.board, state.currentPlayer)
+      : null;
+
   let statusText: string;
   if (state.result?.type === "win") {
     statusText = `${playerNames[state.result.player]} wins!`;
   } else if (state.result?.type === "draw") {
     statusText = "It's a draw!";
+  } else if (aiTurnPending) {
+    statusText = `${aiName} is thinking...`;
   } else {
     statusText = `${playerNames[state.currentPlayer]}'s turn`;
   }
@@ -164,7 +189,8 @@ export const Home: React.FC = () => {
           board={state.board}
           onCellClick={handleCellClick}
           winningLine={winningLine}
-          interactionEnabled={!isFinished}
+          interactionEnabled={!isFinished && !aiTurnPending}
+          hintIndex={hintIndex}
         />
       </div>
 
@@ -182,6 +208,15 @@ export const Home: React.FC = () => {
           className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
         >
           Reset Scores
+        </button>
+        <button
+          type="button"
+          onClick={() => setHintOn((on) => !on)}
+          aria-pressed={hintOn}
+          disabled={isFinished}
+          className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 disabled:opacity-40 sm:px-6 sm:py-3 sm:text-base"
+        >
+          Hint
         </button>
         <button
           type="button"
