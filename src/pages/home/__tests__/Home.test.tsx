@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { Home } from '../Home';
@@ -7,7 +7,14 @@ import { localStorageMock } from '../../../test/setup';
 
 const KEY = 'tic-tac-toe.scores.v1';
 
-function renderGame(state: { playerType: string; name: string } | null = { playerType: 'X', name: 'Alice' }) {
+interface NavState {
+  playerType: string;
+  name: string;
+  mode?: string;
+  difficulty?: string;
+}
+
+function renderGame(state: NavState | null = { playerType: 'X', name: 'Alice' }) {
   return render(
     <MemoryRouter initialEntries={[{ pathname: '/game', state }]}>
       <Home />
@@ -15,8 +22,24 @@ function renderGame(state: { playerType: string; name: string } | null = { playe
   );
 }
 
+function renderPve(overrides: Partial<NavState> = {}) {
+  return renderGame({
+    playerType: 'X',
+    name: 'Alice',
+    mode: 'pve',
+    difficulty: 'medium',
+    ...overrides,
+  });
+}
+
 function cell(index: number) {
   return screen.getByLabelText(new RegExp(`^cell ${index + 1}(,.*)?$`));
+}
+
+function marksOnBoard(mark: string): number {
+  return screen
+    .queryAllByText(mark)
+    .filter((node) => node.tagName === 'SPAN').length;
 }
 
 async function playSequence(user: ReturnType<typeof userEvent.setup>, moves: number[]) {
@@ -147,5 +170,131 @@ describe('Home game screen', () => {
     const toggle = screen.getByRole('button', { name: 'Mute sound' });
     await user.click(toggle);
     expect(screen.getByRole('button', { name: 'Unmute sound' })).toBeInTheDocument();
+  });
+
+  it('shows the AI personality as opponent and scores a reply move', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    expect(screen.getByTestId('score-o')).toHaveTextContent('SCOUT');
+    expect(screen.getByTestId('score-x')).toHaveTextContent('ALICE');
+
+    await user.click(cell(6));
+    expect(screen.getByTestId('status')).toHaveTextContent('SCOUT is thinking...');
+    expect(cell(6)).toHaveTextContent('X');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent("ALICE's turn");
+    });
+    expect(marksOnBoard('O')).toBe(1);
+  });
+
+  it('disables the board while the AI is thinking', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    await user.click(cell(6));
+    await screen.findByText(/thinking/);
+    expect(cell(4)).toBeDisabled();
+    expect(cell(0)).toBeDisabled();
+
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent("ALICE's turn");
+    });
+    expect(cell(0)).toBeEnabled();
+  });
+
+  it('AI moves first when the human plays as O', async () => {
+    renderPve({ playerType: 'O' });
+
+    expect(screen.getByTestId('status')).toHaveTextContent('SCOUT is thinking...');
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent("ALICE's turn");
+    });
+    expect(marksOnBoard('X')).toBe(1);
+    expect(marksOnBoard('O')).toBe(0);
+  });
+
+  it('AI takes an available win', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    // Human X bottom-left; AI takes center; X top-left (threatens col 0);
+    // AI blocks at 3; X plays 1 (threatens top row); AI wins on 5 (3-4-5).
+    await user.click(cell(6));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(1));
+    await user.click(cell(0));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(2));
+    expect(cell(3)).toHaveTextContent('O');
+
+    await user.click(cell(1));
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('SCOUT wins!');
+    });
+    const dialog = screen.getByRole('dialog', { name: 'Game result' });
+    expect(within(dialog).getByText('SCOUT')).toBeInTheDocument();
+    expect(screen.getByTestId('score-o')).toHaveTextContent('1');
+  });
+
+  it('AI wins persist across rematch', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    await user.click(cell(6));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(1));
+    await user.click(cell(0));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(2));
+    await user.click(cell(1));
+    await screen.findByRole('dialog', { name: 'Game result' });
+
+    const dialog = screen.getByRole('dialog', { name: 'Game result' });
+    await user.click(within(dialog).getByRole('button', { name: 'Rematch' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByTestId('score-o')).toHaveTextContent('1');
+  });
+});
+
+describe('coach hints', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorageMock.getItem.mockReturnValue(null);
+    localStorageMock.setItem.mockReturnValue(undefined);
+  });
+
+  it('marks the best cell while the hint is on and clears it when off', async () => {
+    const user = userEvent.setup();
+    renderGame();
+
+    expect(screen.queryByTestId('hint-cell')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Hint' }));
+
+    const hint = screen.getByTestId('hint-cell');
+    expect(hint).toBe(cell(0));
+
+    await user.click(screen.getByRole('button', { name: 'Hint' }));
+    expect(screen.queryByTestId('hint-cell')).not.toBeInTheDocument();
+  });
+
+  it('recomputes the hint after a move', async () => {
+    const user = userEvent.setup();
+    renderGame();
+
+    await user.click(screen.getByRole('button', { name: 'Hint' }));
+    await user.click(cell(4));
+
+    const hint = screen.getByTestId('hint-cell');
+    expect(hint).not.toBe(cell(4));
+    expect(hint).toBeEnabled();
+  });
+
+  it('disables the hint after the game ends', async () => {
+    const user = userEvent.setup();
+    renderGame();
+
+    await user.click(screen.getByRole('button', { name: 'Hint' }));
+    await playSequence(user, [0, 3, 1, 4, 2]);
+
+    expect(screen.getByRole('button', { name: 'Hint' })).toBeDisabled();
   });
 });

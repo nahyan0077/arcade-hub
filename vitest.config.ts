@@ -8,6 +8,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    env: {
+      VITE_AI_DELAY_MS: '50',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

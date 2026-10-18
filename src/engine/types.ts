@@ -18,6 +18,13 @@ export type GameMode = 'pvp' | 'pve';
 
 export type AIDifficulty = 'easy' | 'medium' | 'hard' | 'impossible';
 
+export const AIDIFFICULTIES: readonly AIDifficulty[] = [
+  'easy',
+  'medium',
+  'hard',
+  'impossible',
+] as const;
+
 export interface GameState {
   board: Board;
   currentPlayer: Player;

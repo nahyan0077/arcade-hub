@@ -13,6 +13,7 @@ interface BoardProps {
   onCellClick: (index: number) => void;
   winningLine: WinLine | null;
   interactionEnabled: boolean;
+  hintIndex?: number | null;
 }
 
 function cellCenter(index: number): { x: number; y: number } {
@@ -63,6 +64,7 @@ export const Board: React.FC<BoardProps> = ({
   onCellClick,
   winningLine,
   interactionEnabled,
+  hintIndex = null,
 }) => {
   const winningIndices = winningLine ? getWinningLineIndices(winningLine) : [];
 
@@ -75,6 +77,7 @@ export const Board: React.FC<BoardProps> = ({
         {board.map((value, index) => {
           const isWinning = winningIndices.includes(index);
           const isEmpty = value === 0;
+          const isHint = hintIndex === index;
           return (
             <button
               key={index}
@@ -82,10 +85,13 @@ export const Board: React.FC<BoardProps> = ({
               aria-label={`cell ${index + 1}${isEmpty ? "" : `, ${value}`}`}
               disabled={!interactionEnabled || !isEmpty}
               onClick={() => onCellClick(index)}
+              data-testid={isHint ? "hint-cell" : undefined}
               className={`flex h-[var(--cell)] w-[var(--cell)] items-center justify-center rounded-[calc(var(--cell)/14)] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
                 isWinning
                   ? "bg-gray-500 animate-win-pulse"
-                  : "bg-gray-600 hover:bg-gray-500 disabled:hover:bg-gray-600"
+                  : isHint
+                    ? "bg-gray-600 ring-4 ring-yellow-400 animate-pulse"
+                    : "bg-gray-600 hover:bg-gray-500 disabled:hover:bg-gray-600"
               }`}
             >
               {value !== 0 && (

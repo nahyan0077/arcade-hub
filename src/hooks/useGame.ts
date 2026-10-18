@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  chooseMove,
   createInitialState,
   makeMove,
   newGame,
@@ -7,11 +8,21 @@ import {
   startGame,
   isValidMove,
 } from '../engine';
-import type { GameConfig, GameState } from '../engine';
+import type { GameConfig, GameState, Player } from '../engine';
 import { loadScores, saveScores } from '../storage/scores';
 import { playEffect } from '../sound/audio';
 
-export function useGame(config: Partial<GameConfig> = {}) {
+const DEFAULT_AI_DELAY_MS = 600;
+
+export interface AITurnOptions {
+  humanMark?: Player;
+  aiDelayMs?: number;
+}
+
+export function useGame(
+  config: Partial<GameConfig> = {},
+  aiOptions: AITurnOptions = {},
+) {
   const [state, setState] = useState<GameState>(() => {
     const initial = createInitialState(config);
     const persisted = loadScores();
@@ -36,13 +47,8 @@ export function useGame(config: Partial<GameConfig> = {}) {
     saveScores({ X: scoreX, O: scoreO, draws });
   }, [scoreX, scoreO, draws]);
 
-  const playMove = useCallback((index: number) => {
+  const applyMove = useCallback((index: number) => {
     const current = stateRef.current;
-    if (!isValidMove(current, index)) {
-      playEffect('invalid');
-      return false;
-    }
-
     const next = makeMove(current, index);
     if (next.result?.type === 'win') {
       playEffect('win');
@@ -54,8 +60,45 @@ export function useGame(config: Partial<GameConfig> = {}) {
 
     stateRef.current = next;
     setState(next);
-    return true;
+    return next;
   }, []);
+
+  const playMove = useCallback(
+    (index: number) => {
+      const current = stateRef.current;
+      if (!isValidMove(current, index)) {
+        playEffect('invalid');
+        return false;
+      }
+      applyMove(index);
+      return true;
+    },
+    [applyMove],
+  );
+
+  const humanMark = aiOptions.humanMark ?? 'X';
+  const aiDelayMs = aiOptions.aiDelayMs ?? DEFAULT_AI_DELAY_MS;
+  const aiMark: Player | null =
+    state.mode === 'pve' ? (humanMark === 'X' ? 'O' : 'X') : null;
+
+  useEffect(() => {
+    if (aiMark === null) return;
+    const current = stateRef.current;
+    if (current.phase !== 'playing' || current.currentPlayer !== aiMark) return;
+
+    const timer = setTimeout(() => {
+      const latest = stateRef.current;
+      if (latest.phase !== 'playing' || latest.currentPlayer !== aiMark) return;
+      const move = chooseMove(latest.board, {
+        difficulty: latest.aiDifficulty,
+        aiMark,
+        rng: Math.random,
+      });
+      applyMove(move);
+    }, aiDelayMs);
+
+    return () => clearTimeout(timer);
+  }, [state.phase, state.currentPlayer, state.mode, aiMark, aiDelayMs, applyMove]);
 
   const rematch = useCallback(() => {
     const next = restartGame(stateRef.current);

@@ -12,8 +12,26 @@ async function startGame(page: Page, name = 'Alice'): Promise<void> {
   await expect(page).toHaveURL(/\/game/);
 }
 
+async function startPve(
+  page: Page,
+  options: { name?: string; mark?: 'X' | 'O'; difficulty?: string } = {},
+): Promise<void> {
+  const { name = 'Alice', mark = 'X', difficulty = 'medium' } = options;
+  await page.goto('/');
+  await page.getByPlaceholder('Enter your name').fill(name);
+  await page.getByRole('button', { name: `Play as ${mark}` }).click();
+  await page.getByRole('button', { name: 'vs AI' }).click();
+  await page.getByRole('button', { name: difficulty.toUpperCase() }).click();
+  await page.getByRole('button', { name: 'Start Game' }).click();
+  await expect(page).toHaveURL(/\/game/);
+}
+
 function cell(page: Page, index: number) {
   return page.getByRole('button', { name: new RegExp(`^cell ${index + 1}(,|$)`) });
+}
+
+function markCount(page: Page, mark: string) {
+  return page.locator('span', { hasText: new RegExp(`^${mark}$`) }).count();
 }
 
 async function isPageScrollable(page: Page): Promise<boolean> {
@@ -76,4 +94,55 @@ test('validation blocks empty start', async ({ page }) => {
   await page.getByRole('button', { name: 'Start Game' }).click();
   await expect(page.getByText('Please Enter your name')).toBeVisible();
   await expect(page).toHaveURL(/\/$/);
+});
+
+test('vs AI: shows personality, replies to the human, fits viewport', async ({ page }, testInfo) => {
+  await startPve(page, { difficulty: 'medium' });
+
+  await expect(page.getByTestId('score-o')).toHaveText(/SCOUT/);
+  expect(await isPageScrollable(page)).toBe(false);
+
+  await cell(page, 6).click();
+  await expect.poll(() => markCount(page, 'O')).toBe(1);
+  await expect(page.getByRole('status')).toHaveText("ALICE's turn");
+  await page.screenshot({ path: shots(testInfo.project.name, '07-ai-reply') });
+});
+
+test('vs AI: AI moves first when human plays as O', async ({ page }) => {
+  await startPve(page, { mark: 'O' });
+
+  await expect.poll(() => markCount(page, 'X')).toBe(1);
+  await expect(page.getByRole('status')).toHaveText("ALICE's turn");
+});
+
+test('vs AI: AI takes an available win', async ({ page }, testInfo) => {
+  await startPve(page, { difficulty: 'medium' });
+
+  await cell(page, 6).click();
+  await expect.poll(() => markCount(page, 'O')).toBe(1);
+  await cell(page, 0).click();
+  await expect.poll(() => markCount(page, 'O')).toBe(2);
+  await expect(cell(page, 3)).toHaveText('O');
+
+  await cell(page, 1).click();
+  await expect(page.getByRole('status')).toHaveText('SCOUT wins!');
+  const dialog = page.getByRole('dialog', { name: 'Game result' });
+  await expect(dialog).toBeVisible();
+  await expect(page.getByTestId('score-o')).toHaveText(/1$/);
+  await page.screenshot({ path: shots(testInfo.project.name, '08-ai-win') });
+});
+
+test('hint highlights the recommended cell', async ({ page }, testInfo) => {
+  await startGame(page);
+
+  await page.getByRole('button', { name: 'Hint' }).click();
+  const hint = page.getByTestId('hint-cell');
+  await expect(hint).toBeVisible();
+  await expect(hint).toHaveAccessibleName(/^cell 1$/);
+  await page.screenshot({ path: shots(testInfo.project.name, '09-hint') });
+
+  await hint.click();
+  await expect(hint).toBeVisible();
+  await page.getByRole('button', { name: 'Hint' }).click();
+  await expect(page.getByTestId('hint-cell')).toHaveCount(0);
 });
