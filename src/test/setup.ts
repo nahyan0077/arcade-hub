@@ -1,36 +1,56 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+const localStorageMock = {
+  getItem: vi.fn<(key: string) => string | null>().mockReturnValue(null),
+  setItem: vi.fn<(key: string, value: string) => void>(),
+  removeItem: vi.fn<(key: string) => void>(),
+  clear: vi.fn(),
+};
+
 Object.defineProperty(window, 'localStorage', {
-  value: {
-    getItem: vi.fn(),
-    setItem: vi.fn(),
-    removeItem: vi.fn(),
-    clear: vi.fn(),
-  },
+  value: localStorageMock,
   writable: true,
 });
 
-Object.defineProperty(window, 'AudioContext', {
-  value: vi.fn().mockImplementation(() => ({
-    createOscillator: () => ({
+function createAudioContextMock() {
+  return {
+    state: 'running',
+    currentTime: 0,
+    destination: {},
+    resume: vi.fn(),
+    createOscillator: vi.fn(() => ({
+      type: 'sine' as OscillatorType,
       connect: vi.fn(),
       start: vi.fn(),
       stop: vi.fn(),
       frequency: { value: 440 },
-      type: 'sine',
-    }),
-    createGain: () => ({
+    })),
+    createGain: vi.fn(() => ({
       connect: vi.fn(),
-      gain: { value: 1, setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() },
-    }),
-    destination: {},
-    resume: vi.fn(),
-  })),
+      gain: {
+        value: 1,
+        setValueAtTime: vi.fn(),
+        exponentialRampToValueAtTime: vi.fn(),
+      },
+    })),
+  };
+}
+
+type AudioContextMock = ReturnType<typeof createAudioContextMock>;
+
+const audioCtor = vi.fn(() => createAudioContextMock()) as unknown as {
+  new (): AudioContextMock;
+};
+
+Object.defineProperty(window, 'AudioContext', {
+  value: audioCtor,
   writable: true,
 });
 
 Object.defineProperty(window, 'webkitAudioContext', {
-  value: window.AudioContext,
+  value: audioCtor,
   writable: true,
 });
+
+export { localStorageMock, audioCtor };
