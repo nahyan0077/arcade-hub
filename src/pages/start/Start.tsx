@@ -2,12 +2,25 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./start.css";
 import toast, { Toaster } from "react-hot-toast";
+import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
+import type { AIDifficulty } from "../../engine";
+
+type GameMode = "pvp" | "pve";
+
+const optionClass = (active: boolean): string =>
+  `rounded-lg border-2 px-4 py-2 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+    active
+      ? "border-blue-500 bg-blue-500/15 text-blue-300"
+      : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-gray-200"
+  }`;
 
 export const Start = () => {
   const navigate = useNavigate();
 
   const [playerType, setPlayerType] = useState("");
   const [name, setName] = useState("");
+  const [mode, setMode] = useState<GameMode>("pvp");
+  const [difficulty, setDifficulty] = useState<AIDifficulty>("medium");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -42,7 +55,7 @@ export const Start = () => {
           });
           return
     }
-    navigate("/game", { state: { playerType, name } });
+    navigate("/game", { state: { playerType, name, mode, difficulty } });
   };
 
   return (
@@ -86,12 +99,49 @@ export const Start = () => {
       </div>
       <>
         <input
-          className="box-content h-12 w-64 max-w-full p-4 border-4 border-gray-500 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-2xl sm:text-4xl font-extrabold text-gray-900 focus:outline-none"
+          className="box-content h-12 w-64 max-w-full p-4 border-4 border-gray-500 mb-6 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-2xl sm:text-4xl font-extrabold text-gray-900 focus:outline-none"
           placeholder="Enter your name"
           style={{ textTransform: "uppercase" }}
           ref={inputRef}
           onChange={(e) => setName(e.target.value)}
         />
+
+        <div className="mb-4 flex gap-3" role="group" aria-label="Opponent type">
+          <button
+            type="button"
+            aria-pressed={mode === "pvp"}
+            className={optionClass(mode === "pvp")}
+            onClick={() => setMode("pvp")}
+          >
+            2 Players
+          </button>
+          <button
+            type="button"
+            aria-pressed={mode === "pve"}
+            className={optionClass(mode === "pve")}
+            onClick={() => setMode("pve")}
+          >
+            vs AI
+          </button>
+        </div>
+
+        {mode === "pve" && (
+          <div className="mb-4 flex flex-wrap justify-center gap-2" role="group" aria-label="AI difficulty">
+            {AIDIFFICULTIES.map((level) => (
+              <button
+                key={level}
+                type="button"
+                aria-pressed={difficulty === level}
+                title={`AI personality: ${PERSONALITIES[level].name}`}
+                className={optionClass(difficulty === level)}
+                onClick={() => setDifficulty(level)}
+              >
+                {level.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           type="button"
           className="text-gray-500 cursor-pointer hover:text-gray-300"
