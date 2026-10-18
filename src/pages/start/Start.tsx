@@ -46,18 +46,21 @@ export const Start = () => {
   };
 
   return (
-    <div className="flex flex-col mx-auto min-h-screen justify-center justify-items-center items-center bg-zinc-900">
-        <div className="flex justify-center gap-24  w-full pb-10" > 
-            <h2 className="text-5xl mb-10 text-blue-600 font-extrabold" > TIC </h2>
-            <h2 className="text-5xl mb-10 text-gray-100 font-extrabold" > TAC </h2>
-            <h2 className="text-5xl mb-10 text-red-600 font-extrabold" > TOE </h2>
+    <div className="flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
+        <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" > 
+            <h2 className="text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" > TAC </h2>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" > TOE </h2>
         </div>
       <Toaster />
 
       <div className="flex gap-4">
 
-        <div
-          className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer ${
+        <button
+          type="button"
+          aria-label="Play as X"
+          aria-pressed={playerType === "X"}
+          className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
             playerType === "X"
               ? "border-blue-600 bg-blue-100 text-blue-600"
               : "border-gray-500 text-blue-600"
@@ -65,10 +68,13 @@ export const Start = () => {
           onClick={() => handleSelectPlayerType("X")}
         >
           X
-        </div>
+        </button>
 
-        <div
-          className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer ${
+        <button
+          type="button"
+          aria-label="Play as O"
+          aria-pressed={playerType === "O"}
+          className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
             playerType === "O"
               ? "border-red-600 bg-red-100 text-red-600"
               : "border-gray-500 text-red-600"
@@ -76,27 +82,23 @@ export const Start = () => {
           onClick={() => handleSelectPlayerType("O")}
         >
           O
-        </div>
+        </button>
       </div>
       <>
         <input
-          className="box-content h-12 w-54 p-4 border-4 border-gray-500 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-4xl font-extrabold text-gray-900 focus:outline-none"
+          className="box-content h-12 w-64 max-w-full p-4 border-4 border-gray-500 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-2xl sm:text-4xl font-extrabold text-gray-900 focus:outline-none"
           placeholder="Enter your name"
           style={{ textTransform: "uppercase" }}
           ref={inputRef}
           onChange={(e) => setName(e.target.value)}
         />
-        <a
-          className="text-gray-500 cursor-pointer"
-          target="_blank"
+        <button
+          type="button"
+          className="text-gray-500 cursor-pointer hover:text-gray-300"
           onClick={handleStart}
         >
-          <span> </span>
-          <span> </span>
-          <span> </span>
-          <span> </span>
           Start Game
-        </a>
+        </button>
       </>
     </div>
   );
