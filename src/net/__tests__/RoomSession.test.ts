@@ -10,6 +10,7 @@ const TIMING = {
   heartbeatMs: 100,
   timeoutMs: 300,
   joinTimeoutMs: 200,
+  helloRetryMs: 40,
 };
 
 function makeHost(transport: RoomTransport, name = 'ALICE') {
@@ -81,6 +82,52 @@ describe('RoomSession handshake', () => {
     expect(settled(guest).status).toBe('connecting');
     vi.advanceTimersByTime(TIMING.joinTimeoutMs + 10);
     expect(settled(guest).status).toBe('rejected');
+  });
+
+  it('repeats hello until the host shows up, then connects', () => {
+    const bus = createFakeTransportBus();
+    const probe = bus.createEndpoint();
+    const hellos: unknown[] = [];
+    probe.subscribe((message) => {
+      if (message.type === 'hello') hellos.push(message);
+    });
+
+    const guest = makeGuest(bus.createEndpoint());
+    guest.start();
+    expect(settled(guest).status).toBe('connecting');
+
+    vi.advanceTimersByTime(TIMING.helloRetryMs * 3);
+    expect(hellos.length).toBeGreaterThanOrEqual(3);
+    expect(settled(guest).status).toBe('connecting');
+
+    const host = makeHost(bus.createEndpoint());
+    host.start();
+    vi.advanceTimersByTime(TIMING.helloRetryMs);
+
+    expect(settled(guest).status).toBe('connected');
+    expect(settled(host).status).toBe('connected');
+    expect(settled(guest).opponentName).toBe('ALICE');
+
+    vi.advanceTimersByTime(TIMING.joinTimeoutMs + 10);
+    expect(settled(guest).status).toBe('connected');
+  });
+
+  it('stops repeating hello after a rejection deadline', () => {
+    const bus = createFakeTransportBus();
+    const probe = bus.createEndpoint();
+    const hellos: unknown[] = [];
+    probe.subscribe((message) => {
+      if (message.type === 'hello') hellos.push(message);
+    });
+
+    const guest = makeGuest(bus.createEndpoint());
+    guest.start();
+    vi.advanceTimersByTime(TIMING.joinTimeoutMs + 10);
+    expect(settled(guest).status).toBe('rejected');
+
+    const countAfterDeadline = hellos.length;
+    vi.advanceTimersByTime(TIMING.joinTimeoutMs);
+    expect(hellos.length).toBe(countAfterDeadline);
   });
 
   it('rejects a second guest when the room is full', () => {
