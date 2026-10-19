@@ -58,7 +58,9 @@ describe('MatchmakerClient', () => {
     expect(client.getSnapshot().status).toBe('queued');
 
     sockets[0].open();
-    expect(sockets[0].sent).toEqual([JSON.stringify({ type: 'queue', playerId: 'p1' })]);
+    expect(sockets[0].sent).toEqual([
+      JSON.stringify({ type: 'queue', playerId: 'p1', game: 'tictactoe' }),
+    ]);
 
     sockets[0].receive({ type: 'matched', playerId: 'p1', roomCode: 'ABC234', role: 'host' });
     expect(client.getSnapshot()).toEqual({
@@ -98,7 +100,9 @@ describe('MatchmakerClient', () => {
 
     vi.advanceTimersByTime(2);
     expect(client.getSnapshot().status).toBe('timeout');
-    expect(sockets[0].sent).toContainEqual(JSON.stringify({ type: 'cancel', playerId: 'p1' }));
+    expect(sockets[0].sent).toContainEqual(
+      JSON.stringify({ type: 'cancel', playerId: 'p1', game: 'tictactoe' }),
+    );
     expect(sockets[0].closed).toBe(true);
   });
 
@@ -126,7 +130,9 @@ describe('MatchmakerClient', () => {
     client.cancel();
 
     expect(client.getSnapshot().status).toBe('idle');
-    expect(sockets[0].sent).toContainEqual(JSON.stringify({ type: 'cancel', playerId: 'p1' }));
+    expect(sockets[0].sent).toContainEqual(
+      JSON.stringify({ type: 'cancel', playerId: 'p1', game: 'tictactoe' }),
+    );
     expect(sockets[0].closed).toBe(true);
 
     sockets[0].receive({ type: 'matched', playerId: 'p1', roomCode: 'ABC234', role: 'host' });

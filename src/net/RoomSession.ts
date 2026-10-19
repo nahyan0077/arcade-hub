@@ -6,8 +6,8 @@ import {
   startGame,
 } from '../engine';
 import type { GameState, Player } from '../engine';
-import type { RoomMessage, RoomRole } from './protocol';
-import { markForRole } from './protocol';
+import type { RoomMessage, RoomRole, GameId } from './protocol';
+import { DEFAULT_GAME, markForRole } from './protocol';
 import type { RoomTransport } from './transport';
 
 export type SessionStatus =
@@ -21,6 +21,7 @@ export interface SessionSnapshot {
   status: SessionStatus;
   role: RoomRole;
   roomCode: string;
+  game: GameId;
   myId: string;
   myName: string;
   myMark: Player;
@@ -35,6 +36,7 @@ export interface RoomSessionOptions {
   myId: string;
   myName: string;
   transport: RoomTransport;
+  game?: GameId;
   heartbeatMs?: number;
   timeoutMs?: number;
   joinTimeoutMs?: number;
@@ -77,6 +79,7 @@ export class RoomSession {
       roomCode: options.roomCode,
       myId: options.myId,
       myName: options.myName,
+      game: options.game ?? DEFAULT_GAME,
       transport: options.transport,
     };
 
@@ -84,6 +87,7 @@ export class RoomSession {
       status: options.role === 'host' ? 'waiting' : 'connecting',
       role: options.role,
       roomCode: options.roomCode,
+      game: this.options.game,
       myId: options.myId,
       myName: options.myName,
       myMark: markForRole(options.role),
@@ -176,7 +180,7 @@ export class RoomSession {
   }
 
   private post(message: RoomMessage): void {
-    this.options.transport.post(message);
+    this.options.transport.post({ ...message, game: this.options.game });
   }
 
   private sendHello(): void {
@@ -207,6 +211,7 @@ export class RoomSession {
   private handleMessage(message: RoomMessage): void {
     if (this.destroyed) return;
     if (message.roomCode !== this.options.roomCode) return;
+    if ((message.game ?? DEFAULT_GAME) !== this.options.game) return;
     if (message.type !== 'hello' && 'playerId' in message && message.playerId === this.options.myId) {
       return;
     }

@@ -404,3 +404,38 @@ describe('RoomSession presence', () => {
     expect(settled(guest).status).toBe('disconnected');
   });
 });
+describe('RoomSession game scoping', () => {
+  it('tags outgoing messages with its game and ignores foreign-game messages', () => {
+    const [hostTransport, guestTransport] = createFakeTransportPair();
+    const host = makeHost(hostTransport);
+    const guest = makeGuest(guestTransport);
+    const hellos: Array<Record<string, unknown>> = [];
+    hostTransport.subscribe((message) => {
+      hellos.push(message as unknown as Record<string, unknown>);
+    });
+
+    host.start();
+    guest.start();
+    expect(hellos.some((message) => message.type === 'hello' && message.game === 'tictactoe')).toBe(
+      true,
+    );
+
+    const foreignGuest = createFakeTransportPair()[1];
+    const foreign = new RoomSession({
+      role: 'guest',
+      roomCode: CODE,
+      myId: 'guest-x',
+      myName: 'XEN',
+      transport: foreignGuest,
+      game: 'bogus' as never,
+      ...TIMING,
+    });
+    foreign.start();
+    expect(host.getSnapshot().status).toBe('connected');
+    expect(host.getSnapshot().opponentName).toBe('BOB');
+
+    host.destroy();
+    guest.destroy();
+    foreign.destroy();
+  });
+});

@@ -45,7 +45,7 @@ describe('relay voice token endpoint', () => {
     const claims = decodePayload(body.token);
     expect(claims).toMatchObject({ iss: 'devkey', name: 'Alice' });
     expect(claims.sub).toMatch(/^[0-9a-f-]{36}$/);
-    expect(claims.video).toMatchObject({ room: 'ABC234', roomJoin: true });
+    expect(claims.video).toMatchObject({ room: 'tictactoe:ABC234', roomJoin: true });
   });
 
   it('rejects an invalid room code or name', async () => {
@@ -54,6 +54,12 @@ describe('relay voice token endpoint', () => {
       body: JSON.stringify({ roomCode: 'bad!', name: 'Alice' }),
     });
     expect(badRoom.status).toBe(400);
+
+    const badGame = await fetch(voiceUrl(configured), {
+      method: 'POST',
+      body: JSON.stringify({ roomCode: 'ABC234', name: 'Alice', game: 'bogus' }),
+    });
+    expect(badGame.status).toBe(400);
 
     const badName = await fetch(voiceUrl(configured), {
       method: 'POST',

@@ -130,6 +130,14 @@ cannot proxy LiveKit's UDP media ports):
    on both devices. A phone on the same Wi-Fi gets full voice; for devices across the internet,
    use a hosted LiveKit (e.g. LiveKit Cloud) and set `LIVEKIT_URL`/keys accordingly.
 
+### Networking model
+
+All room traffic (BroadcastChannel and both relays) is **game-scoped**: rooms, matchmaking
+queues, and LiveKit voice rooms are keyed `<game>:<code>` (`GameId` in `src/net/protocol.ts`,
+currently `tictactoe`). The wire protocol carries an optional `game` field (default
+`tictactoe`); relays reject unknown ids. Adding a game means adding its id to `GAMES`, then
+plumbing it from the hub into Start — the transport layer needs no further changes.
+
 ## Testing strategy
 
 - **Engine** — exhaustive rules tests plus seeded 100-game properties (AI never loses; impossible-vs-impossible always draws)

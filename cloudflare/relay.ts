@@ -2,7 +2,11 @@ import {
   generatePlayerId,
   generateRoomCode,
   isValidRoomCode,
+  isGameId,
   parseMatchmakerMessage,
+  scopedRoomId,
+  DEFAULT_GAME,
+  type GameId,
   type MatchmakerMessage,
 } from '../src/net/protocol';
 import { signVoiceToken } from '../src/net/voiceToken';
@@ -58,11 +62,13 @@ export default {
     }
 
     const match = ROOM_PATH.exec(url.pathname);
-    if (match === null || !isValidRoomCode(match[1])) {
+    const gameParam = url.searchParams.get('game');
+    const game = gameParam === null ? DEFAULT_GAME : gameParam;
+    if (match === null || !isValidRoomCode(match[1]) || !isGameId(game)) {
       return new Response('invalid room', { status: 400 });
     }
 
-    const roomId = env.ROOMS.idFromName(match[1]);
+    const roomId = env.ROOMS.idFromName(scopedRoomId(game, match[1]));
     return env.ROOMS.get(roomId).fetch(request);
   },
 } satisfies ExportedHandler<Env>;
@@ -72,22 +78,23 @@ async function handleVoiceToken(request: Request, env: Env): Promise<Response> {
   if (raw.length === 0 || raw.length > MAX_HTTP_BODY_BYTES) {
     return json(400, { error: 'bad-request' });
   }
-  let body: { roomCode?: unknown; name?: unknown };
+  let body: { roomCode?: unknown; name?: unknown; game?: unknown };
   try {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return json(400, { error: 'bad-request' });
-    body = parsed as { roomCode?: unknown; name?: unknown };
+    body = parsed as { roomCode?: unknown; name?: unknown; game?: unknown };
   } catch {
     return json(400, { error: 'bad-request' });
   }
 
-  const { roomCode, name } = body;
+  const { roomCode, name, game } = body;
   if (
     typeof roomCode !== 'string' ||
     !isValidRoomCode(roomCode) ||
     typeof name !== 'string' ||
     name.trim().length === 0 ||
-    name.length > 32
+    name.length > 32 ||
+    (game !== undefined && !isGameId(game))
   ) {
     return json(400, { error: 'bad-request' });
   }
@@ -101,7 +108,7 @@ async function handleVoiceToken(request: Request, env: Env): Promise<Response> {
     apiSecret: env.LIVEKIT_API_SECRET,
     identity: generatePlayerId(),
     name: name.trim(),
-    roomCode,
+    room: scopedRoomId(game === undefined ? DEFAULT_GAME : game, roomCode),
   });
   return json(200, { url: env.LIVEKIT_URL, token });
 }
@@ -121,10 +128,12 @@ export class RoomRelay implements DurableObject {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const match = ROOM_PATH.exec(url.pathname);
-    if (match === null || !isValidRoomCode(match[1])) {
+    const gameParam = url.searchParams.get('game');
+    const game = gameParam === null ? DEFAULT_GAME : gameParam;
+    if (match === null || !isValidRoomCode(match[1]) || !isGameId(game)) {
       return new Response('invalid room', { status: 400 });
     }
-    const roomCode = match[1];
+    const roomId = scopedRoomId(game, match[1]);
 
     if (this.members.size >= MAX_ROOM_SIZE) {
       // Refuse before the 101 handshake instead of accepting and closing:
@@ -136,19 +145,19 @@ export class RoomRelay implements DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
     this.state.acceptWebSocket(server);
-    this.members.set(server, roomCode);
+    this.members.set(server, roomId);
     return new Response(null, { status: 101, webSocket: client });
   }
 
   webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): void {
     if (typeof message !== 'string') return;
-    const roomCode = this.members.get(ws);
-    if (roomCode === undefined) return;
+    const roomId = this.members.get(ws);
+    if (roomId === undefined) return;
     if (message.length > MAX_PAYLOAD_BYTES) return;
-    if (!isRoomMessageFor(message, roomCode)) return;
+    if (!isRoomMessageFor(message, roomId)) return;
 
     for (const [peer, peerRoom] of this.members) {
-      if (peer === ws || peerRoom !== roomCode) continue;
+      if (peer === ws || peerRoom !== roomId) continue;
       if (peer.readyState !== WebSocket.OPEN) continue;
       peer.send(message);
     }
@@ -163,18 +172,22 @@ export class RoomRelay implements DurableObject {
   }
 }
 
-function isRoomMessageFor(payload: string, roomCode: string): boolean {
+function isRoomMessageFor(payload: string, roomId: string): boolean {
   try {
     const parsed: unknown = JSON.parse(payload);
     if (typeof parsed !== 'object' || parsed === null) return false;
-    return (parsed as { roomCode?: unknown }).roomCode === roomCode;
+    const message = parsed as { roomCode?: unknown; game?: unknown };
+    if (typeof message.roomCode !== 'string' || !isValidRoomCode(message.roomCode)) return false;
+    const game = message.game === undefined ? DEFAULT_GAME : message.game;
+    if (!isGameId(game)) return false;
+    return scopedRoomId(game, message.roomCode) === roomId;
   } catch {
     return false;
   }
 }
 
 export class Matchmaker implements DurableObject {
-  private readonly waiting = new Map<WebSocket, string>();
+  private readonly waiting = new Map<WebSocket, { playerId: string; game: GameId }>();
 
   constructor(private readonly state: DurableObjectState) {}
 
@@ -197,17 +210,17 @@ export class Matchmaker implements DurableObject {
 
     switch (parsed.type) {
       case 'queue': {
+        const game = parsed.game ?? DEFAULT_GAME;
         if (this.waiting.has(ws)) return;
-        const waiter = this.waiting.entries().next();
-        if (waiter.done === true) {
-          this.waiting.set(ws, parsed.playerId);
+        for (const [waiterSocket, waiter] of this.waiting) {
+          if (waiter.game !== game) continue;
+          this.waiting.delete(waiterSocket);
+          const roomCode = generateRoomCode();
+          this.sendMatched(waiterSocket, waiter.playerId, roomCode, 'host', game);
+          this.sendMatched(ws, parsed.playerId, roomCode, 'guest', game);
           return;
         }
-        const [waiterSocket, waiterId] = waiter.value;
-        this.waiting.delete(waiterSocket);
-        const roomCode = generateRoomCode();
-        this.sendMatched(waiterSocket, waiterId, roomCode, 'host');
-        this.sendMatched(ws, parsed.playerId, roomCode, 'guest');
+        this.waiting.set(ws, { playerId: parsed.playerId, game });
         return;
       }
       case 'cancel': {
@@ -232,9 +245,10 @@ export class Matchmaker implements DurableObject {
     playerId: string,
     roomCode: string,
     role: 'host' | 'guest',
+    game: GameId,
   ): void {
     if (socket.readyState !== WebSocket.OPEN) return;
-    const message: MatchmakerMessage = { type: 'matched', playerId, roomCode, role };
+    const message: MatchmakerMessage = { type: 'matched', playerId, roomCode, role, game };
     socket.send(JSON.stringify(message));
   }
 }

@@ -3,6 +3,18 @@ import type { Player } from '../engine';
 export const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
+export const GAMES = ['tictactoe'] as const;
+export type GameId = (typeof GAMES)[number];
+export const DEFAULT_GAME: GameId = 'tictactoe';
+
+export function isGameId(input: unknown): input is GameId {
+  return typeof input === 'string' && (GAMES as readonly string[]).includes(input);
+}
+
+export function scopedRoomId(game: GameId, roomCode: string): string {
+  return `${game}:${normalizeRoomCode(roomCode)}`;
+}
+
 export function generateRoomCode(rng: () => number = Math.random): string {
   let code = '';
   for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
@@ -26,18 +38,18 @@ export function generatePlayerId(): string {
 }
 
 export type RoomMessage =
-  | { type: 'hello'; roomCode: string; playerId: string; name: string }
-  | { type: 'welcome'; roomCode: string; hostId: string; hostName: string }
-  | { type: 'rejected'; roomCode: string; reason: 'not-found' | 'room-full' }
-  | { type: 'move'; roomCode: string; playerId: string; index: number }
-  | { type: 'rematch'; roomCode: string; playerId: string }
-  | { type: 'rematch-start'; roomCode: string }
-  | { type: 'leave'; roomCode: string; playerId: string }
-  | { type: 'ping'; roomCode: string; playerId: string }
-  | { type: 'pong'; roomCode: string; playerId: string };
+  | { type: 'hello'; roomCode: string; playerId: string; name: string; game?: GameId }
+  | { type: 'welcome'; roomCode: string; hostId: string; hostName: string; game?: GameId }
+  | { type: 'rejected'; roomCode: string; reason: 'not-found' | 'room-full'; game?: GameId }
+  | { type: 'move'; roomCode: string; playerId: string; index: number; game?: GameId }
+  | { type: 'rematch'; roomCode: string; playerId: string; game?: GameId }
+  | { type: 'rematch-start'; roomCode: string; game?: GameId }
+  | { type: 'leave'; roomCode: string; playerId: string; game?: GameId }
+  | { type: 'ping'; roomCode: string; playerId: string; game?: GameId }
+  | { type: 'pong'; roomCode: string; playerId: string; game?: GameId };
 
-export function roomChannelName(roomCode: string): string {
-  return `tic-tac-toe:room:${normalizeRoomCode(roomCode)}`;
+export function roomChannelName(roomCode: string, game: GameId = DEFAULT_GAME): string {
+  return `room:${scopedRoomId(game, roomCode)}`;
 }
 
 export type RoomRole = 'host' | 'guest';
@@ -49,10 +61,10 @@ export function markForRole(role: RoomRole): Player {
 export const MATCHMAKER_PATH = '/matchmake';
 
 export type MatchmakerMessage =
-  | { type: 'queue'; playerId: string }
-  | { type: 'matched'; playerId: string; roomCode: string; role: RoomRole }
+  | { type: 'queue'; playerId: string; game?: GameId }
+  | { type: 'matched'; playerId: string; roomCode: string; role: RoomRole; game?: GameId }
   | { type: 'queue-timeout'; playerId: string }
-  | { type: 'cancel'; playerId: string };
+  | { type: 'cancel'; playerId: string; game?: GameId };
 
 export type MatchmakerEvent = Extract<MatchmakerMessage, { type: 'matched' | 'queue-timeout' }>;
 
@@ -65,10 +77,15 @@ export function parseMatchmakerMessage(payload: string): MatchmakerMessage | nul
     return null;
   }
   if (typeof parsed !== 'object' || parsed === null) return null;
-  const message = parsed as { type?: unknown; playerId?: unknown };
+  const message = parsed as { type?: unknown; playerId?: unknown; game?: unknown };
   if (typeof message.playerId !== 'string' || message.playerId.length === 0) return null;
+  if (message.game !== undefined && !isGameId(message.game)) return null;
   if (message.type === 'queue' || message.type === 'cancel') {
-    return { type: message.type, playerId: message.playerId };
+    return {
+      type: message.type,
+      playerId: message.playerId,
+      ...(message.game !== undefined ? { game: message.game } : {}),
+    };
   }
   return null;
 }
@@ -82,8 +99,15 @@ export function parseMatchmakerEvent(payload: string): MatchmakerEvent | null {
     return null;
   }
   if (typeof parsed !== 'object' || parsed === null) return null;
-  const message = parsed as { type?: unknown; playerId?: unknown; roomCode?: unknown; role?: unknown };
+  const message = parsed as {
+    type?: unknown;
+    playerId?: unknown;
+    roomCode?: unknown;
+    role?: unknown;
+    game?: unknown;
+  };
   if (typeof message.playerId !== 'string' || message.playerId.length === 0) return null;
+  if (message.game !== undefined && !isGameId(message.game)) return null;
   if (message.type === 'queue-timeout') {
     return { type: 'queue-timeout', playerId: message.playerId };
   }
@@ -98,6 +122,7 @@ export function parseMatchmakerEvent(payload: string): MatchmakerEvent | null {
       playerId: message.playerId,
       roomCode: normalizeRoomCode(message.roomCode),
       role: message.role,
+      ...(message.game !== undefined ? { game: message.game as GameId } : {}),
     };
   }
   return null;

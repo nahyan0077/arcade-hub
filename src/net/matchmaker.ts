@@ -2,6 +2,8 @@ import {
   MATCHMAKER_PATH,
   parseMatchmakerEvent,
   type RoomRole,
+  type GameId,
+  DEFAULT_GAME,
 } from './protocol';
 
 export type MatchmakerStatus = 'idle' | 'queued' | 'matched' | 'timeout';
@@ -24,6 +26,7 @@ export interface MatchmakerSocket {
 export interface MatchmakerOptions {
   url: string;
   playerId: string;
+  game?: GameId;
   timeoutMs?: number;
   socketFactory?: (url: string) => MatchmakerSocket;
 }
@@ -33,6 +36,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export class MatchmakerClient {
   private readonly url: string;
   private readonly playerId: string;
+  private readonly game: GameId;
   private readonly timeoutMs: number;
   private readonly socketFactory: (url: string) => MatchmakerSocket;
   private readonly listeners = new Set<(snapshot: MatchmakerSnapshot) => void>();
@@ -46,6 +50,7 @@ export class MatchmakerClient {
       ? options.url
       : `${options.url.replace(/\/$/, '')}${MATCHMAKER_PATH}`;
     this.playerId = options.playerId;
+    this.game = options.game ?? DEFAULT_GAME;
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.socketFactory =
       options.socketFactory ?? ((url) => new WebSocket(url) as unknown as MatchmakerSocket);
@@ -68,7 +73,9 @@ export class MatchmakerClient {
     const socket = this.socketFactory(this.url);
     this.socket = socket;
     socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'queue', playerId: this.playerId }));
+      socket.send(
+        JSON.stringify({ type: 'queue', playerId: this.playerId, game: this.game }),
+      );
     };
     socket.onmessage = (event) => this.onMessage(event.data);
     socket.onclose = () => this.onSocketClosed();
@@ -80,7 +87,7 @@ export class MatchmakerClient {
 
   cancel(): void {
     if (!this.awaiting) return;
-    this.post({ type: 'cancel', playerId: this.playerId });
+    this.post({ type: 'cancel', playerId: this.playerId, game: this.game });
     this.closeSocket();
     this.awaiting = false;
     this.update({ status: 'idle', roomCode: null, role: null });
@@ -109,7 +116,7 @@ export class MatchmakerClient {
 
   private onLocalTimeout(): void {
     if (!this.awaiting) return;
-    this.post({ type: 'cancel', playerId: this.playerId });
+    this.post({ type: 'cancel', playerId: this.playerId, game: this.game });
     this.closeSocket();
     this.awaiting = false;
     this.update({ status: 'timeout', roomCode: null, role: null });

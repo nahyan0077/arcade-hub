@@ -4,7 +4,11 @@ import {
   generatePlayerId,
   generateRoomCode,
   isValidRoomCode,
+  isGameId,
   parseMatchmakerMessage,
+  scopedRoomId,
+  DEFAULT_GAME,
+  type GameId,
   type MatchmakerMessage,
 } from '../src/net/protocol.ts';
 import { signVoiceToken } from '../src/net/voiceToken.ts';
@@ -41,7 +45,7 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
 
   return new Promise((resolve, reject) => {
     const rooms = new Map<string, Set<WsSocket>>();
-    const queue: Array<{ socket: WsSocket; playerId: string }> = [];
+    const queue = new Map<GameId, Array<{ socket: WsSocket; playerId: string }>>();
 
     const httpServer = createServer((request, response) => {
       void handleHttp(request, response);
@@ -55,17 +59,22 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
     };
 
     const dequeueSocket = (socket: WsSocket): void => {
-      const index = queue.findIndex((entry) => entry.socket === socket);
-      if (index >= 0) queue.splice(index, 1);
+      for (const waiters of queue.values()) {
+        const index = waiters.findIndex((entry) => entry.socket === socket);
+        if (index >= 0) waiters.splice(index, 1);
+      }
     };
 
     const handleMatchmaker = (socket: WsSocket, message: MatchmakerMessage): void => {
       switch (message.type) {
         case 'queue': {
-          if (queue.some((entry) => entry.socket === socket)) return;
-          const waiter = queue.shift();
+          const game = message.game ?? DEFAULT_GAME;
+          const waiters = queue.get(game) ?? [];
+          queue.set(game, waiters);
+          if (waiters.some((entry) => entry.socket === socket)) return;
+          const waiter = waiters.shift();
           if (waiter === undefined) {
-            queue.push({ socket, playerId: message.playerId });
+            waiters.push({ socket, playerId: message.playerId });
             return;
           }
           const roomCode = generateRoomCode();
@@ -74,8 +83,15 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
             playerId: waiter.playerId,
             roomCode,
             role: 'host',
+            game,
           });
-          send(socket, { type: 'matched', playerId: message.playerId, roomCode, role: 'guest' });
+          send(socket, {
+            type: 'matched',
+            playerId: message.playerId,
+            roomCode,
+            role: 'guest',
+            game,
+          });
           return;
         }
         case 'cancel': {
@@ -119,13 +135,18 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
         sendJson(response, 400, { error: 'bad-request' });
         return;
       }
-      const { roomCode, name } = body as { roomCode?: unknown; name?: unknown };
+      const { roomCode, name, game } = body as {
+        roomCode?: unknown;
+        name?: unknown;
+        game?: unknown;
+      };
       if (
         typeof roomCode !== 'string' ||
         !isValidRoomCode(roomCode) ||
         typeof name !== 'string' ||
         name.trim().length === 0 ||
-        name.length > 32
+        name.length > 32 ||
+        (game !== undefined && !isGameId(game))
       ) {
         sendJson(response, 400, { error: 'bad-request' });
         return;
@@ -140,7 +161,7 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
         apiSecret: voice.apiSecret,
         identity: generatePlayerId(),
         name: name.trim(),
-        roomCode,
+        room: scopedRoomId(game === undefined ? DEFAULT_GAME : game, roomCode),
       });
       sendJson(response, 200, { url: voice.url, token });
     }
@@ -165,15 +186,18 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
       }
 
       const roomCode = roomCodeFromPath(pathname);
-      if (roomCode === null) {
+      const gameParam = new URL(request.url ?? '/', 'http://relay.local').searchParams.get('game');
+      const game = gameParam === null ? DEFAULT_GAME : gameParam;
+      if (roomCode === null || !isGameId(game)) {
         socket.close(1008, 'invalid room');
         return;
       }
+      const roomId = scopedRoomId(game, roomCode);
 
-      let members = rooms.get(roomCode);
+      let members = rooms.get(roomId);
       if (members === undefined) {
         members = new Set();
-        rooms.set(roomCode, members);
+        rooms.set(roomId, members);
       }
       if (members.size >= MAX_ROOM_SIZE) {
         socket.close(1013, 'room full');
@@ -183,7 +207,7 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
 
       socket.on('message', (data) => {
         const payload = data.toString();
-        if (!isRoomMessageFor(payload, roomCode)) return;
+        if (!isRoomMessageFor(payload, roomId)) return;
         for (const peer of members) {
           if (peer === socket || peer.readyState !== WebSocket.OPEN) continue;
           peer.send(payload);
@@ -192,13 +216,13 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
 
       socket.on('close', () => {
         members.delete(socket);
-        if (members.size === 0) rooms.delete(roomCode);
+        if (members.size === 0) rooms.delete(roomId);
       });
     });
 
     const cleanup = (): Promise<void> =>
       new Promise<void>((done) => {
-        queue.length = 0;
+        queue.clear();
         for (const members of rooms.values()) {
           for (const socket of members) socket.terminate();
         }
@@ -231,13 +255,16 @@ function roomCodeFromPath(pathname: string): string | null {
   return ROOM_CODE_PATTERN.test(match[1]) ? match[1] : null;
 }
 
-function isRoomMessageFor(payload: string, roomCode: string): boolean {
+function isRoomMessageFor(payload: string, roomId: string): boolean {
   if (payload.length > MAX_PAYLOAD_BYTES) return false;
   try {
     const parsed: unknown = JSON.parse(payload);
     if (typeof parsed !== 'object' || parsed === null) return false;
-    const message = parsed as { roomCode?: unknown };
-    return message.roomCode === roomCode;
+    const message = parsed as { roomCode?: unknown; game?: unknown };
+    if (typeof message.roomCode !== 'string' || !isValidRoomCode(message.roomCode)) return false;
+    const game = message.game === undefined ? DEFAULT_GAME : message.game;
+    if (!isGameId(game)) return false;
+    return scopedRoomId(game, message.roomCode) === roomId;
   } catch {
     return false;
   }

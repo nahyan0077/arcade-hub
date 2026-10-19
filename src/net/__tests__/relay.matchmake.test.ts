@@ -196,4 +196,81 @@ describe('relay matchmaker', () => {
     host.close();
     guest.close();
   });
+
+  it('echoes the game in matched events and drops unknown-game queues', async () => {
+    const first = await connectMatchmaker();
+    const second = await connectMatchmaker();
+    const stray = await connectMatchmaker();
+
+    first.send({ type: 'queue', playerId: 'p1', game: 'tictactoe' });
+    await wait(50);
+    stray.send({ type: 'queue', playerId: 'px', game: 'bogus' });
+    await wait(50);
+    second.send({ type: 'queue', playerId: 'p2', game: 'tictactoe' });
+
+    const match = (await first.next('matched')) as Extract<
+      MatchmakerMessage,
+      { type: 'matched' }
+    >;
+    expect(match.game).toBe('tictactoe');
+    const guestMatch = (await second.next('matched')) as Extract<
+      MatchmakerMessage,
+      { type: 'matched' }
+    >;
+    expect(guestMatch.game).toBe('tictactoe');
+    expect(guestMatch.roomCode).toBe(match.roomCode);
+
+    await wait(100);
+    expect(stray.messages).toEqual([]);
+
+    first.close();
+    second.close();
+    stray.close();
+  });
+
+  it('does not forward room messages tagged with a different game', async () => {
+    const roomMessages: Array<Record<string, unknown>> = [];
+    const host = new WebSocket(`ws://127.0.0.1:${relay.port}/room/ABCDEF?game=tictactoe`);
+    const guest = new WebSocket(`ws://127.0.0.1:${relay.port}/room/ABCDEF?game=tictactoe`);
+    host.onmessage = (event) => roomMessages.push(JSON.parse(String(event.data)));
+    await new Promise<void>((resolve, reject) => {
+      let open = 0;
+      const onOpen = () => {
+        open += 1;
+        if (open === 2) resolve();
+      };
+      host.onopen = onOpen;
+      guest.onopen = onOpen;
+      host.onerror = reject;
+      guest.onerror = reject;
+    });
+
+    guest.send(
+      JSON.stringify({
+        type: 'hello',
+        roomCode: 'ABCDEF',
+        playerId: 'g1',
+        name: 'BOB',
+        game: 'bogus',
+      }),
+    );
+    await wait(100);
+    expect(roomMessages).toEqual([]);
+
+    guest.send(
+      JSON.stringify({
+        type: 'hello',
+        roomCode: 'ABCDEF',
+        playerId: 'g1',
+        name: 'BOB',
+        game: 'tictactoe',
+      }),
+    );
+    await expect
+      .poll(() => roomMessages.some((message) => message.type === 'hello'))
+      .toBe(true);
+
+    host.close();
+    guest.close();
+  });
 });
