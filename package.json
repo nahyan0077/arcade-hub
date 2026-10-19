@@ -12,9 +12,12 @@
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
+    "typecheck:cf": "tsc -p tsconfig.cloudflare.json",
     "test:e2e": "playwright test",
     "test:e2e:ws": "E2E_PORT=5200 VITE_WS_URL=ws://127.0.0.1:8787 playwright test e2e/online.spec.ts",
-    "relay": "node server/relay.ts"
+    "test:e2e:cf": "E2E_WS=cf E2E_PORT=5202 VITE_WS_URL=ws://127.0.0.1:8788 playwright test e2e/online.spec.ts",
+    "relay": "node server/relay.ts",
+    "relay:cf": "WRANGLER_SEND_METRICS=false wrangler dev --port 8788"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -23,6 +26,7 @@
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261019.1",
     "@eslint/js": "^9.9.0",
     "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
@@ -46,6 +50,7 @@
     "typescript-eslint": "^8.0.1",
     "vite": "^5.4.1",
     "vitest": "^2.1.8",
+    "wrangler": "^4.151.1",
     "ws": "^8.22.0"
   }
 }
