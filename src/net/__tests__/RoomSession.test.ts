@@ -271,6 +271,63 @@ describe('RoomSession presence', () => {
     expect(settled(guest).status).toBe('connected');
   });
 
+  it('a rejected joiner leaving does not disconnect the live room', () => {
+    const bus = createFakeTransportBus();
+    const host = makeHost(bus.createEndpoint());
+    host.start();
+    const guest = makeGuest(bus.createEndpoint());
+    guest.start();
+    expect(settled(host).status).toBe('connected');
+
+    const third = makeGuest(bus.createEndpoint(), 'EVE', 'guest-2');
+    third.start();
+    expect(settled(third).status).toBe('rejected');
+
+    third.leave();
+
+    expect(settled(host).status).toBe('connected');
+    expect(settled(guest).status).toBe('connected');
+    expect(settled(host).opponentName).toBe('BOB');
+  });
+
+  it('does not announce leave when the session never connected', () => {
+    const bus = createFakeTransportBus();
+    const host = makeHost(bus.createEndpoint());
+    host.start();
+    makeGuest(bus.createEndpoint()).start();
+
+    const endpoint = bus.createEndpoint();
+    const post = vi.spyOn(endpoint, 'post');
+    const third = makeGuest(endpoint, 'EVE', 'guest-2');
+    third.start();
+    expect(settled(third).status).toBe('rejected');
+    post.mockClear();
+
+    third.leave();
+
+    expect(post).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'leave' }),
+    );
+  });
+
+  it('host ignores a leave from a player that is not the current guest', () => {
+    const { host, guestTransport } = connectPair();
+
+    guestTransport.post({ type: 'leave', roomCode: CODE, playerId: 'stranger' });
+
+    expect(settled(host).status).toBe('connected');
+    expect(settled(host).opponentName).toBe('BOB');
+  });
+
+  it('guest ignores a leave that does not come from the host', () => {
+    const { guest, hostTransport } = connectPair();
+
+    hostTransport.post({ type: 'leave', roomCode: CODE, playerId: 'stranger' });
+
+    expect(settled(guest).status).toBe('connected');
+    expect(settled(guest).opponentName).toBe('ALICE');
+  });
+
   it('stays connected while heartbeats flow', () => {
     const { host, guest } = connectPair();
 

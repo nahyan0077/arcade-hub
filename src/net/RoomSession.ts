@@ -59,6 +59,7 @@ export class RoomSession {
   private destroyed = false;
   private lastSeen = 0;
   private guestId: string | null = null;
+  private hostId: string | null = null;
   private rematchRequested = false;
   private opponentRematchRequested = false;
   private snapshot: SessionSnapshot;
@@ -136,7 +137,7 @@ export class RoomSession {
   }
 
   leave(): void {
-    if (!this.destroyed) {
+    if (!this.destroyed && this.snapshot.status === 'connected') {
       this.post({ type: 'leave', roomCode: this.options.roomCode, playerId: this.options.myId });
     }
     this.destroy();
@@ -218,7 +219,7 @@ export class RoomSession {
         if (this.options.role === 'guest') this.applyRematch();
         break;
       case 'leave':
-        this.update({ status: 'disconnected' });
+        this.onLeave(message);
         break;
       case 'ping':
         this.post({ type: 'pong', roomCode: this.options.roomCode, playerId: this.options.myId });
@@ -268,11 +269,19 @@ export class RoomSession {
       this.helloTimer = null;
     }
 
+    this.hostId = message.hostId;
     this.update({
       status: 'connected',
       opponentName: message.hostName,
       state: this.createOnlineState(message.hostName),
     });
+  }
+
+  private onLeave(message: Extract<RoomMessage, { type: 'leave' }>): void {
+    const expectedPeerId =
+      this.options.role === 'host' ? this.guestId : this.hostId;
+    if (expectedPeerId === null || message.playerId !== expectedPeerId) return;
+    this.update({ status: 'disconnected' });
   }
 
   private createOnlineState(opponentName: string): GameState {
