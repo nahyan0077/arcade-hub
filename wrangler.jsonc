@@ -8,6 +8,10 @@
       {
         "name": "ROOMS",
         "class_name": "RoomRelay"
+      },
+      {
+        "name": "MATCHMAKER",
+        "class_name": "Matchmaker"
       }
     ]
   },
@@ -15,6 +19,10 @@
     {
       "tag": "v1",
       "new_sqlite_classes": ["RoomRelay"]
+    },
+    {
+      "tag": "v2",
+      "added_classes": ["Matchmaker"]
     }
   ],
   "dev": {
