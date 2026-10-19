@@ -5,19 +5,21 @@ import {
   type VoiceSessionOptions,
   type VoiceSnapshot,
 } from '../net/voiceSession';
+import type { GameId } from '../net/protocol';
 
 export interface VoiceControlsProps {
   baseUrl: string;
   roomCode: string;
   name: string;
+  game?: GameId;
   sessionFactory?: (options: VoiceSessionOptions) => VoiceSession;
 }
 
-export function VoiceControls({ baseUrl, roomCode, name, sessionFactory }: VoiceControlsProps) {
+export function VoiceControls({ baseUrl, roomCode, name, game, sessionFactory }: VoiceControlsProps) {
   const [session] = useState(() =>
     sessionFactory
-      ? sessionFactory({ baseUrl, roomCode, name })
-      : new VoiceSession({ baseUrl, roomCode, name }),
+      ? sessionFactory({ baseUrl, roomCode, name, game })
+      : new VoiceSession({ baseUrl, roomCode, name, game }),
   );
   const [snapshot, setSnapshot] = useState<VoiceSnapshot>(session.getSnapshot());
 

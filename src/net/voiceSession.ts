@@ -1,3 +1,6 @@
+import type { GameId } from './protocol';
+import { DEFAULT_GAME } from './protocol';
+
 export type VoiceStatus = 'off' | 'connecting' | 'live' | 'error';
 
 export interface VoiceSnapshot {
@@ -19,6 +22,7 @@ export interface VoiceSessionOptions {
   baseUrl: string;
   roomCode: string;
   name: string;
+  game?: GameId;
   fetchFn?: typeof fetch;
   roomFactory?: () => Promise<VoiceRoom>;
 }
@@ -31,6 +35,7 @@ export class VoiceSession {
   private readonly baseUrl: string;
   private readonly roomCode: string;
   private readonly name: string;
+  private readonly game: GameId;
   private readonly fetchFn: typeof fetch;
   private readonly roomFactory: () => Promise<VoiceRoom>;
   private readonly listeners = new Set<(snapshot: VoiceSnapshot) => void>();
@@ -41,6 +46,7 @@ export class VoiceSession {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.roomCode = options.roomCode;
     this.name = options.name;
+    this.game = options.game ?? DEFAULT_GAME;
     this.fetchFn = options.fetchFn ?? ((...args) => fetch(...args));
     this.roomFactory = options.roomFactory ?? defaultRoomFactory;
   }
@@ -66,7 +72,7 @@ export class VoiceSession {
       const response = await this.fetchFn(`${httpBase}/voice/token`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ roomCode: this.roomCode, name: this.name }),
+        body: JSON.stringify({ roomCode: this.roomCode, name: this.name, game: this.game }),
       });
       if (!response.ok) throw new Error(`voice token request failed: ${response.status}`);
       const payload = (await response.json()) as { url?: unknown; token?: unknown };

@@ -11,12 +11,13 @@ import {
 } from 'react';
 import { RoomSession, type SessionSnapshot } from './RoomSession';
 import { createRoomTransport } from './createRoomTransport';
-import { generatePlayerId, type RoomRole } from './protocol';
+import { generatePlayerId, type RoomRole, type GameId, DEFAULT_GAME } from './protocol';
 
 export interface OpenRoomOptions {
   role: RoomRole;
   roomCode: string;
   name: string;
+  game?: GameId;
 }
 
 interface OnlineSessionValue {
@@ -39,12 +40,14 @@ export function OnlineSessionProvider({
 
   const openRoom = useCallback((options: OpenRoomOptions) => {
     sessionRef.current?.destroy();
+    const game = options.game ?? DEFAULT_GAME;
     const room = new RoomSession({
       role: options.role,
       roomCode: options.roomCode,
       myId: generatePlayerId(),
       myName: options.name.trim().toUpperCase(),
-      transport: createRoomTransport(options.roomCode),
+      game,
+      transport: createRoomTransport(options.roomCode, game),
     });
     sessionRef.current = room;
     setSession(room);

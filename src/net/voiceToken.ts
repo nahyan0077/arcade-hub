@@ -3,7 +3,8 @@ export interface VoiceTokenOptions {
   apiSecret: string;
   identity: string;
   name: string;
-  roomCode: string;
+  /** LiveKit room name; relays pass a game-scoped id (`<game>:<code>`). */
+  room: string;
   ttlSeconds?: number;
   nowSeconds?: number;
 }
@@ -35,7 +36,7 @@ export function buildVoiceClaims(options: VoiceTokenOptions): VoiceTokenClaims {
     exp: now + (options.ttlSeconds ?? VOICE_TOKEN_TTL_SECONDS),
     name: options.name,
     video: {
-      room: options.roomCode,
+      room: options.room,
       roomJoin: true,
       canPublish: true,
       canSubscribe: true,

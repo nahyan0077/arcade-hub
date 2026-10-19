@@ -79,7 +79,11 @@ describe('VoiceSession', () => {
       RequestInit,
     ];
     expect(url).toBe('http://relay.local:8787/voice/token');
-    expect(JSON.parse(String(init.body))).toEqual({ roomCode: 'ABC234', name: 'ALICE' });
+    expect(JSON.parse(String(init.body))).toEqual({
+      roomCode: 'ABC234',
+      name: 'ALICE',
+      game: 'tictactoe',
+    });
     expect(room.connectCalls).toEqual([{ url: 'ws://livekit.local:7880', token: 'tok' }]);
   });
 

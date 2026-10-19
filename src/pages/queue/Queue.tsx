@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { MatchmakerClient, type MatchmakerSnapshot } from '../../net/matchmaker';
-import { generatePlayerId } from '../../net/protocol';
+import { generatePlayerId, DEFAULT_GAME } from '../../net/protocol';
 import { useOnlineSession } from '../../net/OnlineSessionContext';
 
 interface QueueLocationState {
@@ -20,6 +20,7 @@ export const Queue = () => {
       new MatchmakerClient({
         url: import.meta.env.VITE_WS_URL ?? '',
         playerId: generatePlayerId(),
+        game: DEFAULT_GAME,
       }),
   );
   const [snapshot, setSnapshot] = useState<MatchmakerSnapshot>(client.getSnapshot());
@@ -42,7 +43,7 @@ export const Queue = () => {
 
   useEffect(() => {
     if (snapshot.status === 'matched' && snapshot.roomCode !== null && snapshot.role !== null) {
-      openRoom({ role: snapshot.role, roomCode: snapshot.roomCode, name });
+      openRoom({ role: snapshot.role, roomCode: snapshot.roomCode, name, game: DEFAULT_GAME });
       navigate('/lobby', { replace: true });
     }
   }, [snapshot, openRoom, navigate, name]);

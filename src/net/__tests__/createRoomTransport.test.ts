@@ -65,7 +65,7 @@ describe('createRoomTransport', () => {
     const transport = createRoomTransport('abc234');
     expect(FakeWebSocket.instances).toHaveLength(1);
     const socket = FakeWebSocket.instances[0];
-    expect(socket.url).toBe('ws://relay.example:8787/room/ABC234');
+    expect(socket.url).toBe('ws://relay.example:8787/room/ABC234?game=tictactoe');
 
     const received: RoomMessage[] = [];
     transport.subscribe((message) => received.push(message));

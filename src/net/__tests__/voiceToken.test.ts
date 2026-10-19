@@ -8,7 +8,7 @@ const OPTIONS = {
   apiSecret: 'devsecret',
   identity: 'player-1',
   name: 'ALICE',
-  roomCode: 'ABC234',
+  room: 'ABC234',
   nowSeconds: 1_700_000_000,
 };
 

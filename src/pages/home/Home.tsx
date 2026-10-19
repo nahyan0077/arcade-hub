@@ -266,7 +266,12 @@ export const Home: React.FC = () => {
           </button>
         )}
         {online && onlineSnap?.status === "connected" && WS_BASE !== "" && (
-          <VoiceControls baseUrl={WS_BASE} roomCode={onlineSnap.roomCode} name={onlineSnap.myName} />
+          <VoiceControls
+            baseUrl={WS_BASE}
+            roomCode={onlineSnap.roomCode}
+            name={onlineSnap.myName}
+            game={onlineSnap.game}
+          />
         )}
         {!online && (
           <button
