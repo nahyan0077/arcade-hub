@@ -41,11 +41,11 @@ npm run dev        # http://localhost:5173
 | `npm run test:ui` | Vitest UI |
 | `npm run test:coverage` | coverage report |
 | `npm run test:e2e` | Playwright E2E (desktop + mobile projects) |
-| `npm run test:e2e:ws` | E2E online suite over WebSocket (starts relay, port 5200) |
+| `npm run test:e2e:ws` | E2E online + matchmaking suites over WebSocket (starts relay, port 5200) |
 | `npm run relay` | room relay server (ws, port 8787) |
 | `npm run relay:cf` | Cloudflare Durable Object relay via wrangler dev (port 8788) |
 | `npm run typecheck:cf` | typecheck the Cloudflare worker |
-| `npm run test:e2e:cf` | E2E online suite against the wrangler relay (port 5202) |
+| `npm run test:e2e:cf` | E2E online + matchmaking suites against the wrangler relay (port 5202) |
 
 ## Architecture
 
@@ -61,10 +61,12 @@ src/
     wsTransport.ts WebSocket client transport (outbox until open)
     createRoomTransport.ts  picks WebSocket when VITE_WS_URL is set
     RoomSession.ts host/guest handshake, heartbeats, rematch
+    matchmaker.ts Quick Play queue client (queue, timeout, cancel)
   hooks/
     useGame.ts     engine wiring, score persistence, AI-turn scheduling, sound
   pages/
-    start/         name, mark, mode, difficulty, create/join room
+    start/         name, mark, mode, difficulty, create/join room, quick play
+    queue/         matchmaking wait state, cancel, timeout retry
     lobby/         room code display, join status
     home/          board, scoreboard, hints, dialogs, online state
   components/
@@ -72,10 +74,10 @@ src/
   sound/audio.ts   Web Audio synth effects + persisted mute
   storage/         validated localStorage score persistence
 server/
-  relay.ts       ws room relay — validates room codes, fans out messages
+  relay.ts       ws room relay — room fan-out + /matchmake queue
 cloudflare/
-  relay.ts       Worker + RoomRelay Durable Object — same protocol, same room rules
-wrangler.jsonc   worker config (DO binding, local dev port 8788)
+  relay.ts       Worker + RoomRelay and Matchmaker Durable Objects
+wrangler.jsonc   worker config (DO bindings, local dev port 8788)
 e2e/             Playwright specs (desktop Chromium + iPhone 13 WebKit)
 ```
 
@@ -93,7 +95,7 @@ The engine is a pure state machine (`createInitialState → makeMove`); UI and h
 
 - **Engine** — exhaustive rules tests plus seeded 100-game properties (AI never loses; impossible-vs-impossible always draws)
 - **Integration** — Home/Start flows through real components with a mocked Web Audio + localStorage
-- **E2E** — Playwright across desktop and iPhone viewports: win/draw/rematch flows, vs-AI behavior, hints, mute silencing (oscillator-level assertion), viewport fit, two-page online play over BroadcastChannel, the Node ws relay, and the Cloudflare Durable Object relay
+- **E2E** — Playwright across desktop and iPhone viewports: win/draw/rematch flows, vs-AI behavior, hints, mute silencing (oscillator-level assertion), viewport fit, two-page online play over BroadcastChannel, the Node ws relay, and the Cloudflare Durable Object relay, plus Quick Play matchmaking (WebSocket relays only)
 
 ## Roadmap
 
@@ -103,4 +105,5 @@ The engine is a pure state machine (`createInitialState → makeMove`); UI and h
 - ✅ Phase 4 — WebSocket transport and room relay server
 - ✅ Phase 5 — Cloudflare Durable Object relay (local wrangler dev; `wrangler deploy` awaits account credentials)
 - Phase 5b — persistence (Neon/Upstash) — deferred until there is a real persistence need
-- Phase 6 — voice chat (LiveKit) and matchmaking
+- ✅ Phase 6a — Quick Play matchmaking (relay queue + Matchmaker DO)
+- Phase 6b — voice chat (LiveKit)
