@@ -17,7 +17,7 @@ interface MatchmakerPeer {
   socket: WebSocket;
   messages: MatchmakerMessage[];
   next: (type: MatchmakerMessage['type']) => Promise<MatchmakerMessage>;
-  send: (message: object) => void;
+  send: (message: object | string) => void;
   close: () => void;
 }
 

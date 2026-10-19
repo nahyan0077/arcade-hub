@@ -1,5 +1,4 @@
 import { WebSocket, WebSocketServer, type WebSocket as WsSocket } from 'ws';
-import type { IncomingMessage } from 'node:http';
 import {
   generateRoomCode,
   parseMatchmakerMessage,
