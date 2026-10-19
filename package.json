@@ -1,8 +1,21 @@
 {
   "name": "tic-tac-toe",
-  "private": true,
   "version": "0.0.0",
+  "description": "Tic-tac-toe arcade: local, vs AI, or online with matchmaking and voice chat",
+  "private": true,
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nahyan0077/tic-tac-toe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nahyan0077/tic-tac-toe/issues"
+  },
+  "homepage": "https://github.com/nahyan0077/tic-tac-toe#readme",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
