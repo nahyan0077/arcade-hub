@@ -6,6 +6,9 @@ import { isMuted, setMuted } from "../../sound/audio";
 import { AIDIFFICULTIES, PERSONALITIES, getBestMove } from "../../engine";
 import type { AIDifficulty, Player } from "../../engine";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
+import { VoiceControls } from "../../components/VoiceControls";
+
+const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
 const CONFETTI_COLORS = [
   "#3b82f6",
@@ -250,6 +253,9 @@ export const Home: React.FC = () => {
           >
             Leave Room
           </button>
+        )}
+        {online && onlineSnap?.status === "connected" && WS_BASE !== "" && (
+          <VoiceControls baseUrl={WS_BASE} roomCode={onlineSnap.roomCode} name={onlineSnap.myName} />
         )}
         {!online && (
           <button
