@@ -46,6 +46,7 @@ npm run dev        # http://localhost:5173
 | `npm run relay:cf` | Cloudflare Durable Object relay via wrangler dev (port 8788) |
 | `npm run typecheck:cf` | typecheck the Cloudflare worker |
 | `npm run test:e2e:cf` | E2E online + matchmaking suites against the wrangler relay (port 5202) |
+| `npm run test:e2e:voice` | E2E voice session against a dockerized LiveKit server (starts/stops its own container) |
 
 ## Architecture
 
@@ -62,6 +63,9 @@ src/
     createRoomTransport.ts  picks WebSocket when VITE_WS_URL is set
     RoomSession.ts host/guest handshake, heartbeats, rematch
     matchmaker.ts Quick Play queue client (queue, timeout, cancel)
+    voiceToken.ts LiveKit join-token signer (shared Web Crypto HS256)
+    voiceSession.ts join/leave/mute lifecycle over LiveKit, injectable room factory
+    livekitVoiceRoom.ts livekit-client adapter (dynamic import)
   hooks/
     useGame.ts     engine wiring, score persistence, AI-turn scheduling, sound
   pages/
@@ -71,6 +75,7 @@ src/
     home/          board, scoreboard, hints, dialogs, online state
   components/
     Board.tsx      responsive grid, win-line SVG, hint ring
+    VoiceControls.tsx  join/mute/leave voice panel (online rooms only)
   sound/audio.ts   Web Audio synth effects + persisted mute
   storage/         validated localStorage score persistence
 server/
@@ -90,12 +95,35 @@ The engine is a pure state machine (`createInitialState → makeMove`); UI and h
 | `VITE_AI_DELAY_MS` | `600` | AI "thinking" delay before it moves |
 | `VITE_WS_URL` | unset | WebSocket relay base URL; unset means in-browser BroadcastChannel (two tabs, no server) |
 | `RELAY_PORT` | `8787` | relay server port |
+| `LIVEKIT_URL` | unset | LiveKit ws URL (e.g. `ws://127.0.0.1:7880`); unset disables voice (relay answers `503 voice-unconfigured`) |
+| `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | unset | LiveKit API credentials used to mint join tokens (secret must be ≥32 chars) |
+
+### Voice chat
+
+Voice is off by default: the room page hides voice controls without `VITE_WS_URL`, and the relay
+returns `503 voice-unconfigured` unless the `LIVEKIT_*` vars are set. To enable locally:
+
+1. Start a dev LiveKit server (the secret in `scripts/livekit.yaml` must be ≥32 characters):
+
+   ```bash
+   docker run --rm -p 7880:7880 -p 7881:7881/tcp -p 50000-50100:50000-50100/udp \
+     -e NODE_IP=127.0.0.1 -v "$PWD/scripts/livekit.yaml":/lk/livekit.yaml:ro \
+     livekit/livekit-server --config /lk/livekit.yaml
+   ```
+
+2. Export `LIVEKIT_URL=ws://127.0.0.1:7880`, `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET` (matching the
+   config file) before `npm run relay`; for `npm run relay:cf`, copy `.dev.vars.example` to
+   `.dev.vars` instead.
+
+`npm run test:e2e:voice` wraps steps 1–2: it starts a throwaway container, runs the two-player
+voice E2E, and removes the container. Joining a room starts voice **listen-only** — the microphone
+is only requested when the player unmutes.
 
 ## Testing strategy
 
 - **Engine** — exhaustive rules tests plus seeded 100-game properties (AI never loses; impossible-vs-impossible always draws)
 - **Integration** — Home/Start flows through real components with a mocked Web Audio + localStorage
-- **E2E** — Playwright across desktop and iPhone viewports: win/draw/rematch flows, vs-AI behavior, hints, mute silencing (oscillator-level assertion), viewport fit, two-page online play over BroadcastChannel, the Node ws relay, and the Cloudflare Durable Object relay, plus Quick Play matchmaking (WebSocket relays only)
+- **E2E** — Playwright across desktop and iPhone viewports: win/draw/rematch flows, vs-AI behavior, hints, mute silencing (oscillator-level assertion), viewport fit, two-page online play over BroadcastChannel, the Node ws relay, and the Cloudflare Durable Object relay, plus Quick Play matchmaking (WebSocket relays only), the voice-unavailable fallback (no LiveKit), and a two-player voice session against dockerized LiveKit (`test:e2e:voice`)
 
 ## Roadmap
 
@@ -106,4 +134,4 @@ The engine is a pure state machine (`createInitialState → makeMove`); UI and h
 - ✅ Phase 5 — Cloudflare Durable Object relay (local wrangler dev; `wrangler deploy` awaits account credentials)
 - Phase 5b — persistence (Neon/Upstash) — deferred until there is a real persistence need
 - ✅ Phase 6a — Quick Play matchmaking (relay queue + Matchmaker DO)
-- Phase 6b — voice chat (LiveKit)
+- ✅ Phase 6b — voice chat (LiveKit: join/mute/participants; `wrangler deploy` + LiveKit cloud credentials still pending)

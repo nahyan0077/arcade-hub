@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { createRoom, joinRoom } from './helpers';
 
 test.skip(
   !process.env.VITE_WS_URL,
@@ -56,6 +57,26 @@ test.describe('quick play matchmaking', () => {
     await expect(xPage.getByRole('status')).toHaveText(new RegExp(`${xName} wins!`));
     await expect(oPage.getByRole('status')).toHaveText(new RegExp(`${xName} wins!`));
     await xPage.screenshot({ path: `e2e/screenshots/${testInfo.project.name}-20-quickplay-win.png` });
+
+    await context.close();
+  });
+
+  test('voice controls appear online and report unavailable without a LiveKit server', async ({
+    browser,
+  }) => {
+    const context = await browser.newContext();
+    const host = await context.newPage();
+    const guest = await context.newPage();
+
+    const code = await createRoom(host, 'ALICE');
+    await joinRoom(guest, 'BOB', code);
+    await expect(host).toHaveURL(/\/room/);
+
+    const joinVoice = host.getByRole('button', { name: 'Join voice' });
+    await expect(joinVoice).toBeVisible();
+    await joinVoice.click();
+    await expect(host.getByText('Voice unavailable')).toBeVisible();
+    await expect(joinVoice).toBeVisible();
 
     await context.close();
   });

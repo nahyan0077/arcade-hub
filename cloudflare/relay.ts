@@ -1,19 +1,31 @@
 import {
+  generatePlayerId,
   generateRoomCode,
   isValidRoomCode,
   parseMatchmakerMessage,
   type MatchmakerMessage,
 } from '../src/net/protocol';
+import { signVoiceToken } from '../src/net/voiceToken';
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
   MATCHMAKER: DurableObjectNamespace;
+  LIVEKIT_URL?: string;
+  LIVEKIT_API_KEY?: string;
+  LIVEKIT_API_SECRET?: string;
 }
 
 const ROOM_PATH = /^\/room\/([A-Z0-9]{6})$/;
 const MAX_ROOM_SIZE = 8;
 const MAX_PAYLOAD_BYTES = 4096;
+const MAX_HTTP_BODY_BYTES = 2048;
 const MATCHMAKER_PATH = '/matchmake';
+const VOICE_TOKEN_PATH = '/voice/token';
+const VOICE_CORS_HEADERS: Record<string, string> = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+};
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -21,7 +33,23 @@ export default {
     const isWebSocket = request.headers.get('Upgrade')?.toLowerCase() === 'websocket';
 
     if (!isWebSocket) {
-      return new Response('tic-tac-toe relay', { status: 200 });
+      if (request.method === 'GET' && url.pathname === '/') {
+        return new Response('tic-tac-toe relay', { status: 200 });
+      }
+      if (url.pathname === VOICE_TOKEN_PATH) {
+        if (request.method === 'OPTIONS') {
+          return new Response(null, { status: 204, headers: VOICE_CORS_HEADERS });
+        }
+        if (request.method === 'POST') {
+          const response = await handleVoiceToken(request, env);
+          const withCors = new Response(response.body, response);
+          for (const [header, value] of Object.entries(VOICE_CORS_HEADERS)) {
+            withCors.headers.set(header, value);
+          }
+          return withCors;
+        }
+      }
+      return new Response('not found', { status: 404 });
     }
 
     if (url.pathname === MATCHMAKER_PATH) {
@@ -38,6 +66,52 @@ export default {
     return env.ROOMS.get(roomId).fetch(request);
   },
 } satisfies ExportedHandler<Env>;
+
+async function handleVoiceToken(request: Request, env: Env): Promise<Response> {
+  const raw = await request.text();
+  if (raw.length === 0 || raw.length > MAX_HTTP_BODY_BYTES) {
+    return json(400, { error: 'bad-request' });
+  }
+  let body: { roomCode?: unknown; name?: unknown };
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return json(400, { error: 'bad-request' });
+    body = parsed as { roomCode?: unknown; name?: unknown };
+  } catch {
+    return json(400, { error: 'bad-request' });
+  }
+
+  const { roomCode, name } = body;
+  if (
+    typeof roomCode !== 'string' ||
+    !isValidRoomCode(roomCode) ||
+    typeof name !== 'string' ||
+    name.trim().length === 0 ||
+    name.length > 32
+  ) {
+    return json(400, { error: 'bad-request' });
+  }
+
+  if (!env.LIVEKIT_URL || !env.LIVEKIT_API_KEY || !env.LIVEKIT_API_SECRET) {
+    return json(503, { error: 'voice-unconfigured' });
+  }
+
+  const token = await signVoiceToken({
+    apiKey: env.LIVEKIT_API_KEY,
+    apiSecret: env.LIVEKIT_API_SECRET,
+    identity: generatePlayerId(),
+    name: name.trim(),
+    roomCode,
+  });
+  return json(200, { url: env.LIVEKIT_URL, token });
+}
+
+function json(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
+}
 
 export class RoomRelay implements DurableObject {
   private readonly members = new Map<WebSocket, string>();
