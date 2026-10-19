@@ -5,7 +5,7 @@ function shots(projectName: string, step: string): string {
 }
 
 async function startGame(page: Page, name = 'Alice'): Promise<void> {
-  await page.goto('/');
+  await page.goto('/start');
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: 'Play as X' }).click();
   await page.getByRole('button', { name: 'Start Game' }).click();
@@ -17,7 +17,7 @@ async function startPve(
   options: { name?: string; mark?: 'X' | 'O'; difficulty?: string } = {},
 ): Promise<void> {
   const { name = 'Alice', mark = 'X', difficulty = 'medium' } = options;
-  await page.goto('/');
+  await page.goto('/start');
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: `Play as ${mark}` }).click();
   await page.getByRole('button', { name: 'vs AI' }).click();
@@ -40,8 +40,19 @@ async function isPageScrollable(page: Page): Promise<boolean> {
   );
 }
 
-test('start screen fits viewport without scrolling', async ({ page }, testInfo) => {
+test('hub lists games and Play reaches the start screen', async ({ page }, testInfo) => {
   await page.goto('/');
+  await expect(page.getByTestId('hub-card-tictactoe')).toBeVisible();
+  await expect(page.getByTestId('hub-card-connect-four')).toBeVisible();
+  await expect(page.getByText('Coming soon')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Play' }).click();
+  await expect(page).toHaveURL(/\/start/);
+  await expect(page.getByPlaceholder('Enter your name')).toBeVisible();
+  await page.screenshot({ path: shots(testInfo.project.name, 'hub'), fullPage: true });
+});
+
+test('start screen fits viewport without scrolling', async ({ page }, testInfo) => {
+  await page.goto('/start');
   expect(await isPageScrollable(page)).toBe(false);
   await page.screenshot({ path: shots(testInfo.project.name, '01-start') });
 });
@@ -90,10 +101,10 @@ test('draw flow and score survives reload', async ({ page }, testInfo) => {
 });
 
 test('validation blocks empty start', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/start');
   await page.getByRole('button', { name: 'Start Game' }).click();
   await expect(page.getByText('Please Enter your name')).toBeVisible();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/start/);
 });
 
 test('vs AI: shows personality, replies to the human, fits viewport', async ({ page }, testInfo) => {

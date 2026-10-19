@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
+import { Hub } from './pages/hub/Hub'
 import { Home } from './pages/home/Home'
 import { Start } from './pages/start/Start'
 import { Lobby } from './pages/lobby/Lobby'
@@ -13,7 +14,8 @@ function App() {
     <OnlineSessionProvider>
       <Router>
         <Routes>
-          <Route path='/' element={<Start />} />
+          <Route path='/' element={<Hub />} />
+          <Route path='/start' element={<Start />} />
           <Route path='/game' element={<Home />} />
           <Route path='/lobby' element={<Lobby />} />
           <Route path='/room' element={<Home />} />

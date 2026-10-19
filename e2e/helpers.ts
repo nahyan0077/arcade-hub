@@ -11,7 +11,7 @@ export async function isPageScrollable(page: Page): Promise<boolean> {
 }
 
 export async function createRoom(page: Page, name: string): Promise<string> {
-  await page.goto('/');
+  await page.goto('/start');
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: 'Online' }).click();
   await page.getByRole('button', { name: 'Create Room' }).click();
@@ -25,7 +25,7 @@ export async function createRoom(page: Page, name: string): Promise<string> {
 }
 
 export async function joinRoom(page: Page, name: string, code: string): Promise<void> {
-  await page.goto('/');
+  await page.goto('/start');
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: 'Online' }).click();
   await page.getByRole('button', { name: 'Join Room' }).click();
