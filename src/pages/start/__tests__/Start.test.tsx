@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
@@ -36,6 +36,16 @@ function LobbyProbe() {
   );
 }
 
+function QueueProbe() {
+  const location = useLocation();
+  return (
+    <div>
+      queue screen
+      <span data-testid="queue-state">{JSON.stringify(location.state)}</span>
+    </div>
+  );
+}
+
 function renderStart() {
   return render(
     <OnlineSessionProvider>
@@ -44,6 +54,7 @@ function renderStart() {
           <Route path="/" element={<Start />} />
           <Route path="/game" element={<GameProbe />} />
           <Route path="/lobby" element={<LobbyProbe />} />
+          <Route path="/queue" element={<QueueProbe />} />
         </Routes>
       </MemoryRouter>
     </OnlineSessionProvider>,
@@ -206,5 +217,50 @@ describe('Start screen online mode', () => {
     const messages = await screen.findAllByText('Please Enter your name');
     expect(messages.length).toBeGreaterThan(0);
     expect(screen.queryByText('lobby screen')).not.toBeInTheDocument();
+  });
+});
+
+describe('Start screen quick play', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toast.dismiss();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('hides Quick Play when no relay URL is configured', () => {
+    renderStart();
+    expect(screen.queryByRole('button', { name: 'Quick Play' })).not.toBeInTheDocument();
+  });
+
+  it('routes to the queue with the player name when relay is configured', async () => {
+    vi.stubEnv('VITE_WS_URL', 'ws://127.0.0.1:8787');
+    const user = userEvent.setup();
+    renderStart();
+
+    await user.click(screen.getByRole('button', { name: 'Quick Play' }));
+    expect(screen.queryByRole('button', { name: 'Play as X' })).not.toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Alice');
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    await screen.findByText('queue screen');
+
+    const state = JSON.parse(screen.getByTestId('queue-state').textContent ?? 'null');
+    expect(state).toEqual({ name: 'Alice' });
+  });
+
+  it('requires a name before quick play', async () => {
+    vi.stubEnv('VITE_WS_URL', 'ws://127.0.0.1:8787');
+    const user = userEvent.setup();
+    renderStart();
+
+    await user.click(screen.getByRole('button', { name: 'Quick Play' }));
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+
+    const messages = await screen.findAllByText('Please Enter your name');
+    expect(messages.length).toBeGreaterThan(0);
+    expect(screen.queryByText('queue screen')).not.toBeInTheDocument();
   });
 });
