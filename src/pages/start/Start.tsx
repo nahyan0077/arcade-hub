@@ -11,8 +11,10 @@ import {
   normalizeRoomCode,
 } from "../../net/protocol";
 
-type GameMode = "pvp" | "pve" | "online";
+type GameMode = "pvp" | "pve" | "online" | "quick";
 type OnlineAction = "create" | "join";
+
+const quickPlayEnabled = (): boolean => Boolean(import.meta.env.VITE_WS_URL);
 
 const optionClass = (active: boolean): string =>
   `rounded-lg border-2 px-4 py-2 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
@@ -55,6 +57,10 @@ export const Start = () => {
       showToast("Please Enter your name");
       return;
     }
+    if (mode === "quick") {
+      navigate("/queue", { state: { name } });
+      return;
+    }
     if (mode === "online") {
       if (onlineAction === "join") {
         const code = normalizeRoomCode(joinCode);
@@ -85,7 +91,7 @@ export const Start = () => {
         </div>
       <Toaster />
 
-      {mode !== "online" && (
+      {(mode === "pvp" || mode === "pve") && (
         <div className="flex gap-4">
           <button
             type="button"
@@ -116,7 +122,9 @@ export const Start = () => {
           </button>
         </div>
       )}
-      {mode === "online" && <div className="mb-8" aria-hidden="true" />}
+      {(mode === "online" || mode === "quick") && (
+        <div className="mb-8" aria-hidden="true" />
+      )}
 
       <>
         <input
@@ -152,6 +160,16 @@ export const Start = () => {
           >
             Online
           </button>
+          {quickPlayEnabled() && (
+            <button
+              type="button"
+              aria-pressed={mode === "quick"}
+              className={optionClass(mode === "quick")}
+              onClick={() => setMode("quick")}
+            >
+              Quick Play
+            </button>
+          )}
         </div>
 
         {mode === "pve" && (

@@ -45,3 +45,60 @@ export type RoomRole = 'host' | 'guest';
 export function markForRole(role: RoomRole): Player {
   return role === 'host' ? 'X' : 'O';
 }
+
+export const MATCHMAKER_PATH = '/matchmake';
+
+export type MatchmakerMessage =
+  | { type: 'queue'; playerId: string }
+  | { type: 'matched'; playerId: string; roomCode: string; role: RoomRole }
+  | { type: 'queue-timeout'; playerId: string }
+  | { type: 'cancel'; playerId: string };
+
+export type MatchmakerEvent = Extract<MatchmakerMessage, { type: 'matched' | 'queue-timeout' }>;
+
+export function parseMatchmakerMessage(payload: string): MatchmakerMessage | null {
+  if (payload.length > 256) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const message = parsed as { type?: unknown; playerId?: unknown };
+  if (typeof message.playerId !== 'string' || message.playerId.length === 0) return null;
+  if (message.type === 'queue' || message.type === 'cancel') {
+    return { type: message.type, playerId: message.playerId };
+  }
+  return null;
+}
+
+export function parseMatchmakerEvent(payload: string): MatchmakerEvent | null {
+  if (payload.length > 256) return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(payload);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const message = parsed as { type?: unknown; playerId?: unknown; roomCode?: unknown; role?: unknown };
+  if (typeof message.playerId !== 'string' || message.playerId.length === 0) return null;
+  if (message.type === 'queue-timeout') {
+    return { type: 'queue-timeout', playerId: message.playerId };
+  }
+  if (
+    message.type === 'matched' &&
+    typeof message.roomCode === 'string' &&
+    isValidRoomCode(message.roomCode) &&
+    (message.role === 'host' || message.role === 'guest')
+  ) {
+    return {
+      type: 'matched',
+      playerId: message.playerId,
+      roomCode: normalizeRoomCode(message.roomCode),
+      role: message.role,
+    };
+  }
+  return null;
+}

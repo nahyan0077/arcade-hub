@@ -38,12 +38,14 @@ export interface RoomSessionOptions {
   heartbeatMs?: number;
   timeoutMs?: number;
   joinTimeoutMs?: number;
+  helloRetryMs?: number;
 }
 
 const DEFAULTS = {
   heartbeatMs: 2000,
   timeoutMs: 6000,
   joinTimeoutMs: 3000,
+  helloRetryMs: 500,
 };
 
 export class RoomSession {
@@ -54,7 +56,8 @@ export class RoomSession {
   private unsubscribeTransport: (() => void) | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private checkTimer: ReturnType<typeof setInterval> | null = null;
-  private helloTimer: ReturnType<typeof setTimeout> | null = null;
+  private helloRetryTimer: ReturnType<typeof setInterval> | null = null;
+  private helloDeadlineTimer: ReturnType<typeof setTimeout> | null = null;
   private started = false;
   private destroyed = false;
   private lastSeen = 0;
@@ -69,6 +72,7 @@ export class RoomSession {
       heartbeatMs: options.heartbeatMs ?? DEFAULTS.heartbeatMs,
       timeoutMs: options.timeoutMs ?? DEFAULTS.timeoutMs,
       joinTimeoutMs: options.joinTimeoutMs ?? DEFAULTS.joinTimeoutMs,
+      helloRetryMs: options.helloRetryMs ?? DEFAULTS.helloRetryMs,
       role: options.role,
       roomCode: options.roomCode,
       myId: options.myId,
@@ -123,10 +127,12 @@ export class RoomSession {
     this.unsubscribeTransport = null;
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     if (this.checkTimer) clearInterval(this.checkTimer);
-    if (this.helloTimer) clearTimeout(this.helloTimer);
+    if (this.helloRetryTimer) clearInterval(this.helloRetryTimer);
+    if (this.helloDeadlineTimer) clearTimeout(this.helloDeadlineTimer);
     this.heartbeatTimer = null;
     this.checkTimer = null;
-    this.helloTimer = null;
+    this.helloRetryTimer = null;
+    this.helloDeadlineTimer = null;
   }
 
   destroy(): void {
@@ -174,14 +180,24 @@ export class RoomSession {
   }
 
   private sendHello(): void {
-    this.post({
-      type: 'hello',
-      roomCode: this.options.roomCode,
-      playerId: this.options.myId,
-      name: this.options.myName,
-    });
-    this.helloTimer = setTimeout(() => {
-      this.helloTimer = null;
+    const postHello = () =>
+      this.post({
+        type: 'hello',
+        roomCode: this.options.roomCode,
+        playerId: this.options.myId,
+        name: this.options.myName,
+      });
+
+    postHello();
+    // Matchmade hosts may not be connected yet; keep announcing until the
+    // welcome arrives or the join window closes.
+    this.helloRetryTimer = setInterval(postHello, this.options.helloRetryMs);
+    this.helloDeadlineTimer = setTimeout(() => {
+      this.helloDeadlineTimer = null;
+      if (this.helloRetryTimer) {
+        clearInterval(this.helloRetryTimer);
+        this.helloRetryTimer = null;
+      }
       if (this.snapshot.status === 'connecting') {
         this.update({ status: 'rejected' });
       }
@@ -264,9 +280,13 @@ export class RoomSession {
   private onWelcome(message: Extract<RoomMessage, { type: 'welcome' }>): void {
     if (this.options.role !== 'guest') return;
     if (this.snapshot.status !== 'connecting') return;
-    if (this.helloTimer) {
-      clearTimeout(this.helloTimer);
-      this.helloTimer = null;
+    if (this.helloRetryTimer) {
+      clearInterval(this.helloRetryTimer);
+      this.helloRetryTimer = null;
+    }
+    if (this.helloDeadlineTimer) {
+      clearTimeout(this.helloDeadlineTimer);
+      this.helloDeadlineTimer = null;
     }
 
     this.hostId = message.hostId;

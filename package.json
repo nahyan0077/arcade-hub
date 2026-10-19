@@ -14,8 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "typecheck:cf": "tsc -p tsconfig.cloudflare.json",
     "test:e2e": "playwright test",
-    "test:e2e:ws": "E2E_PORT=5200 VITE_WS_URL=ws://127.0.0.1:8787 playwright test e2e/online.spec.ts",
-    "test:e2e:cf": "E2E_WS=cf E2E_PORT=5202 VITE_WS_URL=ws://127.0.0.1:8788 playwright test e2e/online.spec.ts",
+    "test:e2e:ws": "E2E_PORT=5200 VITE_WS_URL=ws://127.0.0.1:8787 playwright test e2e/online.spec.ts e2e/matchmake.spec.ts",
+    "test:e2e:cf": "E2E_WS=cf E2E_PORT=5202 VITE_WS_URL=ws://127.0.0.1:8788 playwright test e2e/online.spec.ts e2e/matchmake.spec.ts",
     "relay": "node server/relay.ts",
     "relay:cf": "WRANGLER_SEND_METRICS=false wrangler dev --port 8788"
   },
