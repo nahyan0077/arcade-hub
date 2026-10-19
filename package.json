@@ -1,5 +1,5 @@
 {
-  "name": "tic-tac-toe",
+  "name": "arcade-hub",
   "version": "0.0.0",
   "description": "Tic-tac-toe arcade: local, vs AI, or online with matchmaking and voice chat",
   "private": true,
@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nahyan0077/tic-tac-toe.git"
+    "url": "git+https://github.com/nahyan0077/arcade-hub.git"
   },
   "bugs": {
-    "url": "https://github.com/nahyan0077/tic-tac-toe/issues"
+    "url": "https://github.com/nahyan0077/arcade-hub/issues"
   },
-  "homepage": "https://github.com/nahyan0077/tic-tac-toe#readme",
+  "homepage": "https://github.com/nahyan0077/arcade-hub#readme",
   "engines": {
     "node": ">=20"
   },

@@ -1,6 +1,6 @@
 # Architecture
 
-How the Tic Tac Toe Arcade is put together: system context, high-level design (HLD),
+How Arcade Hub is put together: system context, high-level design (HLD),
 low-level design (LLD), data flows, invariants, and how to extend it.
 
 ## Contents

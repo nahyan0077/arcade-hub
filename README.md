@@ -1,12 +1,12 @@
-# Tic Tac Toe Arcade
+# Arcade Hub
 
-[![CI](https://github.com/nahyan0077/tic-tac-toe/actions/workflows/ci.yml/badge.svg)](https://github.com/nahyan0077/tic-tac-toe/actions/workflows/ci.yml)
+[![CI](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A polished tic-tac-toe **arcade** in the browser: play local hot-seat, face an unbeatable AI,
-or go online with room codes, Quick Play matchmaking, and live voice chat. Built test-first,
-phase by phase, on a game-scoped networking layer designed for more games to land on the
-same stack.
+A browser game hub with a polished **tic-tac-toe** as its flagship game: play local hot-seat,
+face an unbeatable AI, or go online with room codes, Quick Play matchmaking, and live voice
+chat. Built test-first, phase by phase, on a game-scoped networking layer designed for more
+games to land on the same stack.
 
 <p align="center">
   <img src="docs/images/desktop-hub.png" alt="Game hub" width="380">

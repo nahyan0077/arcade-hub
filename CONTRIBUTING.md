@@ -1,13 +1,13 @@
 # Contributing
 
-Thanks for wanting to improve the Tic Tac Toe Arcade. This project is built phase-by-phase,
+Thanks for wanting to improve Arcade Hub. This project is built phase-by-phase,
 test-first, with strict quality gates — these guidelines keep changes reviewable and green.
 
 ## Getting started
 
 ```bash
-git clone https://github.com/nahyan0077/tic-tac-toe.git
-cd tic-tac-toe
+git clone https://github.com/nahyan0077/arcade-hub.git
+cd arcade-hub
 npm install                 # use --legacy-peer-deps if your npm complains about peer ranges
 npm run dev                 # http://localhost:5173
 ```
