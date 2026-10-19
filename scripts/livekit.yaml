@@ -1,0 +1,6 @@
+port: 7880
+keys:
+  devkey: devsecret_abcdefghijklmnopqrstuvwxyz0123456789
+rtc:
+  port_range_start: 50000
+  port_range_end: 50100
