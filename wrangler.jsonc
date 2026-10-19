@@ -22,7 +22,7 @@
     },
     {
       "tag": "v2",
-      "added_classes": ["Matchmaker"]
+      "new_sqlite_classes": ["Matchmaker"]
     }
   ],
   "dev": {
