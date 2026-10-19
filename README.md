@@ -119,6 +119,17 @@ returns `503 voice-unconfigured` unless the `LIVEKIT_*` vars are set. To enable 
 voice E2E, and removes the container. Joining a room starts voice **listen-only** — the microphone
 is only requested when the player unmutes.
 
+**Cross-device voice on one Wi-Fi network** — point the LiveKit URL at your machine's LAN address
+instead of loopback (an `https` page cannot open `ws://127.0.0.1`, and cloudflared quick tunnels
+cannot proxy LiveKit's UDP media ports):
+
+1. `NODE_IP=<your-lan-ip>` and the same docker command above (published ports unchanged).
+2. `LIVEKIT_URL=ws://<your-lan-ip>:7880` for the relay (this value is returned to clients in the
+   token response, so it must be reachable from the other device).
+3. Serve the app on the LAN too: `npx vite --port 5173 --host`, open `http://<your-lan-ip>:5173`
+   on both devices. A phone on the same Wi-Fi gets full voice; for devices across the internet,
+   use a hosted LiveKit (e.g. LiveKit Cloud) and set `LIVEKIT_URL`/keys accordingly.
+
 ## Testing strategy
 
 - **Engine** — exhaustive rules tests plus seeded 100-game properties (AI never loses; impossible-vs-impossible always draws)
