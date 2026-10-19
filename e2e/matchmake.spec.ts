@@ -7,7 +7,7 @@ test.skip(
 );
 
 async function startQuickPlay(page: Page, name: string): Promise<void> {
-  await page.goto('/');
+  await page.goto('/start');
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: 'Quick Play' }).click();
   await page.getByRole('button', { name: 'Start Game' }).click();

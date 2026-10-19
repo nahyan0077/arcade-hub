@@ -63,7 +63,7 @@ test.describe('online multiplayer', () => {
   });
 
   test('join with an unknown code returns to the menu', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/start');
     await page.getByPlaceholder('Enter your name').fill('Bob');
     await page.getByRole('button', { name: 'Online' }).click();
     await page.getByRole('button', { name: 'Join Room' }).click();
