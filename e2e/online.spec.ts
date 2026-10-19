@@ -71,6 +71,9 @@ test.describe('online multiplayer', () => {
     await page.getByRole('button', { name: 'Start Game' }).click();
 
     await expect(page).toHaveURL(/\/$/, { timeout: 6000 });
-    await expect(page.getByText('Room not found or full')).toBeVisible();
+    const rejectionMessage = process.env.VITE_WS_URL
+      ? 'Room not found or full'
+      : "Couldn't reach the host";
+    await expect(page.getByText(rejectionMessage)).toBeVisible();
   });
 });

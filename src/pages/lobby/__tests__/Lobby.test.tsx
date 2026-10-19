@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Lobby } from '../Lobby';
 import { OnlineSessionProvider } from '../../../net/OnlineSessionContext';
 import { RoomSession } from '../../../net/RoomSession';
@@ -38,7 +39,7 @@ function renderLobby(session: RoomSession | null) {
       <MemoryRouter initialEntries={['/lobby']}>
         <Routes>
           <Route path="/lobby" element={<Lobby />} />
-          <Route path="/" element={<div>start screen</div>} />
+          <Route path="/" element={<div><Toaster />start screen</div>} />
           <Route path="/room" element={<div>room screen</div>} />
         </Routes>
       </MemoryRouter>
@@ -61,6 +62,7 @@ describe('Lobby', () => {
 
   afterEach(() => {
     for (const session of sessions.splice(0)) session.destroy();
+    vi.unstubAllEnvs();
   });
 
   it('redirects home when there is no session', () => {
@@ -115,7 +117,17 @@ describe('Lobby', () => {
 
     await screen.findByText(/Joining room/);
 
+    expect(await screen.findByText(/Couldn't reach the host/, {}, { timeout: 1500 })).toBeInTheDocument();
     expect(await screen.findByText('start screen', {}, { timeout: 1500 })).toBeInTheDocument();
+  });
+
+  it('keeps the server-mode rejection message when VITE_WS_URL is set', async () => {
+    vi.stubEnv('VITE_WS_URL', 'ws://127.0.0.1:8787');
+    const bus = createFakeTransportBus();
+    const guest = tracked(bus.createEndpoint(), 'guest', 'BOB', 'guest-1');
+    renderLobby(guest);
+
+    expect(await screen.findByText('Room not found or full', {}, { timeout: 1500 })).toBeInTheDocument();
   });
 
   it('leaves the room and returns home', async () => {

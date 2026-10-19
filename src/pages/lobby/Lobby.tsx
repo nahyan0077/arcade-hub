@@ -7,6 +7,7 @@ import type { SessionSnapshot } from "../../net/RoomSession";
 export const Lobby = () => {
   const navigate = useNavigate();
   const { session, closeRoom } = useOnlineSession();
+  const noServerMode = (import.meta.env.VITE_WS_URL ?? "") === "";
   const [snapshot, setSnapshot] = useState<SessionSnapshot | null>(
     session?.getSnapshot() ?? null,
   );
@@ -28,13 +29,17 @@ export const Lobby = () => {
       navigate("/room", { replace: true });
     } else if (snapshot.status === "rejected" || snapshot.status === "disconnected") {
       toast.error(
-        snapshot.status === "rejected" ? "Room not found or full" : "Room closed",
+        snapshot.status === "rejected"
+          ? noServerMode
+            ? "Couldn't reach the host with that code — no-server mode needs both windows on the same URL and browser profile (not incognito), with the host staying in the lobby"
+            : "Room not found or full"
+          : "Room closed",
         { icon: "❌ " },
       );
       closeRoom();
       navigate("/", { replace: true });
     }
-  }, [snapshot, navigate, closeRoom]);
+  }, [snapshot, navigate, closeRoom, noServerMode]);
 
   const handleCopy = async () => {
     if (!snapshot) return;
