@@ -36,3 +36,6 @@ e2e/screenshots
 
 # Wrangler
 .wrangler
+
+# LiveKit local dev secrets
+.dev.vars
