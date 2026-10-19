@@ -450,6 +450,8 @@ describe('online game screen', () => {
     expect(within(hostDialog).getByText('You win!')).toBeInTheDocument();
     const guestDialog = within(guestBoard).getByRole('dialog', { name: 'Game result' });
     expect(within(guestDialog).getByText('You lose!')).toBeInTheDocument();
+    expect(within(hostBoard).getByTestId('win-confetti')).toBeInTheDocument();
+    expect(within(guestBoard).queryByTestId('win-confetti')).not.toBeInTheDocument();
     expect(localStorageMock.setItem).not.toHaveBeenCalledWith(KEY, expect.anything());
   });
 

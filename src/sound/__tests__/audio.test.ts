@@ -30,6 +30,16 @@ describe('sound effects', () => {
     expect(instance.createOscillator).toHaveBeenCalledTimes(4);
   });
 
+  it('plays lose as two descending tones', async () => {
+    const { playEffect: play } = await loadFreshAudio();
+    play('lose');
+    const ctorSpy = audioCtor as unknown as ReturnType<typeof vi.fn>;
+    const instance = ctorSpy.mock.results[0].value as {
+      createOscillator: ReturnType<typeof vi.fn>;
+    };
+    expect(instance.createOscillator).toHaveBeenCalledTimes(2);
+  });
+
   it('does nothing while muted', async () => {
     const mod = await loadFreshAudio();
     mod.setMuted(true);

@@ -36,7 +36,7 @@ const Confetti: React.FC = () => {
   );
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
+    <div aria-hidden="true" data-testid="win-confetti" className="pointer-events-none fixed inset-0 z-50 overflow-hidden">
       {pieces.map((piece) => (
         <span
           key={piece.id}
@@ -71,8 +71,10 @@ const ScoreBox: React.FC<{
 }> = ({ label, score, active, accent, testId }) => (
   <div
     data-testid={testId}
-    className={`rounded-xl border-2 px-6 py-3 text-center transition-colors ${
-      active ? "border-yellow-400 bg-zinc-800" : "border-zinc-700 bg-zinc-800/60"
+    className={`rounded-xl border-2 px-6 py-3 text-center transition-all ${
+      active
+        ? "border-yellow-400 bg-zinc-800 shadow-[0_0_18px_-4px_rgba(250,204,21,0.55)] animate-pulse"
+        : "border-zinc-700 bg-zinc-800/60"
     }`}
   >
     <div className={`text-xs font-semibold uppercase tracking-wider ${accent}`}>{label}</div>
@@ -183,7 +185,9 @@ export const Home: React.FC = () => {
 
   return (
     <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-900 px-4 py-4">
-      {state.result?.type === "win" && <Confetti />}
+      {state.result?.type === "win" && perspectiveWin !== "You lose!" && (
+        <Confetti />
+      )}
 
       <h1 className="select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
         <span className="text-blue-500">TIC</span>{" "}

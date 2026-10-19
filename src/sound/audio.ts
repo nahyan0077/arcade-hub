@@ -1,4 +1,4 @@
-export type SoundEffect = 'place-x' | 'place-o' | 'win' | 'draw' | 'invalid';
+export type SoundEffect = 'place-x' | 'place-o' | 'win' | 'lose' | 'draw' | 'invalid';
 
 const MUTE_STORAGE_KEY = 'tic-tac-toe.muted.v1';
 
@@ -75,6 +75,10 @@ const EFFECTS: Record<SoundEffect, (ctx: AudioContext) => void> = {
         peakGain: 0.12,
       });
     });
+  },
+  lose: (ctx) => {
+    scheduleTone(ctx, { frequency: 392.0, startAt: 0, duration: 0.22 });
+    scheduleTone(ctx, { frequency: 261.63, startAt: 0.2, duration: 0.42, peakGain: 0.1 });
   },
   draw: (ctx) => {
     scheduleTone(ctx, { frequency: 349.23, startAt: 0, duration: 0.18 });

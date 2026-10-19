@@ -21,6 +21,11 @@ export interface AITurnOptions {
   session?: RoomSession | null;
 }
 
+export function resultSoundEffect(winner: Player, perspective: Player | null): 'win' | 'lose' {
+  if (perspective === null) return 'win';
+  return winner === perspective ? 'win' : 'lose';
+}
+
 export function useGame(
   config: Partial<GameConfig> = {},
   options: AITurnOptions = {},
@@ -62,7 +67,7 @@ export function useGame(
       const history = snapshot.state.moveHistory;
       if (history.length > previousMoves) {
         if (snapshot.state.result?.type === 'win') {
-          playEffect('win');
+          playEffect(resultSoundEffect(snapshot.state.result.player, snapshot.myMark));
         } else if (snapshot.state.result?.type === 'draw') {
           playEffect('draw');
         } else {
@@ -74,21 +79,29 @@ export function useGame(
     });
   }, [session]);
 
-  const applyMove = useCallback((index: number) => {
-    const current = stateRef.current;
-    const next = makeMove(current, index);
-    if (next.result?.type === 'win') {
-      playEffect('win');
-    } else if (next.result?.type === 'draw') {
-      playEffect('draw');
-    } else {
-      playEffect(current.currentPlayer === 'X' ? 'place-x' : 'place-o');
-    }
+  const humanMark = options.humanMark ?? 'X';
+  const aiDelayMs = options.aiDelayMs ?? DEFAULT_AI_DELAY_MS;
+  const aiMark: Player | null =
+    state.mode === 'pve' ? (humanMark === 'X' ? 'O' : 'X') : null;
 
-    stateRef.current = next;
-    setState(next);
-    return next;
-  }, []);
+  const applyMove = useCallback(
+    (index: number) => {
+      const current = stateRef.current;
+      const next = makeMove(current, index);
+      if (next.result?.type === 'win') {
+        playEffect(resultSoundEffect(next.result.player, aiMark === null ? null : humanMark));
+      } else if (next.result?.type === 'draw') {
+        playEffect('draw');
+      } else {
+        playEffect(current.currentPlayer === 'X' ? 'place-x' : 'place-o');
+      }
+
+      stateRef.current = next;
+      setState(next);
+      return next;
+    },
+    [humanMark, aiMark],
+  );
 
   const playMove = useCallback(
     (index: number) => {
@@ -110,11 +123,6 @@ export function useGame(
     },
     [applyMove, session],
   );
-
-  const humanMark = options.humanMark ?? 'X';
-  const aiDelayMs = options.aiDelayMs ?? DEFAULT_AI_DELAY_MS;
-  const aiMark: Player | null =
-    state.mode === 'pve' ? (humanMark === 'X' ? 'O' : 'X') : null;
 
   useEffect(() => {
     if (aiMark === null) return;
