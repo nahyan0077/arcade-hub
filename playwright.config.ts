@@ -1,6 +1,22 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const e2ePort = Number(process.env.E2E_PORT ?? 5199);
+const wsProvider = process.env.E2E_WS ?? 'node';
+
+const relayServer =
+  wsProvider === 'cf'
+    ? {
+        command: 'npm run relay:cf',
+        port: 8788,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      }
+    : {
+        command: 'npm run relay',
+        port: 8787,
+        reuseExistingServer: true,
+        timeout: 15_000,
+      };
 
 export default defineConfig({
   testDir: './e2e',
@@ -13,12 +29,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: [
-    {
-      command: 'npm run relay',
-      port: 8787,
-      reuseExistingServer: true,
-      timeout: 15_000,
-    },
+    relayServer,
     {
       command: `npm run dev -- --port ${e2ePort} --strictPort`,
       url: `http://localhost:${e2ePort}`,
