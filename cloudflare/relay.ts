@@ -21,6 +21,11 @@ const MAX_PAYLOAD_BYTES = 4096;
 const MAX_HTTP_BODY_BYTES = 2048;
 const MATCHMAKER_PATH = '/matchmake';
 const VOICE_TOKEN_PATH = '/voice/token';
+const VOICE_CORS_HEADERS: Record<string, string> = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+};
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -31,8 +36,18 @@ export default {
       if (request.method === 'GET' && url.pathname === '/') {
         return new Response('tic-tac-toe relay', { status: 200 });
       }
-      if (request.method === 'POST' && url.pathname === VOICE_TOKEN_PATH) {
-        return handleVoiceToken(request, env);
+      if (url.pathname === VOICE_TOKEN_PATH) {
+        if (request.method === 'OPTIONS') {
+          return new Response(null, { status: 204, headers: VOICE_CORS_HEADERS });
+        }
+        if (request.method === 'POST') {
+          const response = await handleVoiceToken(request, env);
+          const withCors = new Response(response.body, response);
+          for (const [header, value] of Object.entries(VOICE_CORS_HEADERS)) {
+            withCors.headers.set(header, value);
+          }
+          return withCors;
+        }
       }
       return new Response('not found', { status: 404 });
     }

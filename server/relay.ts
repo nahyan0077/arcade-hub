@@ -15,6 +15,11 @@ const MAX_PAYLOAD_BYTES = 4096;
 const MAX_HTTP_BODY_BYTES = 2048;
 const MATCHMAKER_PATH = '/matchmake';
 const VOICE_TOKEN_PATH = '/voice/token';
+const VOICE_CORS_HEADERS: Record<string, string> = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'POST, OPTIONS',
+  'access-control-allow-headers': 'content-type',
+};
 
 export interface RelayServer {
   port: number;
@@ -90,9 +95,19 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
         return;
       }
 
-      if (request.method === 'POST' && pathname === VOICE_TOKEN_PATH) {
-        await handleVoiceToken(request, response);
-        return;
+      if (pathname === VOICE_TOKEN_PATH) {
+        for (const [header, value] of Object.entries(VOICE_CORS_HEADERS)) {
+          response.setHeader(header, value);
+        }
+        if (request.method === 'OPTIONS') {
+          response.writeHead(204);
+          response.end();
+          return;
+        }
+        if (request.method === 'POST') {
+          await handleVoiceToken(request, response);
+          return;
+        }
       }
 
       sendJson(response, 404, { error: 'not-found' });

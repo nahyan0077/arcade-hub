@@ -85,4 +85,34 @@ describe('relay voice token endpoint', () => {
     const missing = await fetch(`http://127.0.0.1:${configured.port}/nope`);
     expect(missing.status).toBe(404);
   });
+
+  it('answers CORS preflight and tags token responses for cross-origin pages', async () => {
+    const preflight = await fetch(voiceUrl(configured), {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'http://localhost:5201',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get('access-control-allow-origin')).toBe('*');
+    expect(preflight.headers.get('access-control-allow-methods')).toContain('POST');
+    expect(preflight.headers.get('access-control-allow-headers')).toContain('content-type');
+
+    const minted = await fetch(voiceUrl(configured), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ roomCode: 'ABC234', name: 'Alice' }),
+    });
+    expect(minted.headers.get('access-control-allow-origin')).toBe('*');
+
+    const unavailable = await fetch(voiceUrl(unconfigured), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ roomCode: 'ABC234', name: 'Alice' }),
+    });
+    expect(unavailable.status).toBe(503);
+    expect(unavailable.headers.get('access-control-allow-origin')).toBe('*');
+  });
 });
