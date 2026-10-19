@@ -28,8 +28,8 @@ test.describe('online multiplayer', () => {
     await cell(guest, 3).click();
     await cell(host, 2).click();
 
-    await expect(host.getByRole('status')).toHaveText('ALICE wins!');
-    await expect(guest.getByRole('status')).toHaveText('ALICE wins!');
+    await expect(host.getByRole('status')).toHaveText('You win!');
+    await expect(guest.getByRole('status')).toHaveText('You lose!');
     await expect(host.getByRole('dialog', { name: 'Game result' })).toBeVisible();
     await expect(guest.getByRole('dialog', { name: 'Game result' })).toBeVisible();
     await expect(host.getByTestId('score-x')).toHaveText(/1$/);

@@ -54,8 +54,8 @@ test.describe('quick play matchmaking', () => {
     await cell(oPage, 3).click();
     await cell(xPage, 2).click();
 
-    await expect(xPage.getByRole('status')).toHaveText(new RegExp(`${xName} wins!`));
-    await expect(oPage.getByRole('status')).toHaveText(new RegExp(`${xName} wins!`));
+    await expect(xPage.getByRole('status')).toHaveText('You win!');
+    await expect(oPage.getByRole('status')).toHaveText('You lose!');
     await xPage.screenshot({ path: `e2e/screenshots/${testInfo.project.name}-20-quickplay-win.png` });
 
     await context.close();

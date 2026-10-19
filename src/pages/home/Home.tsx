@@ -156,6 +156,13 @@ export const Home: React.FC = () => {
   const winningLine = state.result?.type === "win" ? state.result.line : null;
   const isFinished = state.phase === "finished";
 
+  const perspectiveWin =
+    online && onlineSnap !== null && state.result?.type === "win"
+      ? state.result.player === onlineSnap.myMark
+        ? "You win!"
+        : "You lose!"
+      : null;
+
   const hintIndex =
     hintOn && !online && state.phase === "playing" && !aiTurnPending
       ? getBestMove(state.board, state.currentPlayer)
@@ -165,7 +172,7 @@ export const Home: React.FC = () => {
   if (disconnected) {
     statusText = "Opponent disconnected";
   } else if (state.result?.type === "win") {
-    statusText = `${playerNames[state.result.player]} wins!`;
+    statusText = perspectiveWin ?? `${playerNames[state.result.player]} wins!`;
   } else if (state.result?.type === "draw") {
     statusText = "It's a draw!";
   } else if (aiTurnPending) {
@@ -287,10 +294,12 @@ export const Home: React.FC = () => {
         >
           <div className="mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
             <p className="mb-1 text-sm font-semibold uppercase tracking-widest text-zinc-400">
-              {state.result?.type === "draw" ? "Match Over" : "Winner"}
+              {state.result?.type === "draw" || perspectiveWin ? "Match Over" : "Winner"}
             </p>
             <p className="mb-6 text-4xl font-extrabold text-gray-100">
-              {state.result?.type === "win" ? playerNames[state.result.player] : "Draw"}
+              {state.result?.type === "win"
+                ? perspectiveWin ?? playerNames[state.result.player]
+                : "Draw"}
             </p>
             <div className="flex justify-center gap-3">
               <button

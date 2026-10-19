@@ -444,6 +444,12 @@ describe('online game screen', () => {
 
     expect(within(hostBoard).getByTestId('score-x')).toHaveTextContent('1');
     expect(within(guestBoard).getByTestId('score-x')).toHaveTextContent('1');
+    expect(within(hostBoard).getByTestId('status')).toHaveTextContent('You win!');
+    expect(within(guestBoard).getByTestId('status')).toHaveTextContent('You lose!');
+    const hostDialog = within(hostBoard).getByRole('dialog', { name: 'Game result' });
+    expect(within(hostDialog).getByText('You win!')).toBeInTheDocument();
+    const guestDialog = within(guestBoard).getByRole('dialog', { name: 'Game result' });
+    expect(within(guestDialog).getByText('You lose!')).toBeInTheDocument();
     expect(localStorageMock.setItem).not.toHaveBeenCalledWith(KEY, expect.anything());
   });
 
