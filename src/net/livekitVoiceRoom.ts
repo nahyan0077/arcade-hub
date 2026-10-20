@@ -1,8 +1,16 @@
-import { Room, RoomEvent } from 'livekit-client';
+import { Room, RoomEvent, Track } from 'livekit-client';
 import type { VoiceRoom } from './voiceSession';
 
 export function createLiveKitVoiceRoom(): VoiceRoom {
   const room = new Room();
+
+  room.on(RoomEvent.TrackSubscribed, (track) => {
+    if (track.kind === Track.Kind.Audio) track.attach();
+  });
+  room.on(RoomEvent.TrackUnsubscribed, (track) => {
+    track.detach();
+  });
+
   return {
     connect: (url, token) => room.connect(url, token),
     disconnect: () => room.disconnect(true),
