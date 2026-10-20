@@ -14,6 +14,7 @@ import { signVoiceToken } from '../src/net/voiceToken';
 export interface Env {
   ROOMS: DurableObjectNamespace;
   MATCHMAKER: DurableObjectNamespace;
+  ASSETS: Fetcher;
   LIVEKIT_URL?: string;
   LIVEKIT_API_KEY?: string;
   LIVEKIT_API_SECRET?: string;
@@ -49,9 +50,6 @@ export default {
     const isWebSocket = request.headers.get('Upgrade')?.toLowerCase() === 'websocket';
 
     if (!isWebSocket) {
-      if (request.method === 'GET' && url.pathname === '/') {
-        return new Response('tic-tac-toe relay', { status: 200 });
-      }
       if (url.pathname === VOICE_TOKEN_PATH) {
         if (request.method === 'OPTIONS') {
           return new Response(null, { status: 204, headers: VOICE_CORS_HEADERS });
@@ -65,7 +63,7 @@ export default {
           return withCors;
         }
       }
-      return new Response('not found', { status: 404 });
+      return env.ASSETS.fetch(request);
     }
 
     if (url.pathname === MATCHMAKER_PATH) {

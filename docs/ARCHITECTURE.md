@@ -353,12 +353,19 @@ local setup: `npm run test:e2e:voice`, `npm run test:e2e:cf`.
 
 ## 8. Scaling and deployment
 
-- Today's relays are single-node, in-memory: fine for friends-scale traffic; a restart
-  drops rooms (clients see `disconnected` and can rejoin).
-- The Cloudflare path scales further by construction — one DO per room, hibernation —
-  bounded by wrangler/account quotas; it is the intended production topology.
-- LiveKit media never touches the relays; for internet-wide voice use a hosted LiveKit
-  (keys in relay env, `LIVEKIT_URL` points clients at it).
+- **Production is one Cloudflare Worker on a single origin**
+  (`arcade-hub-relay.arcade-hub.workers.dev`): static SPA assets (with SPA fallback) +
+  the HTTP/WS relay surface + Durable Objects for rooms and matchmaking. One origin means
+  the app, its relay, and (once configured) voice tokens share a host — no CORS, one URL
+  to deploy. Redeploy = `VITE_WS_URL=wss://arcade-hub-relay.arcade-hub.workers.dev npm run
+  build && npx wrangler deploy`.
+- Scales by construction — one DO per room, hibernation-safe attachment state — bounded by
+  wrangler/account quotas. Hosted voice: `wrangler secret put LIVEKIT_URL / LIVEKIT_API_KEY
+  / LIVEKIT_API_SECRET` (LiveKit Cloud); until then `/voice/token` answers `503` and the UI
+  shows "Voice unavailable".
+- The Node relay remains the local/dev path: single-node, in-memory, fine for friends-scale
+  traffic; a restart drops rooms (clients see `disconnected` and can rejoin).
+- LiveKit media never touches the relays.
 - Persistence (scores, rejoin) is deliberately deferred; the seam would be the relay or a
   small KV/Postgres behind room creation and `/matchmake`.
 

@@ -39,3 +39,8 @@ e2e/screenshots
 
 # LiveKit local dev secrets
 .dev.vars
+
+# Env files (may hold secrets)
+.env
+.env.*
+!.env.example

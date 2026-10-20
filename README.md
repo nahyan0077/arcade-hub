@@ -62,6 +62,7 @@ npm run dev              # http://localhost:5173 — local and vs-AI work immedi
 | Online, same browser | open two tabs — no `VITE_WS_URL` means in-browser BroadcastChannel (same profile and origin) |
 | Online, across devices | `npm run relay`, then `VITE_WS_URL=ws://localhost:8787 npm run dev` |
 | Cloudflare-style relay locally | `npm run relay:cf` (:8788) with `VITE_WS_URL=ws://localhost:8788` |
+| Play live (hosted) | **https://arcade-hub-relay.arcade-hub.workers.dev** |
 | Voice chat | see [Voice chat](#voice-chat) — needs LiveKit + a relay with `LIVEKIT_*` vars |
 
 ## Scripts
@@ -80,6 +81,7 @@ npm run dev              # http://localhost:5173 — local and vs-AI work immedi
 | `npm run relay` | room relay server (ws, port 8787) |
 | `npm run relay:cf` | Cloudflare Durable Object relay via wrangler dev (port 8788) |
 | `npm run typecheck:cf` | type-check the Cloudflare worker |
+| `npx wrangler deploy` | deploy worker + SPA assets to Cloudflare (after a build) |
 
 ## Architecture
 
@@ -191,6 +193,30 @@ For devices across the internet, use a hosted LiveKit (e.g. LiveKit Cloud) and s
   every push ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); the voice and CF
   suites need docker/wrangler and run locally
 
+## Deployment
+
+One Cloudflare Worker serves everything on a single origin
+([`arcade-hub-relay.arcade-hub.workers.dev`](https://arcade-hub-relay.arcade-hub.workers.dev)):
+
+- static SPA assets (`dist/`, SPA fallback) — the page you play on
+- `ws(s)://…/room/<code>` and `/matchmake` — Durable Object relays
+- `POST /voice/token` — LiveKit token minting (returns `503` until configured)
+
+Redeploy:
+
+```bash
+VITE_WS_URL=wss://arcade-hub-relay.arcade-hub.workers.dev npm run build
+npx wrangler deploy
+```
+
+Voice on the deployed relay needs hosted LiveKit credentials:
+
+```bash
+npx wrangler secret put LIVEKIT_URL        # wss://<project>.livekit.cloud
+npx wrangler secret put LIVEKIT_API_KEY
+npx wrangler secret put LIVEKIT_API_SECRET
+```
+
 ## Known limitations
 
 - Relays are **not authoritative** — both clients validate moves, but a modified client can
@@ -198,7 +224,8 @@ For devices across the internet, use a hosted LiveKit (e.g. LiveKit Cloud) and s
 - `playerId` is client-generated (spoofable); rate limits are per-instance and in-memory
   (reset on restart, not distributed — no per-IP limit on the CF voice endpoint)
 - Online scores are session-only (no persistence); no reconnect-resume
-- Nothing deployed yet: `wrangler deploy` and hosted LiveKit credentials await account setup
+- Hosted voice is off until LiveKit Cloud credentials are set on the worker (local
+  docker/LAN voice works today)
 
 ## Roadmap
 
@@ -214,7 +241,8 @@ For devices across the internet, use a hosted LiveKit (e.g. LiveKit Cloud) and s
 | 7a — Game hub landing page | ✅ |
 | 7b — Game-scoped networking (`<game>:<code>`) | ✅ |
 | 7c — Second game on the shared stack | planned |
-| Deployment (Cloudflare + hosted LiveKit) | planned |
+| Deployment (Cloudflare worker + SPA) | ✅ |
+| Hosted voice (LiveKit Cloud secrets) | planned |
 
 ## Contributing
 
