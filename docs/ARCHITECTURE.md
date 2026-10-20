@@ -266,15 +266,21 @@ Missing `game` on the relay side means the default game, so older clients intero
 |-------|--------|
 | `rooms` | `Map<scopedId, Set<ws>>`; fan-out with scoping check; `1013` on >8 members (refused before handshake), `1008` on unknown code/game |
 | `queues` | `Map<gameId, waiters[]>` — FIFO per game; `matched` echoes the game |
-| HTTP | `GET /` health text; `POST /voice/token` — CORS-enabled, `503` when unconfigured, `400` on malformed body (including unknown `game`) |
+| HTTP | `GET /` health text; `POST /voice/token` — CORS-enabled, `503` when unconfigured, `404 room-not-found` when the room has no live members, `429` past the per-IP voice-token limit, `400` on malformed body (including unknown `game`) |
 | Forward validation | JSON-parse, ≤ 4 KB, and `scopedRoomId(msg.game, msg.roomCode)` must equal the connection's room |
+| Rate limits | 60 messages / 5 s per socket (`1008 rate limited`); 10 sockets per IP (`1013`); 30 voice-token POSTs / min per IP (`429`); `maxRooms` cap (`1013`) — defaults overridable via `startRelay(_, {limits})` |
 
 ### 4.5 Cloudflare relay (`cloudflare/relay.ts`)
 
 | Durable Object | State | Behavior |
 |----------------|-------|----------|
-| `RoomRelay` — one per scoped room id | `Map<WebSocket, scopedId>` in memory (hibernation API) | same fan-out + validation as Node; room-full refused **pre-handshake** (`503`) because workerd does not deliver a post-accept `close()` to the peer |
-| `Matchmaker` — one, `idFromName('global-queue')` | `Map<WebSocket, {playerId, game}>` | pairs only equal-game waiters |
+| `RoomRelay` — one per scoped room id | per-socket `serializeAttachment({roomId})`; membership via `state.getWebSockets()` — survives hibernation | same fan-out + validation as Node; room-full refused **pre-handshake** (`503`) because workerd does not deliver a post-accept `close()` to the peer; 60 msgs / 5 s per socket (`1008`) |
+| `Matchmaker` — one, `idFromName('global-queue')` | `serializeAttachment({queued, playerId, game})` — survives hibernation | pairs only equal-game waiters; waiting cap 500; same per-socket message limit |
+
+Per-socket state lives in WebSocket attachments (not class fields) because hibernation
+destroys the DO instance — anything in memory is lost when an idle room wakes up.
+`GET /__membership` (internal, not routed publicly) reports the live-member count so the
+worker can refuse voice-token mints for dead rooms.
 
 The Worker validates the `game` query param and computes `idFromName(scopedRoomId(...))`,
 so isolation is enforced by DO identity — not just by message inspection.
@@ -306,6 +312,8 @@ deterministic under an injected `rng`, which is what lets tests prove seeded pro
 | A room id belongs to exactly one game | scoped keys at every layer — transport, relay map, DO name, LiveKit room |
 | Unknown game ids never join or match | parsers return `null`; relays close/refuse; voice token `400` |
 | Voice is unavailable, not broken, when unconfigured | `503 voice-unconfigured` → "Voice unavailable" UI keeps the join button visible |
+| Voice tokens only exist for live rooms | `404 room-not-found` when the scoped room has no open relay sockets |
+| Flooding sockets get closed, not queued | per-socket message windows (`1008 rate limited`) on both relays |
 
 ## 6. Testing architecture
 
@@ -332,11 +340,16 @@ local setup: `npm run test:e2e:voice`, `npm run test:e2e:cf`.
   is a known future step (the engine state machine is already pure, so the surface is small).
 - **`playerId` is client-generated** (a UUID held in memory) — spoofable; fine for a game,
   not for identity.
-- **Voice tokens don't check room membership** — any caller who can reach `/voice/token`
-  can mint a token for any valid code. Acceptable while the relay is private; must be fixed
-  (membership proof) before public deployment.
-- No rate limiting, no auth, no persistence; LiveKit secrets live only in relay env vars
-  (never shipped to the browser).
+- **Voice tokens require membership** — `/voice/token` only mints when the scoped room has
+  live relay sockets (Node checks its `rooms` map; the CF worker asks the `RoomRelay` DO via
+  `__membership`). A caller who knows a code for a dead room gets `404`.
+- **Rate limiting is per-instance and in-memory** — per-socket message windows, per-IP
+  socket/voice-token caps on the Node relay, per-socket windows and a waiting cap on the CF
+  DOs. Limits reset on restart/hibernation and aren't distributed (fine for friends-scale;
+  use platform edges/WAF for harsher abuse). The CF worker has no per-IP HTTP limit on
+  `/voice/token` (no cheap shared counter); the membership check bounds its usefulness.
+- No auth, no persistence; LiveKit secrets live only in relay env vars (never shipped to
+  the browser).
 
 ## 8. Scaling and deployment
 

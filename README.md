@@ -195,8 +195,9 @@ For devices across the internet, use a hosted LiveKit (e.g. LiveKit Cloud) and s
 
 - Relays are **not authoritative** — both clients validate moves, but a modified client can
   cheat its peer
-- `playerId` is client-generated (spoofable); voice tokens don't verify room membership
-- No rate limiting; online scores are session-only (no persistence); no reconnect-resume
+- `playerId` is client-generated (spoofable); rate limits are per-instance and in-memory
+  (reset on restart, not distributed — no per-IP limit on the CF voice endpoint)
+- Online scores are session-only (no persistence); no reconnect-resume
 - Nothing deployed yet: `wrangler deploy` and hosted LiveKit credentials await account setup
 
 ## Roadmap

@@ -23,6 +23,9 @@ const ROOM_PATH = /^\/room\/([A-Z0-9]{6})$/;
 const MAX_ROOM_SIZE = 8;
 const MAX_PAYLOAD_BYTES = 4096;
 const MAX_HTTP_BODY_BYTES = 2048;
+const MAX_WAITING = 500;
+const RATE_WINDOW_MS = 5000;
+const RATE_MAX_MESSAGES = 60;
 const MATCHMAKER_PATH = '/matchmake';
 const VOICE_TOKEN_PATH = '/voice/token';
 const VOICE_CORS_HEADERS: Record<string, string> = {
@@ -30,6 +33,15 @@ const VOICE_CORS_HEADERS: Record<string, string> = {
   'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-allow-headers': 'content-type',
 };
+
+interface SocketAttachment {
+  roomId?: string;
+  queued?: boolean;
+  playerId?: string;
+  game?: GameId;
+}
+
+type RateWindow = { windowStart: number; count: number };
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -103,12 +115,24 @@ async function handleVoiceToken(request: Request, env: Env): Promise<Response> {
     return json(503, { error: 'voice-unconfigured' });
   }
 
+  const roomId = scopedRoomId(game === undefined ? DEFAULT_GAME : game, roomCode);
+  const membership = await env.ROOMS.get(env.ROOMS.idFromName(roomId)).fetch(
+    new Request('https://room-relay.internal/__membership'),
+  );
+  if (membership.status !== 200) {
+    return json(404, { error: 'room-not-found' });
+  }
+  const { members } = (await membership.json()) as { members?: unknown };
+  if (typeof members !== 'number' || members === 0) {
+    return json(404, { error: 'room-not-found' });
+  }
+
   const token = await signVoiceToken({
     apiKey: env.LIVEKIT_API_KEY,
     apiSecret: env.LIVEKIT_API_SECRET,
     identity: generatePlayerId(),
     name: name.trim(),
-    room: scopedRoomId(game === undefined ? DEFAULT_GAME : game, roomCode),
+    room: roomId,
   });
   return json(200, { url: env.LIVEKIT_URL, token });
 }
@@ -120,13 +144,40 @@ function json(status: number, body: unknown): Response {
   });
 }
 
+function allowRateMessage(rate: Map<WebSocket, RateWindow>, ws: WebSocket): boolean {
+  const now = Date.now();
+  const window = rate.get(ws);
+  if (window === undefined || now - window.windowStart >= RATE_WINDOW_MS) {
+    rate.set(ws, { windowStart: now, count: 1 });
+    return true;
+  }
+  window.count += 1;
+  if (window.count > RATE_MAX_MESSAGES) {
+    rate.delete(ws);
+    ws.close(1008, 'rate limited');
+    return false;
+  }
+  return true;
+}
+
+function attachmentOf(ws: WebSocket): SocketAttachment | null {
+  return ws.deserializeAttachment() as SocketAttachment | null;
+}
+
 export class RoomRelay implements DurableObject {
-  private readonly members = new Map<WebSocket, string>();
+  private readonly rate = new Map<WebSocket, RateWindow>();
 
   constructor(private readonly state: DurableObjectState) {}
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === '/__membership') {
+      const members = this.state
+        .getWebSockets()
+        .filter((socket) => socket.readyState === WebSocket.OPEN).length;
+      return json(200, { members });
+    }
+
     const match = ROOM_PATH.exec(url.pathname);
     const gameParam = url.searchParams.get('game');
     const game = gameParam === null ? DEFAULT_GAME : gameParam;
@@ -135,7 +186,7 @@ export class RoomRelay implements DurableObject {
     }
     const roomId = scopedRoomId(game, match[1]);
 
-    if (this.members.size >= MAX_ROOM_SIZE) {
+    if (this.state.getWebSockets().length >= MAX_ROOM_SIZE) {
       // Refuse before the 101 handshake instead of accepting and closing:
       // workerd does not deliver a post-accept close() to the peer here.
       // The client treats this like an unreachable room (join timeout).
@@ -145,30 +196,31 @@ export class RoomRelay implements DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
     this.state.acceptWebSocket(server);
-    this.members.set(server, roomId);
+    server.serializeAttachment({ roomId } satisfies SocketAttachment);
     return new Response(null, { status: 101, webSocket: client });
   }
 
   webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): void {
     if (typeof message !== 'string') return;
-    const roomId = this.members.get(ws);
+    if (!allowRateMessage(this.rate, ws)) return;
+    const roomId = attachmentOf(ws)?.roomId;
     if (roomId === undefined) return;
     if (message.length > MAX_PAYLOAD_BYTES) return;
     if (!isRoomMessageFor(message, roomId)) return;
 
-    for (const [peer, peerRoom] of this.members) {
-      if (peer === ws || peerRoom !== roomId) continue;
-      if (peer.readyState !== WebSocket.OPEN) continue;
+    for (const peer of this.state.getWebSockets()) {
+      if (peer === ws || peer.readyState !== WebSocket.OPEN) continue;
+      if (attachmentOf(peer)?.roomId !== roomId) continue;
       peer.send(message);
     }
   }
 
   webSocketClose(ws: WebSocket): void {
-    this.members.delete(ws);
+    this.rate.delete(ws);
   }
 
   webSocketError(ws: WebSocket): void {
-    this.members.delete(ws);
+    this.rate.delete(ws);
   }
 }
 
@@ -187,7 +239,7 @@ function isRoomMessageFor(payload: string, roomId: string): boolean {
 }
 
 export class Matchmaker implements DurableObject {
-  private readonly waiting = new Map<WebSocket, { playerId: string; game: GameId }>();
+  private readonly rate = new Map<WebSocket, RateWindow>();
 
   constructor(private readonly state: DurableObjectState) {}
 
@@ -200,31 +252,43 @@ export class Matchmaker implements DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
     this.state.acceptWebSocket(server);
+    server.serializeAttachment({ queued: false } satisfies SocketAttachment);
     return new Response(null, { status: 101, webSocket: client });
   }
 
   webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): void {
     if (typeof message !== 'string') return;
+    if (!allowRateMessage(this.rate, ws)) return;
     const parsed = parseMatchmakerMessage(message);
     if (parsed === null) return;
 
     switch (parsed.type) {
       case 'queue': {
         const game = parsed.game ?? DEFAULT_GAME;
-        if (this.waiting.has(ws)) return;
-        for (const [waiterSocket, waiter] of this.waiting) {
-          if (waiter.game !== game) continue;
-          this.waiting.delete(waiterSocket);
+        if (attachmentOf(ws)?.queued) return;
+        for (const waiterSocket of this.state.getWebSockets()) {
+          if (waiterSocket === ws || waiterSocket.readyState !== WebSocket.OPEN) continue;
+          const waiter = attachmentOf(waiterSocket);
+          if (!waiter?.queued || waiter.game !== game) continue;
+          waiterSocket.serializeAttachment({ queued: false } satisfies SocketAttachment);
           const roomCode = generateRoomCode();
-          this.sendMatched(waiterSocket, waiter.playerId, roomCode, 'host', game);
+          this.sendMatched(waiterSocket, waiter.playerId ?? '', roomCode, 'host', game);
           this.sendMatched(ws, parsed.playerId, roomCode, 'guest', game);
           return;
         }
-        this.waiting.set(ws, { playerId: parsed.playerId, game });
+        const waitingCount = this.state
+          .getWebSockets()
+          .filter((socket) => attachmentOf(socket)?.queued === true).length;
+        if (waitingCount >= MAX_WAITING) return;
+        ws.serializeAttachment({
+          queued: true,
+          playerId: parsed.playerId,
+          game,
+        } satisfies SocketAttachment);
         return;
       }
       case 'cancel': {
-        this.waiting.delete(ws);
+        ws.serializeAttachment({ queued: false } satisfies SocketAttachment);
         return;
       }
       default:
@@ -233,11 +297,11 @@ export class Matchmaker implements DurableObject {
   }
 
   webSocketClose(ws: WebSocket): void {
-    this.waiting.delete(ws);
+    this.rate.delete(ws);
   }
 
   webSocketError(ws: WebSocket): void {
-    this.waiting.delete(ws);
+    this.rate.delete(ws);
   }
 
   private sendMatched(

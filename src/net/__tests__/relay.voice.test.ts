@@ -31,8 +31,17 @@ function decodePayload(token: string): Record<string, unknown> {
   return JSON.parse(json) as Record<string, unknown>;
 }
 
+function openRoom(server: RelayServer, roomCode: string): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket(`ws://127.0.0.1:${server.port}/room/${roomCode}`);
+    socket.onerror = () => reject(new Error('room socket failed'));
+    socket.onopen = () => resolve(socket);
+  });
+}
+
 describe('relay voice token endpoint', () => {
-  it('mints a LiveKit join token for a valid room', async () => {
+  it('mints a LiveKit join token for a valid room with live members', async () => {
+    const room = await openRoom(configured, 'ABC234');
     const response = await fetch(voiceUrl(configured), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -46,6 +55,18 @@ describe('relay voice token endpoint', () => {
     expect(claims).toMatchObject({ iss: 'devkey', name: 'Alice' });
     expect(claims.sub).toMatch(/^[0-9a-f-]{36}$/);
     expect(claims.video).toMatchObject({ room: 'tictactoe:ABC234', roomJoin: true });
+
+    room.close();
+  });
+
+  it('rejects a mint request for a room without live members', async () => {
+    const response = await fetch(voiceUrl(configured), {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ roomCode: 'GHJK23', name: 'Alice' }),
+    });
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'room-not-found' });
   });
 
   it('rejects an invalid room code or name', async () => {

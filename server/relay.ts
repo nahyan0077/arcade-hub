@@ -38,14 +38,59 @@ export interface RelayVoiceConfig {
 
 export interface RelayServerOptions {
   voice?: RelayVoiceConfig | null;
+  limits?: Partial<RelayLimits>;
 }
+
+export interface RelayLimits {
+  messagesPerWindow: number;
+  windowMs: number;
+  socketsPerIp: number;
+  voiceTokensPerMinute: number;
+  maxRooms: number;
+}
+
+const DEFAULT_LIMITS: RelayLimits = {
+  messagesPerWindow: 60,
+  windowMs: 5000,
+  socketsPerIp: 10,
+  voiceTokensPerMinute: 30,
+  maxRooms: 1000,
+};
+
+const VOICE_WINDOW_MS = 60_000;
+const VOICE_WINDOW_PRUNE_SIZE = 5000;
 
 export function startRelay(port: number, options: RelayServerOptions = {}): Promise<RelayServer> {
   const voice = options.voice ?? voiceFromEnv(process.env);
+  const limits: RelayLimits = { ...DEFAULT_LIMITS, ...options.limits };
 
   return new Promise((resolve, reject) => {
     const rooms = new Map<string, Set<WsSocket>>();
     const queue = new Map<GameId, Array<{ socket: WsSocket; playerId: string }>>();
+    const socketsPerIp = new Map<string, number>();
+    const messageWindows = new Map<WsSocket, { start: number; count: number }>();
+    const voiceWindows = new Map<string, { start: number; count: number }>();
+
+    const normalizeIp = (remote: string | undefined): string => {
+      const ip = remote ?? 'unknown';
+      if (ip.startsWith('::ffff:')) return ip.slice('::ffff:'.length);
+      return ip === '::1' ? '127.0.0.1' : ip;
+    };
+
+    const allowMessage = (socket: WsSocket): boolean => {
+      const now = Date.now();
+      const window = messageWindows.get(socket);
+      if (window === undefined || now - window.start >= limits.windowMs) {
+        messageWindows.set(socket, { start: now, count: 1 });
+        return true;
+      }
+      window.count += 1;
+      if (window.count > limits.messagesPerWindow) {
+        socket.close(1008, 'rate limited');
+        return false;
+      }
+      return true;
+    };
 
     const httpServer = createServer((request, response) => {
       void handleHttp(request, response);
@@ -130,6 +175,24 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
     }
 
     async function handleVoiceToken(request: IncomingMessage, response: ServerResponse): Promise<void> {
+      const ip = normalizeIp(request.socket.remoteAddress);
+      const now = Date.now();
+      if (voiceWindows.size > VOICE_WINDOW_PRUNE_SIZE) {
+        for (const [key, window] of voiceWindows) {
+          if (now - window.start >= VOICE_WINDOW_MS) voiceWindows.delete(key);
+        }
+      }
+      const window = voiceWindows.get(ip);
+      if (window === undefined || now - window.start >= VOICE_WINDOW_MS) {
+        voiceWindows.set(ip, { start: now, count: 1 });
+      } else {
+        window.count += 1;
+        if (window.count > limits.voiceTokensPerMinute) {
+          sendJson(response, 429, { error: 'rate-limited' });
+          return;
+        }
+      }
+
       const body = await readJsonBody(request);
       if (body === null) {
         sendJson(response, 400, { error: 'bad-request' });
@@ -155,13 +218,18 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
         sendJson(response, 503, { error: 'voice-unconfigured' });
         return;
       }
+      const roomId = scopedRoomId(game === undefined ? DEFAULT_GAME : game, roomCode);
+      if (!rooms.get(roomId)?.size) {
+        sendJson(response, 404, { error: 'room-not-found' });
+        return;
+      }
 
       const token = await signVoiceToken({
         apiKey: voice.apiKey,
         apiSecret: voice.apiSecret,
         identity: generatePlayerId(),
         name: name.trim(),
-        room: scopedRoomId(game === undefined ? DEFAULT_GAME : game, roomCode),
+        room: roomId,
       });
       sendJson(response, 200, { url: voice.url, token });
     }
@@ -173,10 +241,25 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
     });
 
     wss.on('connection', (socket, request) => {
+      const ip = normalizeIp(request.socket.remoteAddress);
+      const openForIp = socketsPerIp.get(ip) ?? 0;
+      if (openForIp >= limits.socketsPerIp) {
+        socket.close(1013, 'too many connections');
+        return;
+      }
+      socketsPerIp.set(ip, openForIp + 1);
+      socket.on('close', () => {
+        messageWindows.delete(socket);
+        const remaining = (socketsPerIp.get(ip) ?? 1) - 1;
+        if (remaining <= 0) socketsPerIp.delete(ip);
+        else socketsPerIp.set(ip, remaining);
+      });
+
       const pathname = new URL(request.url ?? '/', 'http://relay.local').pathname;
 
       if (pathname === MATCHMAKER_PATH) {
         socket.on('message', (data) => {
+          if (!allowMessage(socket)) return;
           const message = parseMatchmakerMessage(data.toString());
           if (message === null) return;
           handleMatchmaker(socket, message);
@@ -196,6 +279,10 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
 
       let members = rooms.get(roomId);
       if (members === undefined) {
+        if (rooms.size >= limits.maxRooms) {
+          socket.close(1013, 'server full');
+          return;
+        }
         members = new Set();
         rooms.set(roomId, members);
       }
@@ -206,6 +293,7 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
       members.add(socket);
 
       socket.on('message', (data) => {
+        if (!allowMessage(socket)) return;
         const payload = data.toString();
         if (!isRoomMessageFor(payload, roomId)) return;
         for (const peer of members) {
@@ -223,6 +311,9 @@ export function startRelay(port: number, options: RelayServerOptions = {}): Prom
     const cleanup = (): Promise<void> =>
       new Promise<void>((done) => {
         queue.clear();
+        socketsPerIp.clear();
+        messageWindows.clear();
+        voiceWindows.clear();
         for (const members of rooms.values()) {
           for (const socket of members) socket.terminate();
         }
