@@ -7,6 +7,7 @@ import { AIDIFFICULTIES, PERSONALITIES, getBestMove } from "../../engine";
 import type { AIDifficulty, Player } from "../../engine";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 import { VoiceControls } from "../../components/VoiceControls";
+import { ChatPanel } from "../../components/ChatPanel";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -189,7 +190,7 @@ export const Home: React.FC = () => {
         <Confetti />
       )}
 
-      <h1 className="select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
+      <h1 className="animate-fade-in-up select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
         <span className="text-blue-500">TIC</span>{" "}
         <span className="text-gray-100">TAC</span>{" "}
         <span className="text-red-500">TOE</span>
@@ -265,6 +266,9 @@ export const Home: React.FC = () => {
             Leave Room
           </button>
         )}
+        {online && onlineSnap?.status === "connected" && session && (
+          <ChatPanel session={session} />
+        )}
         {online && onlineSnap?.status === "connected" && WS_BASE !== "" && (
           <VoiceControls
             baseUrl={WS_BASE}
@@ -301,7 +305,7 @@ export const Home: React.FC = () => {
           aria-label="Game result"
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
         >
-          <div className="mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
+          <div className="animate-pop mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
             <p className="mb-1 text-sm font-semibold uppercase tracking-widest text-zinc-400">
               {state.result?.type === "draw" || perspectiveWin ? "Match Over" : "Winner"}
             </p>
@@ -347,7 +351,7 @@ export const Home: React.FC = () => {
           aria-label="Opponent disconnected"
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
         >
-          <div className="mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
+          <div className="animate-pop mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
             <p className="mb-6 text-2xl font-extrabold text-gray-100">
               Opponent disconnected
             </p>

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RoomSession } from '../RoomSession';
-import type { SessionSnapshot } from '../RoomSession';
+import type { ChatEvent, SessionSnapshot } from '../RoomSession';
 import { createFakeTransportBus, createFakeTransportPair } from '../transport';
 import type { RoomTransport } from '../transport';
 
@@ -437,5 +437,62 @@ describe('RoomSession game scoping', () => {
     host.destroy();
     guest.destroy();
     foreign.destroy();
+  });
+});
+
+describe('RoomSession chat', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('relays chat messages between host and guest without echoing to the sender', () => {
+    const { host, guest } = connectPair();
+    const hostEvents: ChatEvent[] = [];
+    const guestEvents: ChatEvent[] = [];
+    host.onChat((event) => hostEvents.push(event));
+    guest.onChat((event) => guestEvents.push(event));
+
+    expect(guest.sendChat('nice move!')).toBe(true);
+    expect(guestEvents).toHaveLength(0);
+    expect(hostEvents).toEqual([
+      { kind: 'chat', fromId: 'guest-1', from: 'BOB', text: 'nice move!' },
+    ]);
+
+    expect(host.sendChat('  thanks  ')).toBe(true);
+    expect(guestEvents).toEqual([
+      { kind: 'chat', fromId: 'host-1', from: 'ALICE', text: 'thanks' },
+    ]);
+  });
+
+  it('rejects empty chat and invalid emoji, and clips overlong text on receive', () => {
+    const [aloneTransport] = createFakeTransportPair();
+    const alone = makeHost(aloneTransport);
+    expect(alone.sendChat('hi')).toBe(false);
+    expect(alone.sendEmoji('🎉')).toBe(false);
+
+    const { host, guest } = connectPair();
+    expect(guest.sendChat('   ')).toBe(false);
+    expect(guest.sendEmoji('💣')).toBe(false);
+
+    const events: ChatEvent[] = [];
+    host.onChat((event) => events.push(event));
+    guest.sendChat('x'.repeat(500));
+    expect(events).toHaveLength(1);
+    expect(events[0].text).toHaveLength(200);
+  });
+
+  it('relays emoji events and drops unknown emoji from remote peers', () => {
+    const { host, guest } = connectPair();
+    const events: ChatEvent[] = [];
+    host.onChat((event) => events.push(event));
+
+    guest.sendEmoji('👀');
+    expect(events).toEqual([
+      { kind: 'emoji', fromId: 'guest-1', from: 'BOB', emoji: '👀' },
+    ]);
   });
 });

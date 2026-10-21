@@ -7,7 +7,12 @@ import {
 } from '../engine';
 import type { GameState, Player } from '../engine';
 import type { RoomMessage, RoomRole, GameId } from './protocol';
-import { DEFAULT_GAME, markForRole } from './protocol';
+import {
+  CHAT_MESSAGE_MAX_LENGTH,
+  DEFAULT_GAME,
+  isChatEmoji,
+  markForRole,
+} from './protocol';
 import type { RoomTransport } from './transport';
 
 export type SessionStatus =
@@ -16,6 +21,14 @@ export type SessionStatus =
   | 'connected'
   | 'rejected'
   | 'disconnected';
+
+export interface ChatEvent {
+  kind: 'chat' | 'emoji';
+  fromId: string;
+  from: string;
+  text?: string;
+  emoji?: string;
+}
 
 export interface SessionSnapshot {
   status: SessionStatus;
@@ -55,6 +68,7 @@ export class RoomSession {
     transport: RoomTransport;
   };
   private readonly listeners = new Set<(snapshot: SessionSnapshot) => void>();
+  private readonly chatListeners = new Set<(event: ChatEvent) => void>();
   private unsubscribeTransport: (() => void) | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private checkTimer: ReturnType<typeof setInterval> | null = null;
@@ -102,6 +116,11 @@ export class RoomSession {
     return () => this.listeners.delete(listener);
   }
 
+  onChat(listener: (event: ChatEvent) => void): () => void {
+    this.chatListeners.add(listener);
+    return () => this.chatListeners.delete(listener);
+  }
+
   getSnapshot(): SessionSnapshot {
     return this.snapshot;
   }
@@ -143,6 +162,7 @@ export class RoomSession {
     if (this.destroyed) return;
     this.stop();
     this.destroyed = true;
+    this.chatListeners.clear();
     this.options.transport.close();
   }
 
@@ -176,6 +196,33 @@ export class RoomSession {
     if (this.options.role === 'host' && this.opponentRematchRequested) {
       this.startRematch();
     }
+    return true;
+  }
+
+  sendChat(text: string): boolean {
+    if (this.snapshot.status !== 'connected') return false;
+    const trimmed = text.trim();
+    if (trimmed.length === 0) return false;
+    this.post({
+      type: 'chat',
+      roomCode: this.options.roomCode,
+      playerId: this.options.myId,
+      name: this.options.myName,
+      text: trimmed.slice(0, CHAT_MESSAGE_MAX_LENGTH),
+    });
+    return true;
+  }
+
+  sendEmoji(emoji: string): boolean {
+    if (this.snapshot.status !== 'connected') return false;
+    if (!isChatEmoji(emoji)) return false;
+    this.post({
+      type: 'emoji',
+      roomCode: this.options.roomCode,
+      playerId: this.options.myId,
+      name: this.options.myName,
+      emoji,
+    });
     return true;
   }
 
@@ -247,7 +294,40 @@ export class RoomSession {
         break;
       case 'pong':
         break;
+      case 'chat':
+        this.onChatMessage(message);
+        break;
+      case 'emoji':
+        this.onEmojiMessage(message);
+        break;
     }
+  }
+
+  private onChatMessage(message: Extract<RoomMessage, { type: 'chat' }>): void {
+    if (this.snapshot.status !== 'connected') return;
+    const text = message.text.trim().slice(0, CHAT_MESSAGE_MAX_LENGTH);
+    if (text.length === 0) return;
+    this.emitChat({
+      kind: 'chat',
+      fromId: message.playerId,
+      from: message.name,
+      text,
+    });
+  }
+
+  private onEmojiMessage(message: Extract<RoomMessage, { type: 'emoji' }>): void {
+    if (this.snapshot.status !== 'connected') return;
+    if (!isChatEmoji(message.emoji)) return;
+    this.emitChat({
+      kind: 'emoji',
+      fromId: message.playerId,
+      from: message.name,
+      emoji: message.emoji,
+    });
+  }
+
+  private emitChat(event: ChatEvent): void {
+    for (const listener of [...this.chatListeners]) listener(event);
   }
 
   private onHello(message: Extract<RoomMessage, { type: 'hello' }>): void {

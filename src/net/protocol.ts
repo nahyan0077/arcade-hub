@@ -37,6 +37,14 @@ export function generatePlayerId(): string {
   return crypto.randomUUID();
 }
 
+export const CHAT_MESSAGE_MAX_LENGTH = 200;
+export const CHAT_EMOJIS = ['🎉', '🔥', '😂', '👏', '💯', '😅', '🤔', '👀'] as const;
+export type ChatEmoji = (typeof CHAT_EMOJIS)[number];
+
+export function isChatEmoji(input: unknown): input is ChatEmoji {
+  return typeof input === 'string' && (CHAT_EMOJIS as readonly string[]).includes(input);
+}
+
 export type RoomMessage =
   | { type: 'hello'; roomCode: string; playerId: string; name: string; game?: GameId }
   | { type: 'welcome'; roomCode: string; hostId: string; hostName: string; game?: GameId }
@@ -46,7 +54,9 @@ export type RoomMessage =
   | { type: 'rematch-start'; roomCode: string; game?: GameId }
   | { type: 'leave'; roomCode: string; playerId: string; game?: GameId }
   | { type: 'ping'; roomCode: string; playerId: string; game?: GameId }
-  | { type: 'pong'; roomCode: string; playerId: string; game?: GameId };
+  | { type: 'pong'; roomCode: string; playerId: string; game?: GameId }
+  | { type: 'chat'; roomCode: string; playerId: string; name: string; text: string; game?: GameId }
+  | { type: 'emoji'; roomCode: string; playerId: string; name: string; emoji: string; game?: GameId };
 
 export function roomChannelName(roomCode: string, game: GameId = DEFAULT_GAME): string {
   return `room:${scopedRoomId(game, roomCode)}`;

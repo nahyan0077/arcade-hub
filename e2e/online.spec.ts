@@ -24,6 +24,15 @@ test.describe('online multiplayer', () => {
     await cell(guest, 4).click();
     await expect(cell(host, 4)).toHaveText('O');
 
+    await host.getByTestId('chat-toggle').click();
+    await guest.getByTestId('chat-toggle').click();
+    await host.getByTestId('chat-input').fill('good game');
+    await host.getByTestId('chat-send').click();
+    await expect(guest.getByTestId('chat-messages')).toContainText('good game');
+    await guest.getByRole('button', { name: 'send emoji 🔥' }).click();
+    await expect(host.getByTestId('chat-messages')).toContainText('🔥');
+    await expect(host.getByTestId('emoji-burst')).toBeVisible();
+
     await cell(host, 1).click();
     await cell(guest, 3).click();
     await cell(host, 2).click();
