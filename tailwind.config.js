@@ -29,9 +29,9 @@ export default {
           '0%, 100%': { boxShadow: '0 0 0 0 rgba(250, 204, 21, 0.7)' },
           '50%': { boxShadow: '0 0 24px 8px rgba(250, 204, 21, 0.45)' },
         },
-        'fade-in-up': {
-          from: { transform: 'translateY(14px)', opacity: '0' },
-          to: { transform: 'translateY(0)', opacity: '1' },
+        'fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '1' },
         },
         'slide-up': {
           from: { transform: 'translateY(16px)', opacity: '0' },
@@ -53,7 +53,7 @@ export default {
         'draw-line': 'draw-line 0.6s ease-out 0.2s both',
         'confetti-fall': 'confetti-fall linear forwards',
         'win-pulse': 'win-pulse 1.2s ease-in-out infinite',
-        'fade-in-up': 'fade-in-up 0.45s ease-out both',
+        'fade-in': 'fade-in 0.45s ease-out both',
         'slide-up': 'slide-up 0.22s ease-out both',
         'emoji-float': 'emoji-float 1.5s ease-out forwards',
         'card-glow': 'card-glow 2.4s ease-in-out infinite',

@@ -83,7 +83,7 @@ export const Start = () => {
   };
 
   return (
-    <div className="animate-fade-in-up flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
+    <div className="animate-fade-in flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
         <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" >
             <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
             <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > TAC </h2>

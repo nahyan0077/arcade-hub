@@ -41,7 +41,7 @@ export const Hub = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="animate-fade-in-up flex min-h-[100dvh] flex-col items-center justify-center gap-8 bg-zinc-900 px-4 py-8">
+    <div className="animate-fade-in flex min-h-[100dvh] flex-col items-center justify-center gap-8 bg-zinc-900 px-4 py-8">
       <Toaster />
       <div className="text-center">
         <h1 className="animate-pop text-4xl font-extrabold sm:text-5xl">
@@ -60,7 +60,7 @@ export const Hub = () => {
             key={game.id}
             data-testid={`hub-card-${game.id}`}
             style={{ animationDelay: `${index * 90}ms` }}
-            className={`animate-fade-in-up group flex flex-col items-center gap-3 rounded-2xl border-2 bg-zinc-800/60 p-6 text-center transition-all ${
+            className={`animate-fade-in group flex flex-col items-center gap-3 rounded-2xl border-2 bg-zinc-800/60 p-6 text-center transition-all ${
               game.playable
                 ? "border-zinc-700 hover:-translate-y-1.5 hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/10"
                 : "border-zinc-800 opacity-60"

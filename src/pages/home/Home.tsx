@@ -190,7 +190,7 @@ export const Home: React.FC = () => {
         <Confetti />
       )}
 
-      <h1 className="animate-fade-in-up select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
+      <h1 className="animate-fade-in select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
         <span className="text-blue-500">TIC</span>{" "}
         <span className="text-gray-100">TAC</span>{" "}
         <span className="text-red-500">TOE</span>

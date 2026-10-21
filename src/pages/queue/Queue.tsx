@@ -60,7 +60,7 @@ export const Queue = () => {
   };
 
   return (
-    <div className="animate-fade-in-up flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4">
+    <div className="animate-fade-in flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4">
       <Toaster />
       <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-100 mb-8">QUICK PLAY</h2>
 

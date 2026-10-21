@@ -60,7 +60,7 @@ export const Lobby = () => {
   if (!snapshot) return null;
 
   return (
-    <div className="animate-fade-in-up flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-zinc-900 px-4">
+    <div className="animate-fade-in flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-zinc-900 px-4">
       <Toaster />
       <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
         <span className="text-blue-500">TIC</span>{" "}
