@@ -224,7 +224,7 @@ export const Start = () => {
 
         <button
           type="button"
-          className="text-gray-500 cursor-pointer transition-all hover:scale-105 hover:text-gray-300"
+          className="mt-2 w-64 max-w-full rounded-xl bg-blue-600 px-8 py-3 text-lg font-extrabold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105 hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
           onClick={handleStart}
         >
           Start Game

@@ -13,12 +13,14 @@ interface ChatEntry {
 
 let nextEntryId = 1;
 
-export const ChatPanel: React.FC<{ session: RoomSession }> = ({ session }) => {
+export const ChatPanel: React.FC<{
+  session: RoomSession;
+  onEmojiSend: (emoji: string) => void;
+}> = ({ session, onEmojiSend }) => {
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [unread, setUnread] = useState(0);
   const [input, setInput] = useState("");
-  const [bursts, setBursts] = useState<Array<{ id: number; emoji: string }>>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const openRef = useRef(open);
   openRef.current = open;
@@ -35,13 +37,6 @@ export const ChatPanel: React.FC<{ session: RoomSession }> = ({ session }) => {
         emoji: event.emoji,
       };
       setEntries((prev) => [...prev.slice(-49), entry]);
-      if (event.kind === "emoji" && event.emoji) {
-        const burstId = nextEntryId++;
-        setBursts((prev) => [...prev, { id: burstId, emoji: event.emoji as string }]);
-        setTimeout(() => {
-          setBursts((prev) => prev.filter((burst) => burst.id !== burstId));
-        }, 1600);
-      }
       if (!openRef.current) setUnread((n) => n + 1);
     });
   }, [session]);
@@ -69,14 +64,6 @@ export const ChatPanel: React.FC<{ session: RoomSession }> = ({ session }) => {
     ]);
   };
 
-  const showBurst = (emoji: string) => {
-    const burstId = nextEntryId++;
-    setBursts((prev) => [...prev, { id: burstId, emoji }]);
-    setTimeout(() => {
-      setBursts((prev) => prev.filter((burst) => burst.id !== burstId));
-    }, 1600);
-  };
-
   const sendText = () => {
     if (!session.sendChat(input)) return;
     appendMine("chat", { text: input.trim().slice(0, CHAT_MESSAGE_MAX_LENGTH) });
@@ -86,30 +73,15 @@ export const ChatPanel: React.FC<{ session: RoomSession }> = ({ session }) => {
   const sendEmoji = (emoji: string) => {
     if (!session.sendEmoji(emoji)) return;
     appendMine("emoji", { emoji });
-    showBurst(emoji);
+    onEmojiSend(emoji);
   };
 
   return (
     <>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed bottom-24 right-4 z-40 flex flex-col items-end gap-2 sm:bottom-28 sm:right-8"
-      >
-        {bursts.map((burst) => (
-          <span
-            key={burst.id}
-            data-testid="emoji-burst"
-            className="animate-emoji-float text-4xl drop-shadow-lg"
-          >
-            {burst.emoji}
-          </span>
-        ))}
-      </div>
-
       {open && (
         <div
           data-testid="chat-panel"
-          className="animate-slide-up fixed bottom-20 right-4 z-30 flex w-72 max-h-80 flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-800/95 shadow-2xl backdrop-blur sm:right-8"
+          className="animate-slide-up fixed bottom-52 right-4 z-30 flex w-72 max-h-80 flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-800/95 shadow-2xl backdrop-blur sm:right-8"
         >
           <div className="flex items-center justify-between border-b border-zinc-700 px-4 py-2">
             <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">

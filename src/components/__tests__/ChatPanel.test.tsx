@@ -20,8 +20,11 @@ function makeFakeSession() {
   };
 }
 
-function renderPanel(session: ReturnType<typeof makeFakeSession>) {
-  return render(<ChatPanel session={session as unknown as RoomSession} />);
+function renderPanel(session: ReturnType<typeof makeFakeSession>, onEmojiSend = vi.fn()) {
+  return {
+    onEmojiSend,
+    ...render(<ChatPanel session={session as unknown as RoomSession} onEmojiSend={onEmojiSend} />),
+  };
 }
 
 describe('ChatPanel', () => {
@@ -49,15 +52,15 @@ describe('ChatPanel', () => {
     expect(screen.getByTestId('chat-input')).toHaveValue('');
   });
 
-  it('sends an emoji and shows a burst', async () => {
+  it('sends an emoji and notifies the burst layer', async () => {
     const session = makeFakeSession();
-    renderPanel(session);
+    const { onEmojiSend } = renderPanel(session);
     await userEvent.click(screen.getByTestId('chat-toggle'));
 
     await userEvent.click(screen.getByRole('button', { name: 'send emoji 🔥' }));
 
     expect(session.sendEmoji).toHaveBeenCalledWith('🔥');
-    expect(screen.getByTestId('emoji-burst')).toHaveTextContent('🔥');
+    expect(onEmojiSend).toHaveBeenCalledWith('🔥');
   });
 
   it('renders remote chat messages and badges unread while closed', () => {

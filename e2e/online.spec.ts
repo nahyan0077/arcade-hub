@@ -1,9 +1,17 @@
-import { test, expect } from '@playwright/test';
-import { createRoom, joinRoom, cell, shots, isPageScrollable } from './helpers';
+import { expect } from '@playwright/test';
+import {
+  test,
+  newMutedContext,
+  createRoom,
+  joinRoom,
+  cell,
+  shots,
+  isPageScrollable,
+} from './helpers';
 
 test.describe('online multiplayer', () => {
   test('create, join, play to a win, rematch, disconnect', async ({ browser }, testInfo) => {
-    const context = await browser.newContext();
+    const context = await newMutedContext(browser);
     const host = await context.newPage();
     const guest = await context.newPage();
 
@@ -30,8 +38,17 @@ test.describe('online multiplayer', () => {
     await host.getByTestId('chat-send').click();
     await expect(guest.getByTestId('chat-messages')).toContainText('good game');
     await guest.getByRole('button', { name: 'send emoji 🔥' }).click();
+    await expect(guest.getByTestId('chat-messages')).toContainText('🔥');
     await expect(host.getByTestId('chat-messages')).toContainText('🔥');
-    await expect(host.getByTestId('emoji-burst')).toBeVisible();
+    await expect(host.getByTestId('emoji-burst').filter({ hasText: '🔥' })).toBeVisible();
+
+    await host.getByTestId('quick-emoji-toggle').click();
+    await host.getByRole('button', { name: 'react with 👀' }).click();
+    await expect(host.getByTestId('emoji-burst').filter({ hasText: '👀' })).toBeVisible();
+    await expect(guest.getByTestId('emoji-burst').filter({ hasText: '👀' })).toBeVisible();
+
+    await host.getByRole('button', { name: 'Close chat panel' }).click();
+    await guest.getByRole('button', { name: 'Close chat panel' }).click();
 
     await cell(host, 1).click();
     await cell(guest, 3).click();

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Board } from "../../components/Board";
 import { useGame } from "../../hooks/useGame";
@@ -8,6 +8,8 @@ import type { AIDifficulty, Player } from "../../engine";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 import { VoiceControls } from "../../components/VoiceControls";
 import { ChatPanel } from "../../components/ChatPanel";
+import { QuickEmoji } from "../../components/QuickEmoji";
+import { EmojiBurstLayer, type EmojiBurst } from "../../components/EmojiBurstLayer";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -119,6 +121,22 @@ export const Home: React.FC = () => {
   const [shaking, setShaking] = useState(false);
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [hintOn, setHintOn] = useState(false);
+  const [emojiBursts, setEmojiBursts] = useState<EmojiBurst[]>([]);
+
+  const addEmojiBurst = useCallback((emoji: string) => {
+    const id = Date.now() + Math.random();
+    setEmojiBursts((prev) => [...prev, { id, emoji }]);
+    setTimeout(() => {
+      setEmojiBursts((prev) => prev.filter((burst) => burst.id !== id));
+    }, 1600);
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    return session.onChat((event) => {
+      if (event.kind === "emoji" && event.emoji) addEmojiBurst(event.emoji);
+    });
+  }, [session, addEmojiBurst]);
 
   const myTurn = !online || state.currentPlayer === onlineSnap?.myMark;
   const disconnected = online && onlineSnap?.status === "disconnected";
@@ -154,6 +172,11 @@ export const Home: React.FC = () => {
     const nextSoundOn = !soundOn;
     setMuted(!nextSoundOn);
     setSoundOn(nextSoundOn);
+  };
+
+  const handleQuickEmoji = (emoji: string) => {
+    if (!session?.sendEmoji(emoji)) return;
+    addEmojiBurst(emoji);
   };
 
   const winningLine = state.result?.type === "win" ? state.result.line : null;
@@ -266,17 +289,6 @@ export const Home: React.FC = () => {
             Leave Room
           </button>
         )}
-        {online && onlineSnap?.status === "connected" && session && (
-          <ChatPanel session={session} />
-        )}
-        {online && onlineSnap?.status === "connected" && WS_BASE !== "" && (
-          <VoiceControls
-            baseUrl={WS_BASE}
-            roomCode={onlineSnap.roomCode}
-            name={onlineSnap.myName}
-            game={onlineSnap.game}
-          />
-        )}
         {!online && (
           <button
             type="button"
@@ -288,16 +300,33 @@ export const Home: React.FC = () => {
             Hint
           </button>
         )}
-        <button
-          type="button"
-          onClick={toggleSound}
-          aria-pressed={!soundOn}
-          aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-          className="rounded-xl bg-zinc-700 px-3.5 py-2.5 text-lg text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-4 sm:py-3 sm:text-xl"
-        >
-          {soundOn ? "🔊" : "🔇"}
-        </button>
       </div>
+
+      <button
+        type="button"
+        onClick={toggleSound}
+        aria-pressed={!soundOn}
+        aria-label={soundOn ? "Mute sound" : "Unmute sound"}
+        className="fixed bottom-52 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 text-xl shadow-lg transition-all hover:scale-110 hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:right-8"
+      >
+        {soundOn ? "🔊" : "🔇"}
+      </button>
+
+      {online && onlineSnap?.status === "connected" && session && (
+        <>
+          <QuickEmoji onEmoji={handleQuickEmoji} />
+          <EmojiBurstLayer bursts={emojiBursts} />
+          <ChatPanel session={session} onEmojiSend={addEmojiBurst} />
+          {WS_BASE !== "" && (
+            <VoiceControls
+              baseUrl={WS_BASE}
+              roomCode={onlineSnap.roomCode}
+              name={onlineSnap.myName}
+              game={onlineSnap.game}
+            />
+          )}
+        </>
+      )}
 
       {isFinished && !disconnected && (
         <div

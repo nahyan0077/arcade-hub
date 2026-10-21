@@ -90,11 +90,11 @@ describe('VoiceControls', () => {
     await user.click(screen.getByRole('button', { name: 'Join voice' }));
 
     const status = await screen.findByTestId('voice-status');
-    expect(status).toHaveTextContent('Voice live · 1');
+    expect(status).toHaveTextContent('1');
     expect(screen.getByRole('button', { name: 'Unmute' })).toHaveAttribute('aria-pressed', 'false');
 
     room.emitParticipants(1);
-    await waitFor(() => expect(status).toHaveTextContent('Voice live · 2'));
+    await waitFor(() => expect(status).toHaveTextContent('2'));
 
     await user.click(screen.getByRole('button', { name: 'Unmute' }));
     expect(room.micCalls).toEqual([true]);
