@@ -60,7 +60,7 @@ export function VoiceControls({ baseUrl, roomCode, name, game, sessionFactory }:
   return (
     <>
       <Toaster />
-      <div className="fixed bottom-36 right-4 z-30 sm:right-8">
+      <div className="fixed bottom-4 right-36 z-30 sm:bottom-36 sm:right-8">
         {snapshot.status === 'live' ? (
           <div className="relative">
             <button

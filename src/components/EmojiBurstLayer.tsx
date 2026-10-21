@@ -8,7 +8,7 @@ export interface EmojiBurst {
 export const EmojiBurstLayer: React.FC<{ bursts: EmojiBurst[] }> = ({ bursts }) => (
   <div
     aria-hidden="true"
-    className="pointer-events-none fixed bottom-36 right-4 z-40 flex flex-col items-end gap-2 sm:bottom-40 sm:right-8"
+    className="pointer-events-none fixed bottom-20 right-20 z-40 flex flex-col items-end gap-2 sm:bottom-40 sm:right-8"
   >
     {bursts.map((burst) => (
       <span

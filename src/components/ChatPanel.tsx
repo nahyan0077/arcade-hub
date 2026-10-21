@@ -81,7 +81,7 @@ export const ChatPanel: React.FC<{
       {open && (
         <div
           data-testid="chat-panel"
-          className="animate-slide-up fixed bottom-52 right-4 z-30 flex w-72 max-h-80 flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-800/95 shadow-2xl backdrop-blur sm:right-8"
+          className="animate-slide-up fixed bottom-20 right-4 z-30 flex max-h-80 w-72 max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-zinc-700 bg-zinc-800/95 shadow-2xl backdrop-blur sm:bottom-52 sm:right-8"
         >
           <div className="flex items-center justify-between border-b border-zinc-700 px-4 py-2">
             <span className="text-xs font-bold uppercase tracking-widest text-zinc-400">

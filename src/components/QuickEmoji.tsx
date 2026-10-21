@@ -25,7 +25,7 @@ export function QuickEmoji({ onEmoji }: { onEmoji: (emoji: string) => void }) {
   }, [open]);
 
   return (
-    <div ref={ref} className="fixed bottom-20 right-4 z-40 flex flex-col items-end gap-2 sm:right-8">
+    <div ref={ref} className="fixed bottom-4 right-20 z-40 flex flex-col items-end gap-2 sm:bottom-20 sm:right-8">
       {open && (
         <div
           data-testid="quick-emoji-panel"

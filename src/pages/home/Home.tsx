@@ -217,7 +217,7 @@ export const Home: React.FC = () => {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-900 px-4 py-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-900 px-4 py-4 pb-20 sm:pb-4">
       {state.result?.type === "win" && perspectiveWin !== "You lose!" && (
         <Confetti />
       )}
@@ -316,7 +316,9 @@ export const Home: React.FC = () => {
         onClick={toggleSound}
         aria-pressed={!soundOn}
         aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-        className="fixed bottom-52 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 text-xl shadow-lg transition-all hover:scale-110 hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:right-8"
+        className={`fixed bottom-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 text-xl shadow-lg transition-all hover:scale-110 hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:bottom-52 sm:right-8 ${
+          online ? "right-52" : "right-4"
+        }`}
       >
         {soundOn ? "🔊" : "🔇"}
       </button>
