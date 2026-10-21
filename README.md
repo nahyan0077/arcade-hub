@@ -3,10 +3,10 @@
 [![CI](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A browser game hub with a polished **tic-tac-toe** as its flagship game: play local hot-seat,
-face an unbeatable AI, or go online with room codes, Quick Play matchmaking, and live voice
-chat. Built test-first, phase by phase, on a game-scoped networking layer designed for more
-games to land on the same stack.
+A browser **arcade game app** that currently ships a polished **tic-tac-toe** as its flagship
+game — with more games planned on the same stack. Play local hot-seat, face an unbeatable AI,
+or go online with room codes, Quick Play matchmaking, in-game chat, and live voice chat.
+Built test-first, phase by phase, on a game-scoped networking layer.
 
 <p align="center">
   <img src="docs/images/desktop-hub.png" alt="Game hub" width="380">
@@ -42,6 +42,8 @@ games to land on the same stack.
 - **Online rooms** — create/join with 6-character codes over WebSocket, or **Quick Play**
   matchmaking; perspective-aware results ("You win!" / "You lose!") that celebrate only on
   the winner's side
+- **In-game chat & emoji** — text chat and quick emoji reactions (🎉🔥😂👏💯😅🤔👀) with
+  floating bursts, works over every transport including BroadcastChannel
 - **Voice chat** — LiveKit-powered per-room audio, listen-only until you unmute
 - **Coach hints** — pulsing highlight on the mathematically best cell
 - **Synthesized sounds** — place/win/lose/draw/invalid effects via the Web Audio API (no
@@ -187,8 +189,9 @@ For devices across the internet, use a hosted LiveKit (e.g. LiveKit Cloud) and s
   localStorage
 - **E2E** — Playwright on desktop Chromium and iPhone WebKit: hub, win/draw/rematch, vs-AI,
   hints, mute silencing (oscillator-level assertion), viewport fit, online play over
-  BroadcastChannel / Node relay / Cloudflare DO relay, Quick Play matchmaking,
-  voice-unavailable fallback, and a two-player voice session against dockerized LiveKit
+  BroadcastChannel / Node relay / Cloudflare DO relay, Quick Play matchmaking, in-game chat
+  and emoji, voice-unavailable fallback, and a two-player voice session against dockerized
+  LiveKit
 - **CI** — lint, build, type-check, unit, and the BroadcastChannel + WebSocket E2E suites on
   every push ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); the voice and CF
   suites need docker/wrangler and run locally
@@ -209,6 +212,11 @@ VITE_WS_URL=wss://arcade-hub-relay.arcade-hub.workers.dev npm run build
 npx wrangler deploy
 ```
 
+**Continuous deployment** — pushes to `main` run the full CI battery and, when the
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repository secrets are set, auto-deploy
+via the `deploy` job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). Without the
+secrets the deploy step is skipped.
+
 Voice on the deployed relay needs hosted LiveKit credentials:
 
 ```bash
@@ -224,8 +232,6 @@ npx wrangler secret put LIVEKIT_API_SECRET
 - `playerId` is client-generated (spoofable); rate limits are per-instance and in-memory
   (reset on restart, not distributed — no per-IP limit on the CF voice endpoint)
 - Online scores are session-only (no persistence); no reconnect-resume
-- Hosted voice is off until LiveKit Cloud credentials are set on the worker (local
-  docker/LAN voice works today)
 
 ## Roadmap
 
@@ -242,7 +248,8 @@ npx wrangler secret put LIVEKIT_API_SECRET
 | 7b — Game-scoped networking (`<game>:<code>`) | ✅ |
 | 7c — Second game on the shared stack | planned |
 | Deployment (Cloudflare worker + SPA) | ✅ |
-| Hosted voice (LiveKit Cloud secrets) | planned |
+| Hosted voice (LiveKit Cloud secrets) | ✅ |
+| Continuous deployment (wrangler on push) | ✅ |
 
 ## Contributing
 

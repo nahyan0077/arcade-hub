@@ -60,9 +60,9 @@ export const Lobby = () => {
   if (!snapshot) return null;
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-zinc-900 px-4">
+    <div className="animate-fade-in-up flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-zinc-900 px-4">
       <Toaster />
-      <h1 className="select-none text-3xl font-extrabold sm:text-4xl">
+      <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
         <span className="text-blue-500">TIC</span>{" "}
         <span className="text-gray-100">TAC</span>{" "}
         <span className="text-red-500">TOE</span>
@@ -77,7 +77,7 @@ export const Lobby = () => {
             type="button"
             onClick={handleCopy}
             aria-label="Copy room code"
-            className="rounded-2xl border-2 border-blue-500 bg-zinc-800 px-8 py-4 text-4xl font-extrabold tracking-[0.3em] text-blue-400 transition-colors hover:bg-zinc-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+            className="animate-pop rounded-2xl border-2 border-blue-500 bg-zinc-800 px-8 py-4 text-4xl font-extrabold tracking-[0.3em] text-blue-400 transition-colors hover:bg-zinc-700 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
           >
             {snapshot.roomCode}
           </button>
@@ -91,7 +91,9 @@ export const Lobby = () => {
         data-testid="lobby-status"
         role="status"
         aria-live="polite"
-        className="text-lg font-bold text-gray-200"
+        className={`text-lg font-bold text-gray-200 ${
+          snapshot.status === "waiting" ? "animate-pulse" : ""
+        }`}
       >
         {snapshot.status === "waiting" && "Waiting for opponent to join..."}
         {snapshot.status === "connecting" && "Joining room..."}

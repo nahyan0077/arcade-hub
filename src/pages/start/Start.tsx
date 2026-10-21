@@ -83,11 +83,11 @@ export const Start = () => {
   };
 
   return (
-    <div className="flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
+    <div className="animate-fade-in-up flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
         <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" >
-            <h2 className="text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" > TAC </h2>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" > TOE </h2>
+            <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
+            <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > TAC </h2>
+            <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" style={{ animationDelay: "180ms" }} > TOE </h2>
         </div>
       <Toaster />
 
@@ -97,7 +97,7 @@ export const Start = () => {
             type="button"
             aria-label="Play as X"
             aria-pressed={playerType === "X"}
-            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
               playerType === "X"
                 ? "border-blue-600 bg-blue-100 text-blue-600"
                 : "border-gray-500 text-blue-600"
@@ -111,7 +111,7 @@ export const Start = () => {
             type="button"
             aria-label="Play as O"
             aria-pressed={playerType === "O"}
-            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
+            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
               playerType === "O"
                 ? "border-red-600 bg-red-100 text-red-600"
                 : "border-gray-500 text-red-600"
@@ -224,7 +224,7 @@ export const Start = () => {
 
         <button
           type="button"
-          className="text-gray-500 cursor-pointer hover:text-gray-300"
+          className="text-gray-500 cursor-pointer transition-all hover:scale-105 hover:text-gray-300"
           onClick={handleStart}
         >
           Start Game
