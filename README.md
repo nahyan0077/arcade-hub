@@ -42,9 +42,11 @@ Built test-first, phase by phase, on a game-scoped networking layer.
 - **Online rooms** — create/join with 6-character codes over WebSocket, or **Quick Play**
   matchmaking; perspective-aware results ("You win!" / "You lose!") that celebrate only on
   the winner's side
-- **In-game chat & emoji** — text chat and quick emoji reactions (🎉🔥😂👏💯😅🤔👀) with
-  floating bursts, works over every transport including BroadcastChannel
-- **Voice chat** — LiveKit-powered per-room audio, listen-only until you unmute
+- **In-game chat & emoji** — a slide-up chat panel plus a standalone quick-reactions bar
+  (🎉🔥😂👏💯😅🤔👀) with floating bursts on both sides; works over every transport
+  including BroadcastChannel
+- **Voice chat** — LiveKit-powered per-room audio behind icon controls (🎧 join, 🎤 mute,
+  participant count badge), listen-only until you unmute
 - **Coach hints** — pulsing highlight on the mathematically best cell
 - **Synthesized sounds** — place/win/lose/draw/invalid effects via the Web Audio API (no
   audio assets); mute persists across reloads
@@ -127,7 +129,7 @@ src/
   net/           protocol · transports · RoomSession · matchmaker · voice
   hooks/         useGame — engine wiring, AI scheduling, sounds, scores
   pages/         hub · start · queue · lobby · home
-  components/    Board · VoiceControls
+  components/    Board · VoiceControls · ChatPanel · QuickEmoji · EmojiBurstLayer
   sound/         Web Audio synth effects + persisted mute
   storage/       validated localStorage score persistence
 server/relay.ts  Node ws relay — room fan-out, /matchmake, /voice/token

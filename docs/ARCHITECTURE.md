@@ -37,8 +37,8 @@ flowchart TB
 
     P1 --- BC
     P2 --- BC
-    P1 <-->|"moves · hello · heartbeats"| Relay
-    P2 <-->|"moves · hello · heartbeats"| Relay
+    P1 <-->|"moves · chat · hello · heartbeats"| Relay
+    P2 <-->|"moves · chat · hello · heartbeats"| Relay
     P1 <-->|"voice audio"| LK
     P2 <-->|"voice audio"| LK
     Relay -->|"POST /voice/token → JWT"| LK
@@ -206,6 +206,8 @@ Room messages (over any transport; `game` optional, defaults to `tictactoe`):
 | `rematch` / `rematch-start` | either / host | `roomCode, playerId?` |
 | `leave` | either | `roomCode, playerId` |
 | `ping` / `pong` | either (heartbeat) | `roomCode, playerId` |
+| `chat` | either | `roomCode, playerId, name, text` (≤ 200 chars) |
+| `emoji` | either | `roomCode, playerId, name, emoji` (fixed set) |
 
 Matchmaker messages (JSON over its own WebSocket):
 
