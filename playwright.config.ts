@@ -6,7 +6,9 @@ const wsProvider = process.env.E2E_WS ?? 'node';
 const relayServer =
   wsProvider === 'cf'
     ? {
-        command: 'npm run relay:cf',
+        // Explicit empty env-file overrides wrangler's auto-load of `.env`,
+        // which may carry LIVEKIT_* and would defeat the voice-unavailable test.
+        command: 'npx wrangler dev --port 8788 --env-file /dev/null',
         port: 8788,
         reuseExistingServer: true,
         timeout: 120_000,
