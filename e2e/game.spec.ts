@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
+import { test } from './helpers';
 
 function shots(projectName: string, step: string): string {
   return `e2e/screenshots/${projectName}-${step}.png`;
@@ -158,7 +159,11 @@ test('hint highlights the recommended cell', async ({ page }, testInfo) => {
   await expect(page.getByTestId('hint-cell')).toHaveCount(0);
 });
 
-test('mute silences sounds, unmute restores them, mute survives reload', async ({ page }) => {
+test('mute silences sounds, unmute restores them, mute survives reload', async ({ browser }) => {
+  // Sound is muted globally for tests; this one needs the default unmuted
+  // state, so it opts out of the shared muted context fixture.
+  const context = await browser.newContext();
+  const page = await context.newPage();
   await page.addInitScript(() => {
     (window as unknown as { __osc: number }).__osc = 0;
     const Orig = (window as unknown as { AudioContext: typeof AudioContext }).AudioContext;
@@ -196,4 +201,6 @@ test('mute silences sounds, unmute restores them, mute survives reload', async (
   await page.getByRole('button', { name: 'Unmute sound' }).click();
   await cell(page, 6).click();
   await expect.poll(oscCount).toBeGreaterThan(baselineAfterReload);
+
+  await context.close();
 });

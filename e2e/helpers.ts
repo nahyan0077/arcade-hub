@@ -1,4 +1,25 @@
-import { expect, type Page } from '@playwright/test';
+import { test as base, expect, type Page, type Browser } from '@playwright/test';
+
+export { expect };
+
+const SOUND_MUTE_KEY = 'tic-tac-toe.muted.v1';
+const MUTE_SOUND_INIT = `try { window.localStorage.setItem('${SOUND_MUTE_KEY}', 'true'); } catch {}`;
+
+// Games would audibly blip on every click during test runs; seed the persisted
+// mute flag before any app script runs. Tests that need sound opt out by
+// creating their own context via browser.newContext().
+export const test = base.extend({
+  context: async ({ context }, run) => {
+    await context.addInitScript(MUTE_SOUND_INIT);
+    await run(context);
+  },
+});
+
+export async function newMutedContext(browser: Browser) {
+  const context = await browser.newContext();
+  await context.addInitScript(MUTE_SOUND_INIT);
+  return context;
+}
 
 export function shots(projectName: string, step: string): string {
   return `e2e/screenshots/${projectName}-${step}.png`;

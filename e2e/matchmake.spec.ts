@@ -1,5 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
-import { createRoom, joinRoom } from './helpers';
+import { expect, type Page } from '@playwright/test';
+import { test, newMutedContext, createRoom, joinRoom } from './helpers';
 
 test.skip(
   !process.env.VITE_WS_URL,
@@ -19,7 +19,7 @@ function cell(page: Page, index: number) {
 
 test.describe('quick play matchmaking', () => {
   test('pairs two players into a live room', async ({ browser }, testInfo) => {
-    const context = await browser.newContext();
+    const context = await newMutedContext(browser);
     const first = await context.newPage();
     const second = await context.newPage();
 
@@ -64,7 +64,7 @@ test.describe('quick play matchmaking', () => {
   test('voice controls appear online and report unavailable without a LiveKit server', async ({
     browser,
   }) => {
-    const context = await browser.newContext();
+    const context = await newMutedContext(browser);
     const host = await context.newPage();
     const guest = await context.newPage();
 
