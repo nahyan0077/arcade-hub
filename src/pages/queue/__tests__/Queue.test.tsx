@@ -41,13 +41,13 @@ function StartProbe() {
   return <div>start screen</div>;
 }
 
-function LobbyProbe() {
+function RoomProbe() {
   const { session } = useOnlineSession();
   const snapshot = session?.getSnapshot() ?? null;
   return (
     <div>
-      lobby screen
-      <span data-testid="lobby-snapshot">
+      room screen
+      <span data-testid="room-snapshot">
         {JSON.stringify(
           snapshot && {
             role: snapshot.role,
@@ -68,7 +68,7 @@ function renderQueue(name: string | null = 'ALICE') {
         <Routes>
           <Route path="/" element={<StartProbe />} />
           <Route path="/queue" element={<Queue />} />
-          <Route path="/lobby" element={<LobbyProbe />} />
+          <Route path="/room" element={<RoomProbe />} />
         </Routes>
       </MemoryRouter>
     </OnlineSessionProvider>,
@@ -105,7 +105,7 @@ describe('Queue page', () => {
     expect(JSON.parse(socket.sent[0])).toMatchObject({ type: 'queue' });
   });
 
-  it('opens the matched room and lands in the lobby', async () => {
+  it('opens the matched room and lands in the game room', async () => {
     renderQueue();
     const socket = FakeSocket.instances[0];
     socket.open();
@@ -118,8 +118,8 @@ describe('Queue page', () => {
       role: 'guest',
     });
 
-    await screen.findByText('lobby screen');
-    const snapshot = JSON.parse(screen.getByTestId('lobby-snapshot').textContent ?? 'null');
+    await screen.findByText('room screen');
+    const snapshot = JSON.parse(screen.getByTestId('room-snapshot').textContent ?? 'null');
     expect(snapshot).toMatchObject({
       role: 'guest',
       roomCode: 'ABC234',

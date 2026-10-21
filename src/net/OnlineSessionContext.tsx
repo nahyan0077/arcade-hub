@@ -49,6 +49,7 @@ export function OnlineSessionProvider({
       game,
       transport: createRoomTransport(options.roomCode, game),
     });
+    room.start();
     sessionRef.current = room;
     setSession(room);
     return room;

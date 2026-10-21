@@ -44,7 +44,7 @@ export const Queue = () => {
   useEffect(() => {
     if (snapshot.status === 'matched' && snapshot.roomCode !== null && snapshot.role !== null) {
       openRoom({ role: snapshot.role, roomCode: snapshot.roomCode, name, game: DEFAULT_GAME });
-      navigate('/lobby', { replace: true });
+      navigate('/room', { replace: true });
     }
   }, [snapshot, openRoom, navigate, name]);
 
