@@ -40,8 +40,9 @@ Built test-first, phase by phase, on a game-scoped networking layer.
   | Impossible | NEMESIS | full minimax + alpha-beta — proven unbeatable |
 
 - **Online rooms** — create/join with 6-character codes over WebSocket, or **Quick Play**
-  matchmaking; perspective-aware results ("You win!" / "You lose!") that celebrate only on
-  the winner's side
+  matchmaking
+- **Perspective results** — endings read "You win!" / "You lose!" against online opponents
+  and the AI personalities, with confetti only on the winner's side
 - **In-game chat & emoji** — a slide-up chat panel plus a standalone quick-reactions bar
   (🎉🔥😂👏💯😅🤔👀) with floating bursts on both sides; works over every transport
   including BroadcastChannel

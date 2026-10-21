@@ -276,11 +276,38 @@ describe('Home game screen', () => {
 
     await user.click(cell(1));
     await waitFor(() => {
-      expect(screen.getByTestId('status')).toHaveTextContent('SCOUT wins!');
+      expect(screen.getByTestId('status')).toHaveTextContent('You lose!');
     });
     const dialog = screen.getByRole('dialog', { name: 'Game result' });
-    expect(within(dialog).getByText('SCOUT')).toBeInTheDocument();
+    expect(within(dialog).getByText('You lose!')).toBeInTheDocument();
+    expect(within(dialog).getByText('SCOUT wins')).toBeInTheDocument();
     expect(screen.getByTestId('score-o')).toHaveTextContent('1');
+  });
+
+  it('human win over the AI shows You win!', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    // Deterministic line vs medium SCOUT (tactical win/block, else best
+    // preferred square): X 0 → O 4; X 8 → O 2; X 6 → O 3; X 7 wins 6-7-8.
+    await user.click(cell(0));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(1));
+    expect(cell(4)).toHaveTextContent('O');
+    await user.click(cell(8));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(2));
+    expect(cell(2)).toHaveTextContent('O');
+    await user.click(cell(6));
+    await waitFor(() => expect(marksOnBoard('O')).toBe(3));
+    expect(cell(3)).toHaveTextContent('O');
+
+    await user.click(cell(7));
+    await waitFor(() => {
+      expect(screen.getByTestId('status')).toHaveTextContent('You win!');
+    });
+    const dialog = screen.getByRole('dialog', { name: 'Game result' });
+    expect(within(dialog).getByText('You win!')).toBeInTheDocument();
+    expect(within(dialog).queryByText(/wins/)).not.toBeInTheDocument();
+    expect(screen.getByTestId('score-x')).toHaveTextContent('1');
   });
 
   it('AI wins persist across rematch', async () => {

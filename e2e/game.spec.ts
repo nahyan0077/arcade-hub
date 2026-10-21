@@ -137,9 +137,11 @@ test('vs AI: AI takes an available win', async ({ page }, testInfo) => {
   await expect(cell(page, 3)).toHaveText('O');
 
   await cell(page, 1).click();
-  await expect(page.getByRole('status')).toHaveText('SCOUT wins!');
+  await expect(page.getByRole('status')).toHaveText('You lose!');
   const dialog = page.getByRole('dialog', { name: 'Game result' });
   await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText('You lose!');
+  await expect(dialog).toContainText('SCOUT wins');
   await expect(page.getByTestId('score-o')).toHaveText(/1$/);
   await page.screenshot({ path: shots(testInfo.project.name, '08-ai-win') });
 });

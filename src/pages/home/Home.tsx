@@ -183,11 +183,20 @@ export const Home: React.FC = () => {
   const isFinished = state.phase === "finished";
 
   const perspectiveWin =
-    online && onlineSnap !== null && state.result?.type === "win"
-      ? state.result.player === onlineSnap.myMark
-        ? "You win!"
-        : "You lose!"
-      : null;
+    state.result?.type !== "win"
+      ? null
+      : online && onlineSnap !== null
+        ? state.result.player === onlineSnap.myMark
+          ? "You win!"
+          : "You lose!"
+        : isPve
+          ? state.result.player === playerMark
+            ? "You win!"
+            : "You lose!"
+          : null;
+
+  const showWinnerName =
+    state.result?.type === "win" && perspectiveWin === "You lose!";
 
   const hintIndex =
     hintOn && !online && state.phase === "playing" && !aiTurnPending
@@ -338,11 +347,20 @@ export const Home: React.FC = () => {
             <p className="mb-1 text-sm font-semibold uppercase tracking-widest text-zinc-400">
               {state.result?.type === "draw" || perspectiveWin ? "Match Over" : "Winner"}
             </p>
-            <p className="mb-6 text-4xl font-extrabold text-gray-100">
+            <p
+              className={`${
+                showWinnerName ? "mb-2" : "mb-6"
+              } text-4xl font-extrabold text-gray-100`}
+            >
               {state.result?.type === "win"
                 ? perspectiveWin ?? playerNames[state.result.player]
                 : "Draw"}
             </p>
+            {state.result?.type === "win" && showWinnerName && (
+              <p className="mb-6 text-sm font-semibold uppercase tracking-widest text-zinc-400">
+                {playerNames[state.result.player]} wins
+              </p>
+            )}
             <div className="flex justify-center gap-3">
               <button
                 type="button"
