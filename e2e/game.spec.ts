@@ -45,8 +45,8 @@ test('hub lists games and Play reaches the start screen', async ({ page }, testI
   await page.goto('/');
   await expect(page.getByTestId('hub-card-tictactoe')).toBeVisible();
   await expect(page.getByTestId('hub-card-connect-four')).toBeVisible();
-  await expect(page.getByText('Coming soon')).toHaveCount(2);
-  await page.getByRole('button', { name: 'Play' }).click();
+  await expect(page.getByText('Coming soon')).toHaveCount(1);
+  await page.getByTestId('hub-card-tictactoe').getByRole('button', { name: 'Play' }).click();
   await expect(page).toHaveURL(/\/start/);
   await expect(page.getByPlaceholder('Enter your name')).toBeVisible();
   await page.screenshot({ path: shots(testInfo.project.name, 'hub'), fullPage: true });
