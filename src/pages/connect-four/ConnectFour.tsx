@@ -187,10 +187,9 @@ export const ConnectFour: React.FC = () => {
         <button
           type="button"
           onClick={rematch}
-          disabled={rematchWaiting}
-          className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:opacity-50 sm:px-6 sm:py-3 sm:text-base"
+          className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:px-6 sm:py-3 sm:text-base"
         >
-          {rematchWaiting ? "Waiting…" : "Rematch"}
+          Rematch
         </button>
         {online ? (
           <button
