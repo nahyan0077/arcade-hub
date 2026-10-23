@@ -3,9 +3,9 @@
 [![CI](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A browser **arcade game app** that currently ships a polished **tic-tac-toe** as its flagship
-game — with more games planned on the same stack. Play local hot-seat, face an unbeatable AI,
-or go online with room codes, Quick Play matchmaking, in-game chat, and live voice chat.
+A browser **arcade game app** that ships a polished **tic-tac-toe** and **Connect Four** on
+one shared stack — with more games planned. Play local hot-seat, face an AI opponent, or go
+online with room codes, Quick Play matchmaking, in-game chat, and live voice chat.
 Built test-first, phase by phase, on a game-scoped networking layer.
 
 <p align="center">
@@ -30,15 +30,18 @@ Built test-first, phase by phase, on a game-scoped networking layer.
 
 - **Game hub** — the landing page is an arcade picker; more games are planned on the same stack
 - **2-Player local** — hot-seat play with persistent X/O/draw scores
-- **vs AI** — four difficulty tiers, each with its own personality:
+- **vs AI** — difficulty tiers with personalities (tic-tac-toe adds a full-minimax tier):
 
   | Difficulty | Personality | Behavior |
   |-----------|-------------|----------|
   | Easy | GLITCH | random moves (seeded RNG) |
   | Medium | SCOUT | takes wins, blocks threats, prefers center |
   | Hard | VANGUARD | lookahead minimax (depth 4) |
-  | Impossible | NEMESIS | full minimax + alpha-beta — proven unbeatable |
+  | Impossible | NEMESIS | full minimax + alpha-beta — proven unbeatable (tic-tac-toe only) |
 
+- **Connect Four** — 7×6 gravity board, local hot-seat, vs AI (easy/medium/hard), and online
+  rooms + Quick Play on the same game-scoped networking as tic-tac-toe; online moves carry
+  the column index, so gravity stays deterministic on both clients
 - **Online rooms** — create/join with 6-character codes over WebSocket, or **Quick Play**
   matchmaking
 - **Perspective results** — endings read "You win!" / "You lose!" against online opponents
@@ -48,7 +51,7 @@ Built test-first, phase by phase, on a game-scoped networking layer.
   including BroadcastChannel
 - **Voice chat** — LiveKit-powered per-room audio behind icon controls (🎧 join, 🎤 mute,
   participant count badge), listen-only until you unmute
-- **Coach hints** — pulsing highlight on the mathematically best cell
+- **Coach hints** — pulsing highlight on the mathematically best cell (tic-tac-toe)
 - **Synthesized sounds** — place/win/lose/draw/invalid effects via the Web Audio API (no
   audio assets); mute persists across reloads
 - **Responsive & accessible** — fits any viewport without scrolling; keyboard-navigable
@@ -127,12 +130,13 @@ Full diagrams, HLD/LLD, data flows, and invariants: **[docs/ARCHITECTURE.md](doc
 ```text
 src/
   engine/        pure game logic — rules, minimax AI, personalities
+    connect-four/  7×6 gravity engine + depth-limited AI (easy/medium/hard)
   net/           protocol · transports · RoomSession · matchmaker · voice
-  hooks/         useGame — engine wiring, AI scheduling, sounds, scores
-  pages/         hub · start · queue · lobby · home
-  components/    Board · VoiceControls · ChatPanel · QuickEmoji · EmojiBurstLayer
+  hooks/         useGame · useConnectFour — engine wiring, AI, sounds, scores
+  pages/         hub · start · queue · lobby · home · connect-four
+  components/    Board · ConnectFourBoard · ScoreBox · Confetti · VoiceControls · ChatPanel · QuickEmoji · EmojiBurstLayer
   sound/         Web Audio synth effects + persisted mute
-  storage/       validated localStorage score persistence
+  storage/       validated localStorage score persistence (per game key)
 server/relay.ts  Node ws relay — room fan-out, /matchmake, /voice/token
 cloudflare/      Worker + RoomRelay and Matchmaker Durable Objects
 scripts/         LiveKit config + voice E2E orchestration
@@ -186,15 +190,16 @@ For devices across the internet, use a hosted LiveKit (e.g. LiveKit Cloud) and s
 
 ## Testing
 
-- **Engine** — exhaustive rules tests plus seeded 100-game properties (AI never loses;
-  impossible-vs-impossible always draws)
-- **Integration** — Hub/Start/Home flows through real components with mocked Web Audio and
-  localStorage
+- **Engine** — exhaustive rules tests plus seeded 100-game properties (tic-tac-toe impossible
+  never loses; impossible-vs-impossible always draws) and Connect Four win/draw/playout
+  properties
+- **Integration** — Hub/Start/Home/ConnectFour flows through real components with mocked Web
+  Audio and localStorage
 - **E2E** — Playwright on desktop Chromium and iPhone WebKit: hub, win/draw/rematch, vs-AI,
   hints, mute silencing (oscillator-level assertion), viewport fit, online play over
   BroadcastChannel / Node relay / Cloudflare DO relay, Quick Play matchmaking, in-game chat
-  and emoji, voice-unavailable fallback, and a two-player voice session against dockerized
-  LiveKit
+  and emoji, Connect Four local/AI/online flows, voice-unavailable fallback, and a two-player
+  voice session against dockerized LiveKit
 - **CI** — lint, build, type-check, unit, and the BroadcastChannel + WebSocket E2E suites on
   every push ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)); the voice and CF
   suites need docker/wrangler and run locally
@@ -249,7 +254,7 @@ npx wrangler secret put LIVEKIT_API_SECRET
 | 6 — Quick Play matchmaking + voice (LiveKit) | ✅ |
 | 7a — Game hub landing page | ✅ |
 | 7b — Game-scoped networking (`<game>:<code>`) | ✅ |
-| 7c — Second game on the shared stack | planned |
+| 7c — Second game on the shared stack (Connect Four) | ✅ |
 | Deployment (Cloudflare worker + SPA) | ✅ |
 | Hosted voice (LiveKit Cloud secrets) | ✅ |
 | Continuous deployment (wrangler on push) | ✅ |

@@ -50,8 +50,8 @@ flowchart TB
 flowchart TB
     subgraph Client["Browser — React SPA"]
         direction TB
-        Pages["pages<br/>hub · start · queue · lobby · home"]
-        UseGame["hooks/useGame<br/>engine wiring · AI turns · sounds · scores"]
+        Pages["pages<br/>hub · start · queue · lobby · home · connect-four"]
+        UseGame["hooks/useGame · useConnectFour<br/>engine wiring · AI turns · sounds · scores"]
         OSession["OnlineSessionContext<br/>openRoom → RoomSession<br/>MatchmakerClient · VoiceSession"]
         Engine["engine/<br/>pure TS state machine"]
         Transport["RoomTransport<br/>BroadcastChannel | WebSocket"]
@@ -159,7 +159,7 @@ sequenceDiagram
     participant R as Relay
     participant B as Player B
 
-    Note over A: session.playMove(index)<br/>validates turn + cell<br/>applies optimistically (UI updates now)
+    Note over A: session.playMove(index)<br/>validates turn + position<br/>applies optimistically (UI updates now)
     A->>R: move {roomCode, playerId, index, game}
     R->>R: message matches room + game?
     R->>B: move (bytes forwarded unchanged)
@@ -195,14 +195,15 @@ sequenceDiagram
 
 ### 4.1 Protocol (`src/net/protocol.ts`)
 
-Room messages (over any transport; `game` optional, defaults to `tictactoe`):
+Room messages (over any transport; `game` optional, defaults to `tictactoe`; `GAMES` currently
+holds `tictactoe` and `connect-four`):
 
 | Type | Direction | Payload |
 |------|-----------|---------|
 | `hello` | guest → host | `roomCode, playerId, name, game?` |
 | `welcome` | host → guest | `roomCode, hostId, hostName, game?` |
 | `rejected` | host → guest | `roomCode, reason: not-found \| room-full` |
-| `move` | either | `roomCode, playerId, index, game?` |
+| `move` | either | `roomCode, playerId, index, game?` (`index` semantics are per game: tic-tac-toe cell, Connect Four column 0–6 — the receiver's engine validates) |
 | `rematch` / `rematch-start` | either / host | `roomCode, playerId?` |
 | `leave` | either | `roomCode, playerId` |
 | `ping` / `pong` | either (heartbeat) | `roomCode, playerId` |
@@ -252,6 +253,10 @@ stateDiagram-v2
   foreign `game` or room code are dropped before touching state.
 - Rematch: both sides send `rematch`; when the host has seen both, it emits `rematch-start`
   and restarts.
+- The session is generic over the game: `RoomSession<G>` drives a `GameEngine` bundle
+  (`createInitialState / isValidMove / makeMove / restartGame / startGame`) selected by
+  `engineFor(game)`, so the state machine stays game-agnostic; unknown game ids throw at
+  construction. `isTttSession` / `isConnectFourSession` guards narrow for game-specific UI.
 
 ### 4.3 Transports (`src/net/transport.ts`, `wsTransport.ts`, `createRoomTransport.ts`)
 
@@ -299,16 +304,24 @@ so isolation is enforced by DO identity — not just by message inspection.
 
 ### 4.7 Engine (`src/engine/`)
 
-`createInitialState → startGame → makeMove → …` is a pure reducer-style state machine
-(`phase: playing | finished`, win lines, scores, move history). The AI (`ai.ts`) is
-deterministic under an injected `rng`, which is what lets tests prove seeded properties
-("NEMESIS never loses over 100 games").
+Each game is a pure reducer-style state machine
+(`createInitialState → startGame → makeMove → …`: `phase: playing | finished`, win lines,
+scores, move history), wired to the UI through a `GameEngine` bundle:
+
+| Game | Module | Notes |
+|------|--------|-------|
+| tic-tac-toe | `engine/tictactoe/` | 3×3; `index` = cell; AI depths 0 (random) / 2 / 4 / full minimax (NEMESIS) |
+| connect-four | `engine/connect-four/` | 7×6 gravity; `index` = column 0–6; AI easy/medium/hard only, hard capped at depth 4 |
+
+The AI is deterministic under an injected `rng`, which is what lets tests prove seeded
+properties ("NEMESIS never loses over 100 games"). A terminal move scores `WIN_SCORE = 10_000`
+so an immediate win/loss always dominates the eval heuristic (evals stay below that).
 
 ## 5. Invariants and failure modes
 
 | Invariant / behavior | Enforced by |
 |----------------------|-------------|
-| A cell can be played only on an empty cell of a `playing` game, by the current player | `engine/core.ts` (`isValidMove`) — checked by sender **and** receiver |
+| A position can be played only if the game's `isValidMove` allows it (empty cell / valid column) in a `playing` game, by the current player | `engine/<game>/core.ts` — checked by sender **and** receiver |
 | Never more than two room members; a third joiner is rejected | host (`room-full`) or relay (capacity refusal) |
 | Orphaned sessions die | heartbeats (2 s), timeout (6 s), guest hello deadline (3 s) |
 | A room id belongs to exactly one game | scoped keys at every layer — transport, relay map, DO name, LiveKit room |
@@ -373,14 +386,23 @@ local setup: `npm run test:e2e:voice`, `npm run test:e2e:cf`.
 
 ## 9. Extending: adding a game
 
-The networking seam from Phase 7b:
+The networking seam from Phase 7b, as exercised by Connect Four (7c):
 
-1. Add the id to `GAMES` in `src/net/protocol.ts` — everything else type-checks against it.
-2. Build the game as a pure engine module (mirror `src/engine/`).
+1. Add the id to `GAMES` in `src/net/protocol.ts` — everything else type-checks against it
+   (both relays import `isGameId` from the shared protocol, so they need no changes).
+2. Build the game as a pure engine module under `src/engine/<game>/` and export a
+   `GameEngine` bundle that satisfies `engineFor` in `RoomSession.ts`.
 3. Hub (`src/pages/hub/Hub.tsx`): make the card playable and navigate to `/start` with the
    game id in router state; Start threads it into `openRoom` / `MatchmakerClient` /
    `VoiceSession`.
-4. Add a page like `home/` that drives the engine through `RoomSession` (or a sibling
-   session type if the rules need different messages — add variants to `RoomMessage` and
-   keep `game` stamped).
-5. Add engine + page tests and one E2E happy path. Relays and voice need no changes.
+4. Add a page that drives the engine locally via a hook (like `useConnectFour`) and through
+   a session branch when `roomCode` is set; reuse the shared `ScoreBox` / `Confetti` /
+   `ChatPanel` / voice controls.
+5. Route: add a page route (e.g. `/connect-four`) and make `/room` dispatch on
+   `session.getSnapshot().game` (the `RoomRouter` in `App.tsx`) so rematches and rejoins
+   land on the right board.
+6. Add engine + page tests and E2E happy paths (local, vs AI, online). Relays and voice need
+   no changes.
+
+Keep game-specific semantics (what `index` means, whose turn first, which AI tiers exist)
+inside the game's engine + page — the protocol, session, and relays stay game-agnostic.
