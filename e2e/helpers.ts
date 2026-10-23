@@ -31,8 +31,25 @@ export async function isPageScrollable(page: Page): Promise<boolean> {
   );
 }
 
-export async function createRoom(page: Page, name: string): Promise<string> {
-  await page.goto('/start');
+async function openStartForGame(page: Page, game: 'tictactoe' | 'connect-four') {
+  if (game === 'tictactoe') {
+    await page.goto('/start');
+    return;
+  }
+  await page.goto('/');
+  await page
+    .getByTestId('hub-card-connect-four')
+    .getByRole('button', { name: 'Play' })
+    .click();
+  await expect(page).toHaveURL(/\/start/);
+}
+
+export async function createRoom(
+  page: Page,
+  name: string,
+  game: 'tictactoe' | 'connect-four' = 'tictactoe',
+): Promise<string> {
+  await openStartForGame(page, game);
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: 'Online' }).click();
   await page.getByRole('button', { name: 'Create Room' }).click();
@@ -45,8 +62,13 @@ export async function createRoom(page: Page, name: string): Promise<string> {
   return code;
 }
 
-export async function joinRoom(page: Page, name: string, code: string): Promise<void> {
-  await page.goto('/start');
+export async function joinRoom(
+  page: Page,
+  name: string,
+  code: string,
+  game: 'tictactoe' | 'connect-four' = 'tictactoe',
+): Promise<void> {
+  await openStartForGame(page, game);
   await page.getByPlaceholder('Enter your name').fill(name);
   await page.getByRole('button', { name: 'Online' }).click();
   await page.getByRole('button', { name: 'Join Room' }).click();
