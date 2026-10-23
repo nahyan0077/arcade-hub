@@ -5,6 +5,7 @@ export interface PersistedScores {
 }
 
 const STORAGE_KEY = 'tic-tac-toe.scores.v1';
+export const C4_SCORES_KEY = 'connect-four.scores.v1';
 
 export const ZERO_SCORES: PersistedScores = { X: 0, O: 0, draws: 0 };
 
@@ -24,9 +25,9 @@ function isValidScores(value: unknown): value is PersistedScores {
   );
 }
 
-export function loadScores(): PersistedScores {
+export function loadScores(storageKey: string = STORAGE_KEY): PersistedScores {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw === null) return { ...ZERO_SCORES };
     const parsed: unknown = JSON.parse(raw);
     if (!isValidScores(parsed)) return { ...ZERO_SCORES };
@@ -37,17 +38,17 @@ export function loadScores(): PersistedScores {
   }
 }
 
-export function saveScores(scores: PersistedScores): void {
+export function saveScores(scores: PersistedScores, storageKey: string = STORAGE_KEY): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(scores));
+    localStorage.setItem(storageKey, JSON.stringify(scores));
   } catch (error) {
     console.warn('Failed to persist scores, session-only', error);
   }
 }
 
-export function clearScores(): void {
+export function clearScores(storageKey: string = STORAGE_KEY): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey);
   } catch (error) {
     console.warn('Failed to clear scores', error);
   }

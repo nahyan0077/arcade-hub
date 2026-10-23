@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { loadScores, saveScores, clearScores, ZERO_SCORES } from '../scores';
+import { loadScores, saveScores, clearScores, ZERO_SCORES, C4_SCORES_KEY } from '../scores';
 
 const KEY = 'tic-tac-toe.scores.v1';
 const store = localStorage as unknown as Record<string, ReturnType<typeof vi.fn>>;
@@ -53,5 +53,20 @@ describe('score persistence', () => {
     });
     expect(() => saveScores({ X: 1, O: 0, draws: 0 })).not.toThrow();
     expect(console.warn).toHaveBeenCalled();
+  });
+
+  it('round-trips connect-four scores under their own key', () => {
+    const scores = { X: 7, O: 5, draws: 2 };
+    saveScores(scores, C4_SCORES_KEY);
+    expect(store.setItem).toHaveBeenCalledWith(C4_SCORES_KEY, JSON.stringify(scores));
+
+    store.getItem.mockReturnValue(JSON.stringify(scores));
+    expect(loadScores(C4_SCORES_KEY)).toEqual(scores);
+  });
+
+  it('clears connect-four scores without touching the tic-tac-toe key', () => {
+    clearScores(C4_SCORES_KEY);
+    expect(store.removeItem).toHaveBeenCalledWith(C4_SCORES_KEY);
+    expect(store.removeItem).not.toHaveBeenCalledWith(KEY);
   });
 });
