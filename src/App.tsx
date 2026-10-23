@@ -3,6 +3,7 @@ import './App.css'
 import { Hub } from './pages/hub/Hub'
 import { Home } from './pages/home/Home'
 import { Start } from './pages/start/Start'
+import { ConnectFour } from './pages/connect-four/ConnectFour'
 import { Lobby } from './pages/lobby/Lobby'
 import { Queue } from './pages/queue/Queue'
 import { OnlineSessionProvider } from './net/OnlineSessionContext'
@@ -17,6 +18,7 @@ function App() {
           <Route path='/' element={<Hub />} />
           <Route path='/start' element={<Start />} />
           <Route path='/game' element={<Home />} />
+          <Route path='/connect-four' element={<ConnectFour />} />
           <Route path='/lobby' element={<Lobby />} />
           <Route path='/room' element={<Home />} />
           <Route path='/queue' element={<Queue />} />

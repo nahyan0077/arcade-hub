@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./start.css";
 import toast, { Toaster } from "react-hot-toast";
 import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
 import type { AIDifficulty } from "../../engine";
+import { C4_DIFFICULTIES } from "../../engine/connect-four/types";
+import type { C4Difficulty } from "../../engine/connect-four/types";
 import { useOnlineSession } from "../../net/OnlineSessionContext";
 import {
   generateRoomCode,
@@ -13,6 +15,7 @@ import {
 
 type GameMode = "pvp" | "pve" | "online" | "quick";
 type OnlineAction = "create" | "join";
+type StartGame = "tictactoe" | "connect-four";
 
 const quickPlayEnabled = (): boolean => Boolean(import.meta.env.VITE_WS_URL);
 
@@ -25,12 +28,19 @@ const optionClass = (active: boolean): string =>
 
 export const Start = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { openRoom } = useOnlineSession();
+
+  const game: StartGame =
+    (location.state as { game?: string } | null)?.game === "connect-four"
+      ? "connect-four"
+      : "tictactoe";
+  const isC4 = game === "connect-four";
 
   const [playerType, setPlayerType] = useState("");
   const [name, setName] = useState("");
   const [mode, setMode] = useState<GameMode>("pvp");
-  const [difficulty, setDifficulty] = useState<AIDifficulty>("medium");
+  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty>("medium");
   const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
   const [joinCode, setJoinCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,7 +68,7 @@ export const Start = () => {
       return;
     }
     if (mode === "quick") {
-      navigate("/queue", { state: { name } });
+      navigate("/queue", { state: { name, game } });
       return;
     }
     if (mode === "online") {
@@ -75,23 +85,39 @@ export const Start = () => {
       navigate("/lobby");
       return;
     }
-    if (!playerType) {
+    if (!isC4 && !playerType) {
       showToast("Please select the player type");
+      return;
+    }
+    if (isC4) {
+      navigate("/connect-four", { state: { name, mode, difficulty } });
       return;
     }
     navigate("/game", { state: { playerType, name, mode, difficulty } });
   };
 
+  const showMarkPicker = !isC4 && (mode === "pvp" || mode === "pve");
+  const difficulties = isC4 ? C4_DIFFICULTIES : AIDIFFICULTIES;
+
   return (
     <div className="animate-fade-in flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
         <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" >
-            <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
-            <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > TAC </h2>
-            <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" style={{ animationDelay: "180ms" }} > TOE </h2>
+          {isC4 ? (
+            <>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-yellow-500 font-extrabold" > CONNECT </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > FOUR </h2>
+            </>
+          ) : (
+            <>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > TAC </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" style={{ animationDelay: "180ms" }} > TOE </h2>
+            </>
+          )}
         </div>
       <Toaster />
 
-      {(mode === "pvp" || mode === "pve") && (
+      {showMarkPicker && (
         <div className="flex gap-4">
           <button
             type="button"
@@ -122,9 +148,7 @@ export const Start = () => {
           </button>
         </div>
       )}
-      {(mode === "online" || mode === "quick") && (
-        <div className="mb-8" aria-hidden="true" />
-      )}
+      {!showMarkPicker && <div className="mb-8" aria-hidden="true" />}
 
       <>
         <input
@@ -152,29 +176,33 @@ export const Start = () => {
           >
             vs AI
           </button>
-          <button
-            type="button"
-            aria-pressed={mode === "online"}
-            className={optionClass(mode === "online")}
-            onClick={() => setMode("online")}
-          >
-            Online
-          </button>
-          {quickPlayEnabled() && (
-            <button
-              type="button"
-              aria-pressed={mode === "quick"}
-              className={optionClass(mode === "quick")}
-              onClick={() => setMode("quick")}
-            >
-              Quick Play
-            </button>
+          {!isC4 && (
+            <>
+              <button
+                type="button"
+                aria-pressed={mode === "online"}
+                className={optionClass(mode === "online")}
+                onClick={() => setMode("online")}
+              >
+                Online
+              </button>
+              {quickPlayEnabled() && (
+                <button
+                  type="button"
+                  aria-pressed={mode === "quick"}
+                  className={optionClass(mode === "quick")}
+                  onClick={() => setMode("quick")}
+                >
+                  Quick Play
+                </button>
+              )}
+            </>
           )}
         </div>
 
         {mode === "pve" && (
           <div className="mb-4 flex flex-wrap justify-center gap-2" role="group" aria-label="AI difficulty">
-            {AIDIFFICULTIES.map((level) => (
+            {difficulties.map((level) => (
               <button
                 key={level}
                 type="button"

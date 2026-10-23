@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { Hub } from '../Hub';
@@ -20,20 +20,30 @@ function renderHub() {
 }
 
 describe('Hub', () => {
-  it('lists tic-tac-toe as playable and the rest as coming soon', () => {
+  it('lists two playable games and the rest as coming soon', () => {
     renderHub();
     expect(screen.getByTestId('hub-card-tictactoe')).toBeInTheDocument();
     expect(screen.getByTestId('hub-card-connect-four')).toBeInTheDocument();
     expect(screen.getByTestId('hub-card-dots-and-boxes')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Play' })).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(1);
-    expect(screen.getAllByText('Coming soon')).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByText('Coming soon')).toHaveLength(1);
   });
 
-  it('navigates to the start screen on Play', async () => {
+  it('navigates to the start screen for each playable card', async () => {
     const user = userEvent.setup();
     renderHub();
-    await user.click(screen.getByRole('button', { name: 'Play' }));
+    await user.click(
+      within(screen.getByTestId('hub-card-tictactoe')).getByRole('button', { name: 'Play' }),
+    );
+    expect(screen.getByText('start page')).toBeInTheDocument();
+  });
+
+  it('navigates to the start screen from the connect-four card', async () => {
+    const user = userEvent.setup();
+    renderHub();
+    await user.click(
+      within(screen.getByTestId('hub-card-connect-four')).getByRole('button', { name: 'Play' }),
+    );
     expect(screen.getByText('start page')).toBeInTheDocument();
   });
 });

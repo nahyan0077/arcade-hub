@@ -46,6 +46,16 @@ function QueueProbe() {
   );
 }
 
+function ConnectFourProbe() {
+  const location = useLocation();
+  return (
+    <div>
+      connect four screen
+      <span data-testid="c4-state">{JSON.stringify(location.state)}</span>
+    </div>
+  );
+}
+
 function renderStart() {
   return render(
     <OnlineSessionProvider>
@@ -53,6 +63,23 @@ function renderStart() {
         <Routes>
           <Route path="/" element={<Start />} />
           <Route path="/game" element={<GameProbe />} />
+          <Route path="/connect-four" element={<ConnectFourProbe />} />
+          <Route path="/lobby" element={<LobbyProbe />} />
+          <Route path="/queue" element={<QueueProbe />} />
+        </Routes>
+      </MemoryRouter>
+    </OnlineSessionProvider>,
+  );
+}
+
+function renderStartForGame(game: string) {
+  return render(
+    <OnlineSessionProvider>
+      <MemoryRouter initialEntries={[{ pathname: '/', state: { game } }]}>
+        <Routes>
+          <Route path="/" element={<Start />} />
+          <Route path="/game" element={<GameProbe />} />
+          <Route path="/connect-four" element={<ConnectFourProbe />} />
           <Route path="/lobby" element={<LobbyProbe />} />
           <Route path="/queue" element={<QueueProbe />} />
         </Routes>
@@ -248,7 +275,7 @@ describe('Start screen quick play', () => {
     await screen.findByText('queue screen');
 
     const state = JSON.parse(screen.getByTestId('queue-state').textContent ?? 'null');
-    expect(state).toEqual({ name: 'Alice' });
+    expect(state).toEqual({ name: 'Alice', game: 'tictactoe' });
   });
 
   it('requires a name before quick play', async () => {
@@ -262,5 +289,67 @@ describe('Start screen quick play', () => {
     const messages = await screen.findAllByText('Please Enter your name');
     expect(messages.length).toBeGreaterThan(0);
     expect(screen.queryByText('queue screen')).not.toBeInTheDocument();
+  });
+});
+
+describe('Start screen for connect-four', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    toast.dismiss();
+  });
+
+  it('shows the connect-four heading without mark selection', () => {
+    renderStartForGame('connect-four');
+    expect(screen.getByText('CONNECT')).toBeInTheDocument();
+    expect(screen.getByText('FOUR')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Play as X' })).not.toBeInTheDocument();
+  });
+
+  it('hides online and quick play modes', () => {
+    renderStartForGame('connect-four');
+    expect(screen.queryByRole('button', { name: 'Online' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quick Play' })).not.toBeInTheDocument();
+  });
+
+  it('offers easy, medium, and hard AI only', async () => {
+    const user = userEvent.setup();
+    renderStartForGame('connect-four');
+    await user.click(screen.getByRole('button', { name: 'vs AI' }));
+    const group = screen.getByRole('group', { name: 'AI difficulty' });
+    expect(within(group).getByRole('button', { name: 'EASY' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'MEDIUM' })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: 'HARD' })).toBeInTheDocument();
+    expect(within(group).queryByRole('button', { name: 'IMPOSSIBLE' })).not.toBeInTheDocument();
+  });
+
+  it('blocks start without a name', async () => {
+    const user = userEvent.setup();
+    renderStartForGame('connect-four');
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    expect(screen.queryByText('connect four screen')).not.toBeInTheDocument();
+    const messages = await screen.findAllByText('Please Enter your name');
+    expect(messages.length).toBeGreaterThan(0);
+  });
+
+  it('navigates to the connect-four route without requiring a mark', async () => {
+    const user = userEvent.setup();
+    renderStartForGame('connect-four');
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Zoe');
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    await screen.findByText('connect four screen');
+    const state = JSON.parse(screen.getByTestId('c4-state').textContent ?? 'null');
+    expect(state).toMatchObject({ name: 'Zoe', mode: 'pvp', difficulty: 'medium' });
+  });
+
+  it('passes pve mode and chosen difficulty to the connect-four route', async () => {
+    const user = userEvent.setup();
+    renderStartForGame('connect-four');
+    await user.click(screen.getByRole('button', { name: 'vs AI' }));
+    await user.click(screen.getByRole('button', { name: 'HARD' }));
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Zed');
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    await screen.findByText('connect four screen');
+    const state = JSON.parse(screen.getByTestId('c4-state').textContent ?? 'null');
+    expect(state).toMatchObject({ name: 'Zed', mode: 'pve', difficulty: 'hard' });
   });
 });

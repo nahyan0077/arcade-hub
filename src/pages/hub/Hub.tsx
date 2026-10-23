@@ -22,10 +22,10 @@ const GAMES: GameCard[] = [
   {
     id: "connect-four",
     title: "CONNECT FOUR",
-    tagline: "Drop discs, connect four",
+    tagline: "Drop discs, connect four — local or vs AI",
     mark: "●",
     markClass: "text-yellow-500",
-    playable: false,
+    playable: true,
   },
   {
     id: "dots-and-boxes",
@@ -77,7 +77,7 @@ export const Hub = () => {
             {game.playable ? (
               <button
                 type="button"
-                onClick={() => navigate("/start")}
+                onClick={() => navigate("/start", { state: { game: game.id } })}
                 className="mt-2 rounded-lg border-2 border-blue-500 bg-blue-500/15 px-6 py-2 text-sm font-bold text-blue-300 transition-all hover:scale-105 hover:bg-blue-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
               >
                 Play
