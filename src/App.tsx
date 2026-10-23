@@ -6,7 +6,15 @@ import { Start } from './pages/start/Start'
 import { ConnectFour } from './pages/connect-four/ConnectFour'
 import { Lobby } from './pages/lobby/Lobby'
 import { Queue } from './pages/queue/Queue'
-import { OnlineSessionProvider } from './net/OnlineSessionContext'
+import { OnlineSessionProvider, useOnlineSession } from './net/OnlineSessionContext'
+
+function RoomRouter() {
+  const { session } = useOnlineSession()
+  if (session?.getSnapshot().game === 'connect-four') {
+    return <ConnectFour />
+  }
+  return <Home />
+}
 
 function App() {
 
@@ -20,7 +28,7 @@ function App() {
           <Route path='/game' element={<Home />} />
           <Route path='/connect-four' element={<ConnectFour />} />
           <Route path='/lobby' element={<Lobby />} />
-          <Route path='/room' element={<Home />} />
+          <Route path='/room' element={<RoomRouter />} />
           <Route path='/queue' element={<Queue />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

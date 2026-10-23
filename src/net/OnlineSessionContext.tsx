@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { RoomSession, type SessionSnapshot } from './RoomSession';
+import { RoomSession, type AnyRoomSession, type SessionSnapshot } from './RoomSession';
 import { createRoomTransport } from './createRoomTransport';
 import { generatePlayerId, type RoomRole, type GameId, DEFAULT_GAME } from './protocol';
 
@@ -21,8 +21,8 @@ export interface OpenRoomOptions {
 }
 
 interface OnlineSessionValue {
-  session: RoomSession | null;
-  openRoom: (options: OpenRoomOptions) => RoomSession;
+  session: AnyRoomSession | null;
+  openRoom: (options: OpenRoomOptions) => AnyRoomSession;
   closeRoom: () => void;
 }
 
@@ -33,10 +33,10 @@ export function OnlineSessionProvider({
   initialSession = null,
 }: {
   children: ReactNode;
-  initialSession?: RoomSession | null;
+  initialSession?: AnyRoomSession | null;
 }) {
-  const sessionRef = useRef<RoomSession | null>(initialSession);
-  const [session, setSession] = useState<RoomSession | null>(initialSession);
+  const sessionRef = useRef<AnyRoomSession | null>(initialSession);
+  const [session, setSession] = useState<AnyRoomSession | null>(initialSession);
 
   const openRoom = useCallback((options: OpenRoomOptions) => {
     sessionRef.current?.destroy();
@@ -82,8 +82,8 @@ export function useOnlineSession(): OnlineSessionValue {
 }
 
 export function useOnlineSessionSnapshot(): {
-  session: RoomSession | null;
-  snapshot: SessionSnapshot | null;
+  session: AnyRoomSession | null;
+  snapshot: SessionSnapshot<GameId> | null;
   closeRoom: () => void;
 } {
   // Lenient on purpose: Home is shared between local (/game) and online

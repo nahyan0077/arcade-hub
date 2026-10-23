@@ -78,9 +78,9 @@ export const Start = () => {
           showToast("Enter a valid 6-character room code");
           return;
         }
-        openRoom({ role: "guest", roomCode: code, name });
+        openRoom({ role: "guest", roomCode: code, name, game });
       } else {
-        openRoom({ role: "host", roomCode: generateRoomCode(), name });
+        openRoom({ role: "host", roomCode: generateRoomCode(), name, game });
       }
       navigate("/lobby");
       return;
@@ -176,27 +176,23 @@ export const Start = () => {
           >
             vs AI
           </button>
-          {!isC4 && (
-            <>
-              <button
-                type="button"
-                aria-pressed={mode === "online"}
-                className={optionClass(mode === "online")}
-                onClick={() => setMode("online")}
-              >
-                Online
-              </button>
-              {quickPlayEnabled() && (
-                <button
-                  type="button"
-                  aria-pressed={mode === "quick"}
-                  className={optionClass(mode === "quick")}
-                  onClick={() => setMode("quick")}
-                >
-                  Quick Play
-                </button>
-              )}
-            </>
+          <button
+            type="button"
+            aria-pressed={mode === "online"}
+            className={optionClass(mode === "online")}
+            onClick={() => setMode("online")}
+          >
+            Online
+          </button>
+          {quickPlayEnabled() && (
+            <button
+              type="button"
+              aria-pressed={mode === "quick"}
+              className={optionClass(mode === "quick")}
+              onClick={() => setMode("quick")}
+            >
+              Quick Play
+            </button>
           )}
         </div>
 

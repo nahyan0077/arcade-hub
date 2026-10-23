@@ -18,7 +18,7 @@ const DEFAULT_AI_DELAY_MS = 600;
 export interface AITurnOptions {
   humanMark?: Player;
   aiDelayMs?: number;
-  session?: RoomSession | null;
+  session?: RoomSession<'tictactoe'> | null;
 }
 
 export function resultSoundEffect(winner: Player, perspective: Player | null): 'win' | 'lose' {

@@ -22,7 +22,7 @@ const GAMES: GameCard[] = [
   {
     id: "connect-four",
     title: "CONNECT FOUR",
-    tagline: "Drop discs, connect four — local or vs AI",
+    tagline: "Drop discs, connect four — local, vs AI, or online",
     mark: "●",
     markClass: "text-yellow-500",
     playable: true,

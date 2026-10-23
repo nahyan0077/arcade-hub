@@ -2,25 +2,34 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { MatchmakerClient, type MatchmakerSnapshot } from '../../net/matchmaker';
-import { generatePlayerId, DEFAULT_GAME } from '../../net/protocol';
+import {
+  generatePlayerId,
+  isGameId,
+  DEFAULT_GAME,
+  type GameId,
+} from '../../net/protocol';
 import { useOnlineSession } from '../../net/OnlineSessionContext';
 
 interface QueueLocationState {
   name: string;
+  game?: GameId;
 }
 
 export const Queue = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { openRoom } = useOnlineSession();
-  const name = (location.state as QueueLocationState | null)?.name ?? '';
+  const navState = location.state as QueueLocationState | null;
+  const name = navState?.name ?? '';
+  const game: GameId =
+    navState?.game !== undefined && isGameId(navState.game) ? navState.game : DEFAULT_GAME;
 
   const [client] = useState(
     () =>
       new MatchmakerClient({
         url: import.meta.env.VITE_WS_URL ?? '',
         playerId: generatePlayerId(),
-        game: DEFAULT_GAME,
+        game,
       }),
   );
   const [snapshot, setSnapshot] = useState<MatchmakerSnapshot>(client.getSnapshot());
@@ -43,10 +52,10 @@ export const Queue = () => {
 
   useEffect(() => {
     if (snapshot.status === 'matched' && snapshot.roomCode !== null && snapshot.role !== null) {
-      openRoom({ role: snapshot.role, roomCode: snapshot.roomCode, name, game: DEFAULT_GAME });
+      openRoom({ role: snapshot.role, roomCode: snapshot.roomCode, name, game });
       navigate('/room', { replace: true });
     }
-  }, [snapshot, openRoom, navigate, name]);
+  }, [snapshot, openRoom, navigate, name, game]);
 
   const showToast = (message: string) => {
     toast.error(message, {

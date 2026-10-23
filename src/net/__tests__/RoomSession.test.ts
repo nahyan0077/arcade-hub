@@ -427,7 +427,7 @@ describe('RoomSession game scoping', () => {
       myId: 'guest-x',
       myName: 'XEN',
       transport: foreignGuest,
-      game: 'bogus' as never,
+      game: 'connect-four',
       ...TIMING,
     });
     foreign.start();
@@ -437,6 +437,22 @@ describe('RoomSession game scoping', () => {
     host.destroy();
     guest.destroy();
     foreign.destroy();
+  });
+
+  it('rejects an unknown game at construction', () => {
+    const [transport] = createFakeTransportPair();
+    expect(
+      () =>
+        new RoomSession({
+          role: 'host',
+          roomCode: CODE,
+          myId: 'host-9',
+          myName: 'NOPE',
+          transport,
+          game: 'bogus' as never,
+          ...TIMING,
+        }),
+    ).toThrow(/Unsupported game/);
   });
 });
 
@@ -494,5 +510,95 @@ describe('RoomSession chat', () => {
     expect(events).toEqual([
       { kind: 'emoji', fromId: 'guest-1', from: 'BOB', emoji: '👀' },
     ]);
+  });
+});
+
+describe('RoomSession connect-four engine', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function connectC4Pair() {
+    const [hostTransport, guestTransport] = createFakeTransportPair();
+    const host = new RoomSession({
+      role: 'host',
+      roomCode: CODE,
+      myId: 'host-1',
+      myName: 'ALICE',
+      transport: hostTransport,
+      game: 'connect-four',
+      ...TIMING,
+    });
+    const guest = new RoomSession({
+      role: 'guest',
+      roomCode: CODE,
+      myId: 'guest-1',
+      myName: 'BOB',
+      transport: guestTransport,
+      game: 'connect-four',
+      ...TIMING,
+    });
+    host.start();
+    guest.start();
+    return { host, guest };
+  }
+
+  function playToC4Win(host: RoomSession, guest: RoomSession) {
+    host.playMove(0);
+    guest.playMove(1);
+    host.playMove(0);
+    guest.playMove(1);
+    host.playMove(0);
+    guest.playMove(1);
+    host.playMove(0);
+  }
+
+  it('syncs column drops with gravity on both sides', () => {
+    const { host, guest } = connectC4Pair();
+
+    expect(host.playMove(0)).toBe(true);
+    expect(settled(guest).state.board[0]).toBe('X');
+    expect(settled(guest).state.currentPlayer).toBe('O');
+
+    expect(host.playMove(0)).toBe(false); // not host's turn
+    expect(guest.playMove(0)).toBe(true);
+    expect(settled(host).state.board[7]).toBe('O'); // stacked above the X
+    expect(settled(host).state.board.filter((cell) => cell !== 0)).toHaveLength(2);
+  });
+
+  it('reaches a connect-four win on both sides', () => {
+    const { host, guest } = connectC4Pair();
+    playToC4Win(host, guest);
+
+    for (const session of [host, guest]) {
+      const { state } = settled(session);
+      expect(state.phase).toBe('finished');
+      expect(state.result?.type).toBe('win');
+      expect(state.result).toMatchObject({ type: 'win', player: 'X' });
+      if (state.result?.type === 'win' && 'cells' in state.result.line) {
+        expect(state.result.line.cells).toEqual([0, 7, 14, 21]);
+      }
+      expect(state.scores.X).toBe(1);
+    }
+  });
+
+  it('rematch restarts the board with the loser serving', () => {
+    const { host, guest } = connectC4Pair();
+    playToC4Win(host, guest);
+
+    expect(host.requestRematch()).toBe(true);
+    expect(guest.requestRematch()).toBe(true);
+
+    for (const session of [host, guest]) {
+      const { state } = settled(session);
+      expect(state.phase).toBe('playing');
+      expect(state.currentPlayer).toBe('O');
+      expect(state.board.every((cell) => cell === 0)).toBe(true);
+      expect(state.scores.X).toBe(1);
+    }
   });
 });

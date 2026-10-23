@@ -3,7 +3,7 @@ import type { Player } from '../engine';
 export const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
-export const GAMES = ['tictactoe'] as const;
+export const GAMES = ['tictactoe', 'connect-four'] as const;
 export type GameId = (typeof GAMES)[number];
 export const DEFAULT_GAME: GameId = 'tictactoe';
 

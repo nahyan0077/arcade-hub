@@ -6,6 +6,7 @@ import { isMuted, setMuted } from "../../sound/audio";
 import { AIDIFFICULTIES, PERSONALITIES, getBestMove } from "../../engine";
 import type { AIDifficulty, Player } from "../../engine";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
+import { isTttSession } from "../../net/RoomSession";
 import { VoiceControls } from "../../components/VoiceControls";
 import { ChatPanel } from "../../components/ChatPanel";
 import { QuickEmoji } from "../../components/QuickEmoji";
@@ -27,7 +28,8 @@ interface NavState {
 export const Home: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { session, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
+  const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
+  const session = isTttSession(anySession) ? anySession : null;
   const online = session !== null;
   const navState = (location.state ?? null) as NavState | null;
 

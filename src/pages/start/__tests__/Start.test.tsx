@@ -29,6 +29,7 @@ function LobbyProbe() {
             roomCode: snapshot.roomCode,
             status: snapshot.status,
             myName: snapshot.myName,
+            game: snapshot.game,
           },
         )}
       </span>
@@ -305,10 +306,24 @@ describe('Start screen for connect-four', () => {
     expect(screen.queryByRole('button', { name: 'Play as X' })).not.toBeInTheDocument();
   });
 
-  it('hides online and quick play modes', () => {
+  it('shows online and quick play modes alongside local play', () => {
     renderStartForGame('connect-four');
-    expect(screen.queryByRole('button', { name: 'Online' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Online' })).toBeInTheDocument();
+    // Quick Play only appears when a relay URL is configured.
     expect(screen.queryByRole('button', { name: 'Quick Play' })).not.toBeInTheDocument();
+  });
+
+  it('creates a connect-four host room tagged with the game', async () => {
+    const user = userEvent.setup();
+    renderStartForGame('connect-four');
+    await user.type(screen.getByPlaceholderText('Enter your name'), 'Zoe');
+    await user.click(screen.getByRole('button', { name: 'Online' }));
+    await user.click(screen.getByRole('button', { name: 'Create Room' }));
+    await user.click(screen.getByRole('button', { name: 'Start Game' }));
+    await screen.findByText('lobby screen');
+    const snapshot = lobbySnapshot();
+    expect(snapshot.game).toBe('connect-four');
+    expect(snapshot.role).toBe('host');
   });
 
   it('offers easy, medium, and hard AI only', async () => {

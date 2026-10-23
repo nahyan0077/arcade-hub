@@ -6,6 +6,14 @@ import {
   startGame,
 } from '../engine';
 import type { GameState, Player } from '../engine';
+import {
+  createC4InitialState,
+  c4IsValidMove,
+  c4MakeMove,
+  c4RestartGame,
+  c4StartGame,
+} from '../engine/connect-four';
+import type { C4GameState } from '../engine/connect-four';
 import type { RoomMessage, RoomRole, GameId } from './protocol';
 import {
   CHAT_MESSAGE_MAX_LENGTH,
@@ -30,7 +38,49 @@ export interface ChatEvent {
   emoji?: string;
 }
 
-export interface SessionSnapshot {
+export type GameStateFor<G extends GameId> = G extends 'connect-four'
+  ? C4GameState
+  : GameState;
+
+interface GameEngine<State> {
+  createInitialState: (config?: {
+    mode?: 'online';
+    playerNames?: Record<Player, string>;
+  }) => State;
+  isValidMove: (state: State, index: number) => boolean;
+  makeMove: (state: State, index: number) => State;
+  restartGame: (state: State) => State;
+  startGame: (state: State) => State;
+}
+
+const TICTACTOE_ENGINE: GameEngine<GameState> = {
+  createInitialState,
+  isValidMove,
+  makeMove,
+  restartGame,
+  startGame,
+};
+
+const CONNECT_FOUR_ENGINE: GameEngine<C4GameState> = {
+  createInitialState: createC4InitialState,
+  isValidMove: c4IsValidMove,
+  makeMove: c4MakeMove,
+  restartGame: c4RestartGame,
+  startGame: c4StartGame,
+};
+
+function engineFor(game: GameId): GameEngine<GameStateFor<GameId>> {
+  switch (game) {
+    case 'tictactoe':
+      return TICTACTOE_ENGINE as GameEngine<GameStateFor<GameId>>;
+    case 'connect-four':
+      return CONNECT_FOUR_ENGINE as GameEngine<GameStateFor<GameId>>;
+    default:
+      throw new Error(`Unsupported game: ${String(game)}`);
+  }
+}
+
+export interface SessionSnapshot<G extends GameId = GameId> {
   status: SessionStatus;
   role: RoomRole;
   roomCode: string;
@@ -39,7 +89,7 @@ export interface SessionSnapshot {
   myName: string;
   myMark: Player;
   opponentName: string | null;
-  state: GameState;
+  state: GameStateFor<G>;
   rematchRequested: boolean;
 }
 
@@ -63,11 +113,12 @@ const DEFAULTS = {
   helloRetryMs: 500,
 };
 
-export class RoomSession {
+export class RoomSession<G extends GameId = GameId> {
   private readonly options: Required<Omit<RoomSessionOptions, 'transport'>> & {
     transport: RoomTransport;
   };
-  private readonly listeners = new Set<(snapshot: SessionSnapshot) => void>();
+  private readonly engine: GameEngine<GameStateFor<G>>;
+  private readonly listeners = new Set<(snapshot: SessionSnapshot<G>) => void>();
   private readonly chatListeners = new Set<(event: ChatEvent) => void>();
   private unsubscribeTransport: (() => void) | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
@@ -81,7 +132,7 @@ export class RoomSession {
   private hostId: string | null = null;
   private rematchRequested = false;
   private opponentRematchRequested = false;
-  private snapshot: SessionSnapshot;
+  private snapshot: SessionSnapshot<G>;
 
   constructor(options: RoomSessionOptions) {
     this.options = {
@@ -96,6 +147,7 @@ export class RoomSession {
       game: options.game ?? DEFAULT_GAME,
       transport: options.transport,
     };
+    this.engine = engineFor(this.options.game) as GameEngine<GameStateFor<G>>;
 
     this.snapshot = {
       status: options.role === 'host' ? 'waiting' : 'connecting',
@@ -106,12 +158,12 @@ export class RoomSession {
       myName: options.myName,
       myMark: markForRole(options.role),
       opponentName: null,
-      state: createInitialState({ mode: 'online' }),
+      state: this.engine.createInitialState({ mode: 'online' }),
       rematchRequested: false,
     };
   }
 
-  subscribe(listener: (snapshot: SessionSnapshot) => void): () => void {
+  subscribe(listener: (snapshot: SessionSnapshot<G>) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
   }
@@ -121,7 +173,7 @@ export class RoomSession {
     return () => this.chatListeners.delete(listener);
   }
 
-  getSnapshot(): SessionSnapshot {
+  getSnapshot(): SessionSnapshot<G> {
     return this.snapshot;
   }
 
@@ -177,7 +229,7 @@ export class RoomSession {
     const { state } = this.snapshot;
     if (this.snapshot.status !== 'connected') return false;
     if (state.currentPlayer !== this.snapshot.myMark) return false;
-    if (!isValidMove(state, index)) return false;
+    if (!this.engine.isValidMove(state, index)) return false;
 
     this.applyMove(index);
     this.post({ type: 'move', roomCode: this.options.roomCode, playerId: this.options.myId, index });
@@ -389,24 +441,26 @@ export class RoomSession {
     this.update({ status: 'disconnected' });
   }
 
-  private createOnlineState(opponentName: string): GameState {
+  private createOnlineState(opponentName: string): GameStateFor<G> {
     const playerNames: Record<Player, string> =
       this.options.role === 'host'
         ? { X: this.options.myName, O: opponentName }
         : { X: opponentName, O: this.options.myName };
-    return startGame(createInitialState({ mode: 'online', playerNames }));
+    return this.engine.startGame(
+      this.engine.createInitialState({ mode: 'online', playerNames }),
+    );
   }
 
   private onRemoteMove(message: Extract<RoomMessage, { type: 'move' }>): void {
     if (this.snapshot.status !== 'connected') return;
     const peerMark: Player = this.snapshot.myMark === 'X' ? 'O' : 'X';
     if (this.snapshot.state.currentPlayer !== peerMark) return;
-    if (!isValidMove(this.snapshot.state, message.index)) return;
+    if (!this.engine.isValidMove(this.snapshot.state, message.index)) return;
     this.applyMove(message.index);
   }
 
   private applyMove(index: number): void {
-    this.update({ state: makeMove(this.snapshot.state, index) });
+    this.update({ state: this.engine.makeMove(this.snapshot.state, index) });
   }
 
   private onRemoteRematch(): void {
@@ -424,7 +478,10 @@ export class RoomSession {
   private applyRematch(): void {
     this.rematchRequested = false;
     this.opponentRematchRequested = false;
-    this.update({ state: restartGame(this.snapshot.state), rematchRequested: false });
+    this.update({
+      state: this.engine.restartGame(this.snapshot.state),
+      rematchRequested: false,
+    });
   }
 
   private checkTimeout(): void {
@@ -435,8 +492,22 @@ export class RoomSession {
     }
   }
 
-  private update(partial: Partial<SessionSnapshot>): void {
+  private update(partial: Partial<SessionSnapshot<G>>): void {
     this.snapshot = { ...this.snapshot, ...partial };
     for (const listener of [...this.listeners]) listener(this.snapshot);
   }
+}
+
+export type AnyRoomSession = RoomSession<GameId>;
+
+export function isTttSession(
+  session: AnyRoomSession | null,
+): session is RoomSession<'tictactoe'> {
+  return session !== null && session.getSnapshot().game === 'tictactoe';
+}
+
+export function isConnectFourSession(
+  session: AnyRoomSession | null,
+): session is RoomSession<'connect-four'> {
+  return session !== null && session.getSnapshot().game === 'connect-four';
 }
