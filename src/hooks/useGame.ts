@@ -33,6 +33,9 @@ export function useGame(
   const session = options.session ?? null;
 
   const [state, setState] = useState<GameState>(() => {
+    if (session) {
+      return session.getSnapshot().state;
+    }
     const initial = createInitialState(config);
     const persisted = loadScores();
     const withScores: GameState = {
@@ -61,6 +64,7 @@ export function useGame(
     if (!session) return;
 
     let previousMoves = session.getSnapshot().state.moveHistory.length;
+    let previousPhase = session.getSnapshot().state.phase;
     setState(session.getSnapshot().state);
 
     return session.subscribe((snapshot) => {
@@ -73,8 +77,15 @@ export function useGame(
         } else {
           playEffect(history[history.length - 1].player === 'X' ? 'place-x' : 'place-o');
         }
+      } else if (snapshot.state.phase === 'finished' && previousPhase !== 'finished') {
+        if (snapshot.state.result?.type === 'win') {
+          playEffect(resultSoundEffect(snapshot.state.result.player, snapshot.myMark));
+        } else if (snapshot.state.result?.type === 'draw') {
+          playEffect('draw');
+        }
       }
       previousMoves = history.length;
+      previousPhase = snapshot.state.phase;
       setState(snapshot.state);
     });
   }, [session]);

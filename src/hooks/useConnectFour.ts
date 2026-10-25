@@ -29,6 +29,9 @@ export function useConnectFour(
   const session = options.session ?? null;
 
   const [state, setState] = useState<C4GameState>(() => {
+    if (session) {
+      return session.getSnapshot().state;
+    }
     const initial = createC4InitialState(config);
     const persisted = loadScores(C4_SCORES_KEY);
     const withScores: C4GameState = {
@@ -57,6 +60,7 @@ export function useConnectFour(
     if (!session) return;
 
     let previousMoves = session.getSnapshot().state.moveHistory.length;
+    let previousPhase = session.getSnapshot().state.phase;
     setState(session.getSnapshot().state);
 
     return session.subscribe((snapshot) => {
@@ -69,8 +73,15 @@ export function useConnectFour(
         } else {
           playEffect(history[history.length - 1].player === 'X' ? 'place-x' : 'place-o');
         }
+      } else if (snapshot.state.phase === 'finished' && previousPhase !== 'finished') {
+        if (snapshot.state.result?.type === 'win') {
+          playEffect(resultSoundEffect(snapshot.state.result.player, snapshot.myMark));
+        } else if (snapshot.state.result?.type === 'draw') {
+          playEffect('draw');
+        }
       }
       previousMoves = history.length;
+      previousPhase = snapshot.state.phase;
       setState(snapshot.state);
     });
   }, [session]);
