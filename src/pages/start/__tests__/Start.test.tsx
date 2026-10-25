@@ -98,9 +98,22 @@ describe('Start screen', () => {
     vi.clearAllMocks();
   });
 
+  afterEach(() => {
+    toast.remove();
+  });
+
   it('blocks start without a name', async () => {
     const user = userEvent.setup();
     renderStart();
+    await user.click(screen.getByText('Start Game'));
+    expect(screen.queryByText('game screen')).not.toBeInTheDocument();
+    expect(await screen.findByText('Please Enter your name')).toBeInTheDocument();
+  });
+
+  it('blocks start with whitespace-only name', async () => {
+    const user = userEvent.setup();
+    renderStart();
+    await user.type(screen.getByPlaceholderText('Enter your name'), '   ');
     await user.click(screen.getByText('Start Game'));
     expect(screen.queryByText('game screen')).not.toBeInTheDocument();
     expect(await screen.findByText('Please Enter your name')).toBeInTheDocument();

@@ -21,7 +21,7 @@ export interface Env {
 }
 
 const ROOM_PATH = /^\/room\/([A-Z0-9]{6})$/;
-const MAX_ROOM_SIZE = 8;
+const MAX_ROOM_SIZE = 2;
 const MAX_PAYLOAD_BYTES = 4096;
 const MAX_HTTP_BODY_BYTES = 2048;
 const MAX_WAITING = 500;

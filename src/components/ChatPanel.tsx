@@ -111,7 +111,7 @@ export const ChatPanel: React.FC<{
                 <div
                   key={entry.id}
                   data-testid="chat-message"
-                  className={`max-w-[85%] rounded-xl px-3 py-1.5 text-sm ${
+                  className={`max-w-[85%] rounded-xl px-3 py-1.5 text-sm break-words ${
                     entry.mine
                       ? "ml-auto bg-blue-600 text-white"
                       : "bg-zinc-700 text-gray-100"

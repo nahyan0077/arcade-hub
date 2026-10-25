@@ -63,12 +63,13 @@ export const Start = () => {
   };
 
   const handleStart = () => {
-    if (!name) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       showToast("Please Enter your name");
       return;
     }
     if (mode === "quick") {
-      navigate("/queue", { state: { name, game } });
+      navigate("/queue", { state: { name: trimmedName, game } });
       return;
     }
     if (mode === "online") {
@@ -78,9 +79,9 @@ export const Start = () => {
           showToast("Enter a valid 6-character room code");
           return;
         }
-        openRoom({ role: "guest", roomCode: code, name, game });
+        openRoom({ role: "guest", roomCode: code, name: trimmedName, game });
       } else {
-        openRoom({ role: "host", roomCode: generateRoomCode(), name, game });
+        openRoom({ role: "host", roomCode: generateRoomCode(), name: trimmedName, game });
       }
       navigate("/lobby");
       return;
@@ -90,10 +91,10 @@ export const Start = () => {
       return;
     }
     if (isC4) {
-      navigate("/connect-four", { state: { name, mode, difficulty } });
+      navigate("/connect-four", { state: { name: trimmedName, mode, difficulty } });
       return;
     }
-    navigate("/game", { state: { playerType, name, mode, difficulty } });
+    navigate("/game", { state: { playerType, name: trimmedName, mode, difficulty } });
   };
 
   const showMarkPicker = !isC4 && (mode === "pvp" || mode === "pve");
@@ -154,6 +155,7 @@ export const Start = () => {
         <input
           className="box-content h-12 w-64 max-w-full p-4 border-4 border-gray-500 mb-6 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-2xl sm:text-4xl font-extrabold text-gray-900 focus:outline-none"
           placeholder="Enter your name"
+          maxLength={24}
           style={{ textTransform: "uppercase" }}
           ref={inputRef}
           onChange={(e) => setName(e.target.value)}

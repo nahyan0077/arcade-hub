@@ -140,4 +140,22 @@ describe('Lobby', () => {
 
     expect(screen.getByText('start screen')).toBeInTheDocument();
   });
+
+  it('renders CONNECT FOUR header when room game is connect-four', () => {
+    const bus = createFakeTransportBus();
+    const host = new RoomSession({
+      role: 'host',
+      roomCode: CODE,
+      myId: 'host-1',
+      myName: 'ALICE',
+      transport: bus.createEndpoint(),
+      game: 'connect-four',
+      ...TIMING,
+    });
+    sessions.push(host);
+    renderLobby(host);
+
+    expect(screen.getByText('CONNECT')).toBeInTheDocument();
+    expect(screen.getByText('FOUR')).toBeInTheDocument();
+  });
 });

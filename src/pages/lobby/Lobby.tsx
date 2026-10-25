@@ -62,11 +62,18 @@ export const Lobby = () => {
   return (
     <div className="animate-fade-in flex min-h-[100dvh] flex-col items-center justify-center gap-6 bg-zinc-900 px-4">
       <Toaster />
-      <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
-        <span className="text-blue-500">TIC</span>{" "}
-        <span className="text-gray-100">TAC</span>{" "}
-        <span className="text-red-500">TOE</span>
-      </h1>
+      {snapshot.game === "connect-four" ? (
+        <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
+          <span className="text-yellow-500">CONNECT</span>{" "}
+          <span className="text-gray-100">FOUR</span>
+        </h1>
+      ) : (
+        <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
+          <span className="text-blue-500">TIC</span>{" "}
+          <span className="text-gray-100">TAC</span>{" "}
+          <span className="text-red-500">TOE</span>
+        </h1>
+      )}
 
       {snapshot.role === "host" && (
         <div className="flex flex-col items-center gap-3">

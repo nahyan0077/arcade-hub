@@ -14,7 +14,7 @@ import {
 import { signVoiceToken } from '../src/net/voiceToken.ts';
 
 const ROOM_CODE_PATTERN = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{6}$/;
-const MAX_ROOM_SIZE = 8;
+const MAX_ROOM_SIZE = 2;
 const MAX_PAYLOAD_BYTES = 4096;
 const MAX_HTTP_BODY_BYTES = 2048;
 const MATCHMAKER_PATH = '/matchmake';
