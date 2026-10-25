@@ -97,11 +97,26 @@ const { state, playMove, rematch, resetMatch } = useGame(
   const rematchWaiting =
     online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
 
-  // Turn timer countdown - only for current player
-  const turnRemaining = online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs && state.phase === 'playing'
-    ? Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime))
-    : 0;
+  // Turn timer countdown - use local state for smooth updates
+  const [localTurnRemaining, setLocalTurnRemaining] = useState(0);
   const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
+
+  // Update local timer every 100ms for smooth progress bar
+  useEffect(() => {
+    if (!online || state.phase !== 'playing' || !onlineSnap?.turnStartTime || !onlineSnap?.turnTimerMs) {
+      setLocalTurnRemaining(0);
+      return;
+    }
+
+    const updateTimer = () => {
+      const remaining = Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime));
+      setLocalTurnRemaining(remaining);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 100);
+    return () => clearInterval(interval);
+  }, [online, state.phase, onlineSnap?.turnStartTime, onlineSnap?.turnTimerMs]);
 
   useEffect(() => {
     if (!shaking) return;
@@ -164,8 +179,8 @@ const { state, playMove, rematch, resetMatch } = useGame(
   } else if (aiTurnPending) {
     statusText = `${aiName} is thinking...`;
   } else if (online && state.phase === "playing") {
-    const turnLabel = turnRemaining > 0
-      ? `${playerNames[state.currentPlayer]}'s turn — ${Math.ceil(turnRemaining / 1000)}s`
+    const turnLabel = localTurnRemaining > 0
+      ? `${playerNames[state.currentPlayer]}'s turn — ${Math.ceil(localTurnRemaining / 1000)}s`
       : `${playerNames[state.currentPlayer]}'s turn`;
     statusText = turnLabel;
   } else {
@@ -191,7 +206,7 @@ const { state, playMove, rematch, resetMatch } = useGame(
           active={!isFinished && state.currentPlayer === "X"}
           accent="text-blue-500"
           testId="score-x"
-          turnRemaining={online && state.currentPlayer === "X" && state.phase === 'playing' ? turnRemaining : undefined}
+          turnRemaining={online && state.currentPlayer === "X" && state.phase === 'playing' ? localTurnRemaining : undefined}
           turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? turnTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "X" && state.phase === 'playing'}
         />
@@ -209,7 +224,7 @@ const { state, playMove, rematch, resetMatch } = useGame(
           active={!isFinished && state.currentPlayer === "O"}
           accent="text-red-500"
           testId="score-o"
-          turnRemaining={online && state.currentPlayer === "O" && state.phase === 'playing' ? turnRemaining : undefined}
+          turnRemaining={online && state.currentPlayer === "O" && state.phase === 'playing' ? localTurnRemaining : undefined}
           turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? turnTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "O" && state.phase === 'playing'}
         />
