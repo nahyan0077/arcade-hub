@@ -41,6 +41,13 @@ export const CHAT_MESSAGE_MAX_LENGTH = 200;
 export const CHAT_EMOJIS = ['🎉', '🔥', '😂', '👏', '💯', '😅', '🤔', '👀'] as const;
 export type ChatEmoji = (typeof CHAT_EMOJIS)[number];
 
+export const TURN_TIMER_MS = {
+  tictactoe: 20000,
+  'connect-four': 30000,
+} as const;
+export type TurnTimerMs = (typeof TURN_TIMER_MS)[GameId];
+export const MAX_TIMEOUTS = 3;
+
 export function isChatEmoji(input: unknown): input is ChatEmoji {
   return typeof input === 'string' && (CHAT_EMOJIS as readonly string[]).includes(input);
 }
@@ -56,7 +63,10 @@ export type RoomMessage =
   | { type: 'ping'; roomCode: string; playerId: string; game?: GameId }
   | { type: 'pong'; roomCode: string; playerId: string; game?: GameId }
   | { type: 'chat'; roomCode: string; playerId: string; name: string; text: string; game?: GameId }
-  | { type: 'emoji'; roomCode: string; playerId: string; name: string; emoji: string; game?: GameId };
+  | { type: 'emoji'; roomCode: string; playerId: string; name: string; emoji: string; game?: GameId }
+  | { type: 'turn-timeout'; roomCode: string; skippedPlayerId: string; nextPlayerId: string; game?: GameId }
+  | { type: 'timeout-count'; roomCode: string; counts: Record<string, number>; game?: GameId }
+  | { type: 'game-over'; roomCode: string; winnerId: string; reason: 'win' | 'draw' | 'timeout'; game?: GameId };
 
 export function roomChannelName(roomCode: string, game: GameId = DEFAULT_GAME): string {
   return `room:${scopedRoomId(game, roomCode)}`;

@@ -77,6 +77,14 @@ export const ConnectFour: React.FC = () => {
   const rematchWaiting =
     online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
 
+  // Turn timer countdown
+  const turnRemaining = online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs
+    ? Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime))
+    : 0;
+  const turnPercent = online && onlineSnap?.turnTimerMs
+    ? Math.max(0, Math.min(100, (turnRemaining / onlineSnap.turnTimerMs) * 100))
+    : 0;
+
   useEffect(() => {
     if (location.pathname === "/room" && !session) {
       navigate("/", { replace: true });
@@ -112,6 +120,11 @@ export const ConnectFour: React.FC = () => {
     statusText = "It's a draw!";
   } else if (aiTurnPending) {
     statusText = `${aiName} is thinking...`;
+  } else if (online && state.phase === "playing") {
+    const turnLabel = turnRemaining > 0
+      ? `${playerNames[state.currentPlayer]}'s turn — ${Math.ceil(turnRemaining / 1000)}s`
+      : `${playerNames[state.currentPlayer]}'s turn`;
+    statusText = turnLabel;
   } else {
     statusText = `${playerNames[state.currentPlayer]}'s turn`;
   }
@@ -166,14 +179,27 @@ export const ConnectFour: React.FC = () => {
         />
       </div>
 
-      <p
-        role="status"
-        aria-live="polite"
-        data-testid="status"
-        className="h-7 text-base font-bold text-gray-200 sm:text-lg"
-      >
-        {statusText}
-      </p>
+      <div className="relative w-full max-w-xs">
+        <p
+          role="status"
+          aria-live="polite"
+          data-testid="status"
+          className="h-7 text-base font-bold text-gray-200 sm:text-lg truncate"
+        >
+          {statusText}
+        </p>
+        {online && state.phase === "playing" && turnRemaining > 0 && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-700 overflow-hidden"
+            aria-label={`Turn time remaining: ${Math.ceil(turnRemaining / 1000)} seconds`}
+          >
+            <div
+              className="h-full bg-yellow-500 transition-all duration-100 ease-linear"
+              style={{ width: `${turnPercent}%` }}
+            />
+          </div>
+        )}
+      </div>
 
       <ConnectFourBoard
         board={state.board}

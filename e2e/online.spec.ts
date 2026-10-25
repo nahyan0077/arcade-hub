@@ -38,9 +38,9 @@ test.describe('online multiplayer', () => {
     await host.getByTestId('chat-send').click();
     await expect(guest.getByTestId('chat-messages')).toContainText('good game');
     await guest.getByRole('button', { name: 'send emoji 🔥' }).click();
-    await expect(guest.getByTestId('chat-messages')).toContainText('🔥');
-    await expect(host.getByTestId('chat-messages')).toContainText('🔥');
+    // Quick emojis no longer appear in chat log, only as bursts
     await expect(host.getByTestId('emoji-burst').filter({ hasText: '🔥' })).toBeVisible();
+    await expect(guest.getByTestId('emoji-burst').filter({ hasText: '🔥' })).toBeVisible();
 
     await host.getByTestId('quick-emoji-toggle').click();
     await host.getByRole('button', { name: 'react with 👀' }).click();
@@ -156,7 +156,7 @@ test.describe('online multiplayer', () => {
     await expect(host.getByRole('dialog')).toHaveCount(0);
     await expect(guest.getByRole('dialog')).toHaveCount(0);
     // The loser (guest, O) serves on restart.
-    await expect(host.getByRole('status')).toHaveText("BOB's turn");
+    await expect(host.getByRole('status')).toHaveText(/^BOB's turn/);
     await expect(col(host, 0)).toBeDisabled();
 
     await guest.getByRole('button', { name: 'Leave Room' }).click();

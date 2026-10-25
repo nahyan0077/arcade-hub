@@ -107,18 +107,7 @@ export const ChatPanel: React.FC<{
                 Say hi to your opponent
               </p>
             )}
-            {entries.map((entry) =>
-              entry.kind === "emoji" ? (
-                <div
-                  key={entry.id}
-                  className={`flex items-baseline gap-2 ${entry.mine ? "justify-end" : ""}`}
-                >
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-                    {entry.from}
-                  </span>
-                  <span className="text-2xl">{entry.emoji}</span>
-                </div>
-              ) : (
+            {entries.filter((e) => e.kind === "chat").map((entry) => (
                 <div
                   key={entry.id}
                   data-testid="chat-message"

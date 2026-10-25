@@ -20,6 +20,8 @@ import {
   DEFAULT_GAME,
   isChatEmoji,
   markForRole,
+  MAX_TIMEOUTS,
+  TURN_TIMER_MS,
 } from './protocol';
 import type { RoomTransport } from './transport';
 
@@ -91,6 +93,9 @@ export interface SessionSnapshot<G extends GameId = GameId> {
   opponentName: string | null;
   state: GameStateFor<G>;
   rematchRequested: boolean;
+  timeoutCounts: Record<string, number>;
+  turnTimerMs: number;
+  turnStartTime: number;
 }
 
 export interface RoomSessionOptions {
@@ -104,6 +109,7 @@ export interface RoomSessionOptions {
   timeoutMs?: number;
   joinTimeoutMs?: number;
   helloRetryMs?: number;
+  turnTimerMs?: number;
 }
 
 const DEFAULTS = {
@@ -111,6 +117,7 @@ const DEFAULTS = {
   timeoutMs: 6000,
   joinTimeoutMs: 3000,
   helloRetryMs: 500,
+  turnTimerMs: TURN_TIMER_MS,
 };
 
 export class RoomSession<G extends GameId = GameId> {
@@ -125,29 +132,34 @@ export class RoomSession<G extends GameId = GameId> {
   private checkTimer: ReturnType<typeof setInterval> | null = null;
   private helloRetryTimer: ReturnType<typeof setInterval> | null = null;
   private helloDeadlineTimer: ReturnType<typeof setTimeout> | null = null;
+  private turnTimer: ReturnType<typeof setInterval> | null = null;
   private started = false;
   private destroyed = false;
   private lastSeen = 0;
+  private lastMoveAt = 0;
   private guestId: string | null = null;
   private hostId: string | null = null;
   private rematchRequested = false;
   private opponentRematchRequested = false;
+  private timeoutCounts: Record<string, number> = {};
   private snapshot: SessionSnapshot<G>;
 
   constructor(options: RoomSessionOptions) {
+    const game = options.game ?? DEFAULT_GAME;
     this.options = {
       heartbeatMs: options.heartbeatMs ?? DEFAULTS.heartbeatMs,
       timeoutMs: options.timeoutMs ?? DEFAULTS.timeoutMs,
       joinTimeoutMs: options.joinTimeoutMs ?? DEFAULTS.joinTimeoutMs,
       helloRetryMs: options.helloRetryMs ?? DEFAULTS.helloRetryMs,
+      turnTimerMs: options.turnTimerMs ?? DEFAULTS.turnTimerMs[game],
       role: options.role,
       roomCode: options.roomCode,
       myId: options.myId,
       myName: options.myName,
-      game: options.game ?? DEFAULT_GAME,
+      game,
       transport: options.transport,
     };
-    this.engine = engineFor(this.options.game) as GameEngine<GameStateFor<G>>;
+    this.engine = engineFor(game) as GameEngine<GameStateFor<G>>;
 
     this.snapshot = {
       status: options.role === 'host' ? 'waiting' : 'connecting',
@@ -160,6 +172,9 @@ export class RoomSession<G extends GameId = GameId> {
       opponentName: null,
       state: this.engine.createInitialState({ mode: 'online' }),
       rematchRequested: false,
+      timeoutCounts: {},
+      turnTimerMs: this.options.turnTimerMs,
+      turnStartTime: 0,
     };
   }
 
@@ -191,6 +206,8 @@ export class RoomSession<G extends GameId = GameId> {
 
     this.checkTimer = setInterval(() => this.checkTimeout(), Math.min(1000, this.options.heartbeatMs));
 
+    this.turnTimer = setInterval(() => this.checkTurnTimer(), 100);
+
     if (this.options.role === 'guest') {
       this.sendHello();
     }
@@ -202,10 +219,12 @@ export class RoomSession<G extends GameId = GameId> {
     this.unsubscribeTransport = null;
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     if (this.checkTimer) clearInterval(this.checkTimer);
+    if (this.turnTimer) clearInterval(this.turnTimer);
     if (this.helloRetryTimer) clearInterval(this.helloRetryTimer);
     if (this.helloDeadlineTimer) clearTimeout(this.helloDeadlineTimer);
     this.heartbeatTimer = null;
     this.checkTimer = null;
+    this.turnTimer = null;
     this.helloRetryTimer = null;
     this.helloDeadlineTimer = null;
   }
@@ -232,6 +251,9 @@ export class RoomSession<G extends GameId = GameId> {
     if (!this.engine.isValidMove(state, index)) return false;
 
     this.applyMove(index);
+    const now = Date.now();
+    this.lastMoveAt = now;
+    this.update({ turnStartTime: now });
     this.post({ type: 'move', roomCode: this.options.roomCode, playerId: this.options.myId, index });
     return true;
   }
@@ -352,6 +374,15 @@ export class RoomSession<G extends GameId = GameId> {
       case 'emoji':
         this.onEmojiMessage(message);
         break;
+      case 'turn-timeout':
+        this.onTurnTimeout(message);
+        break;
+      case 'timeout-count':
+        this.onTimeoutCount(message);
+        break;
+      case 'game-over':
+        this.onGameOver();
+        break;
     }
   }
 
@@ -376,6 +407,32 @@ export class RoomSession<G extends GameId = GameId> {
       from: message.name,
       emoji: message.emoji,
     });
+  }
+
+  private onTurnTimeout(message: Extract<RoomMessage, { type: 'turn-timeout' }>): void {
+    if (this.snapshot.status !== 'connected') return;
+    if (this.snapshot.state.phase !== 'playing') return;
+    if (message.skippedPlayerId === this.options.myId) return; // already handled locally
+
+    const newCount = (this.timeoutCounts[message.skippedPlayerId] ?? 0) + 1;
+    this.timeoutCounts[message.skippedPlayerId] = newCount;
+    this.update({ timeoutCounts: { ...this.timeoutCounts } });
+
+    // Switch turn locally
+    this.applyMove(-1);
+    this.update({ turnStartTime: Date.now() });
+  }
+
+  private onTimeoutCount(message: Extract<RoomMessage, { type: 'timeout-count' }>): void {
+    if (this.snapshot.status !== 'connected') return;
+    this.timeoutCounts = { ...message.counts };
+    this.update({ timeoutCounts: { ...this.timeoutCounts } });
+  }
+
+  private onGameOver(): void {
+    if (this.snapshot.status !== 'connected') return;
+    // Game ends - could update state to finished with winner
+    this.update({ status: 'disconnected' });
   }
 
   private emitChat(event: ChatEvent): void {
@@ -406,10 +463,12 @@ export class RoomSession<G extends GameId = GameId> {
     });
 
     if (firstJoin) {
+      this.lastMoveAt = Date.now();
       this.update({
         status: 'connected',
         opponentName: message.name,
         state: this.createOnlineState(message.name),
+        turnStartTime: this.lastMoveAt,
       });
     }
   }
@@ -427,10 +486,12 @@ export class RoomSession<G extends GameId = GameId> {
     }
 
     this.hostId = message.hostId;
+    this.lastMoveAt = Date.now();
     this.update({
       status: 'connected',
       opponentName: message.hostName,
       state: this.createOnlineState(message.hostName),
+      turnStartTime: this.lastMoveAt,
     });
   }
 
@@ -446,9 +507,11 @@ export class RoomSession<G extends GameId = GameId> {
       this.options.role === 'host'
         ? { X: this.options.myName, O: opponentName }
         : { X: opponentName, O: this.options.myName };
-    return this.engine.startGame(
+    const state = this.engine.startGame(
       this.engine.createInitialState({ mode: 'online', playerNames }),
     );
+    this.lastMoveAt = Date.now();
+    return state;
   }
 
   private onRemoteMove(message: Extract<RoomMessage, { type: 'move' }>): void {
@@ -460,7 +523,17 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   private applyMove(index: number): void {
+    if (index === -1) {
+      // Pass turn (turn timeout skip) - just switch currentPlayer
+      const newState = { ...this.snapshot.state };
+      newState.currentPlayer = newState.currentPlayer === 'X' ? 'O' : 'X';
+      this.update({ state: newState });
+      return;
+    }
     this.update({ state: this.engine.makeMove(this.snapshot.state, index) });
+    const now = Date.now();
+    this.lastMoveAt = now;
+    this.update({ turnStartTime: now });
   }
 
   private onRemoteRematch(): void {
@@ -478,9 +551,14 @@ export class RoomSession<G extends GameId = GameId> {
   private applyRematch(): void {
     this.rematchRequested = false;
     this.opponentRematchRequested = false;
+    this.timeoutCounts = {};
+    const newState = this.engine.restartGame(this.snapshot.state);
+    this.lastMoveAt = Date.now();
     this.update({
-      state: this.engine.restartGame(this.snapshot.state),
+      state: newState,
       rematchRequested: false,
+      timeoutCounts: {},
+      turnStartTime: this.lastMoveAt,
     });
   }
 
@@ -490,6 +568,69 @@ export class RoomSession<G extends GameId = GameId> {
     if (Date.now() - this.lastSeen > this.options.timeoutMs) {
       this.update({ status: 'disconnected' });
     }
+  }
+
+  private checkTurnTimer(): void {
+    if (this.snapshot.status !== 'connected') return;
+    if (this.snapshot.state.phase !== 'playing') return;
+    if (this.snapshot.turnStartTime === 0) return;
+
+    const elapsed = Date.now() - this.snapshot.turnStartTime;
+    if (elapsed >= this.options.turnTimerMs) {
+      this.handleTurnTimeout();
+    }
+  }
+
+  private handleTurnTimeout(): void {
+    if (this.snapshot.status !== 'connected') return;
+    if (this.snapshot.state.phase !== 'playing') return;
+
+    const currentPlayerId = this.snapshot.state.currentPlayer === this.snapshot.myMark
+      ? this.options.myId
+      : (this.options.role === 'host' ? this.guestId : this.hostId);
+    const nextPlayerId = this.snapshot.state.currentPlayer === this.snapshot.myMark
+      ? (this.options.role === 'host' ? this.guestId : this.hostId)
+      : this.options.myId;
+
+    if (!currentPlayerId || !nextPlayerId) return;
+
+    // Increment timeout count for the player who timed out
+    const newCount = (this.timeoutCounts[currentPlayerId] ?? 0) + 1;
+    this.timeoutCounts[currentPlayerId] = newCount;
+    this.update({ timeoutCounts: { ...this.timeoutCounts } });
+
+    // Check for 3-strikes loss
+    if (newCount >= MAX_TIMEOUTS) {
+      this.endGameByTimeout(nextPlayerId);
+      return;
+    }
+
+    // Auto-skip turn: apply a pass (no-op move) and switch to next player
+    // We simulate this by posting a turn-timeout message and updating state
+    this.post({
+      type: 'turn-timeout',
+      roomCode: this.options.roomCode,
+      skippedPlayerId: currentPlayerId,
+      nextPlayerId,
+    });
+
+    // Switch turn locally
+    this.update({
+      state: this.engine.makeMove(this.snapshot.state, -1), // special index for pass
+      turnStartTime: Date.now(),
+    });
+  }
+
+  private endGameByTimeout(winnerId: string): void {
+    if (this.snapshot.status !== 'connected') return;
+
+    this.update({ status: 'disconnected' });
+    this.post({
+      type: 'game-over',
+      roomCode: this.options.roomCode,
+      winnerId,
+      reason: 'timeout',
+    });
   }
 
   private update(partial: Partial<SessionSnapshot<G>>): void {
