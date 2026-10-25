@@ -8,7 +8,7 @@ import { ChatPanel } from "../../components/ChatPanel";
 import { QuickEmoji } from "../../components/QuickEmoji";
 import { EmojiBurstLayer, type EmojiBurst } from "../../components/EmojiBurstLayer";
 import { useConnectFour } from "../../hooks/useConnectFour";
-import { isMuted, setMuted } from "../../sound/audio";
+import { isMuted, playEffect, setMuted } from "../../sound/audio";
 import { C4_DIFFICULTIES, C4_PERSONALITIES } from "../../engine/connect-four/types";
 import type { C4Difficulty } from "../../engine/connect-four/types";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
@@ -39,11 +39,21 @@ export const ConnectFour: React.FC = () => {
     C4_DIFFICULTIES.find((level) => level === navState?.difficulty) ?? "medium";
   const aiName = C4_PERSONALITIES[difficulty].name;
   const opponentLabel = isPve ? aiName : "PLAYER 2";
-  const localNames = { X: playerName, O: opponentLabel };
+  const defaultP1 = playerName;
+  const defaultP2 = opponentLabel;
+  const localNames = { X: defaultP1, O: defaultP2 };
+  const hostName = onlineSnap
+    ? onlineSnap.role === "host"
+      ? onlineSnap.myName
+      : (onlineSnap.opponentName || "PLAYER 1")
+    : "PLAYER 1";
+  const guestName = onlineSnap
+    ? onlineSnap.role === "guest"
+      ? onlineSnap.myName
+      : (onlineSnap.opponentName || "PLAYER 2")
+    : "PLAYER 2";
   const playerNames = online
-    ? onlineSnap?.role === "host"
-      ? { X: onlineSnap.myName, O: onlineSnap.opponentName ?? "PLAYER 2" }
-      : { X: onlineSnap?.opponentName ?? "PLAYER 2", O: onlineSnap?.myName ?? "PLAYER 2" }
+    ? { X: hostName, O: guestName }
     : localNames;
 
   const { state, playMove, rematch, resetMatch } = useConnectFour(
@@ -57,7 +67,23 @@ export const ConnectFour: React.FC = () => {
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [emojiBursts, setEmojiBursts] = useState<EmojiBurst[]>([]);
 
-  const { toasts } = useTimeoutToast();
+  const { toasts, showTimeoutToast, showTimeoutLossToast } = useTimeoutToast();
+
+  useEffect(() => {
+    if (!session) return;
+    const unsubTimeout = session.onTimeout((timedOutName) => {
+      showTimeoutToast(timedOutName);
+      playEffect("timeout");
+    });
+    const unsubTimeoutLoss = session.onTimeoutLoss((loser, winner) => {
+      showTimeoutLossToast(loser, winner);
+      playEffect("timeout");
+    });
+    return () => {
+      unsubTimeout();
+      unsubTimeoutLoss();
+    };
+  }, [session, showTimeoutToast, showTimeoutLossToast]);
 
   const addEmojiBurst = useCallback((emoji: string) => {
     const id = Date.now() + Math.random();
@@ -80,8 +106,13 @@ export const ConnectFour: React.FC = () => {
   const rematchWaiting =
     online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
 
-  // Turn timer countdown - use local state for smooth updates
-  const [localTurnRemaining, setLocalTurnRemaining] = useState(0);
+  // Turn timer countdown - initialize immediately from snapshot to avoid mount delay
+  const [localTurnRemaining, setLocalTurnRemaining] = useState(() => {
+    if (online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs) {
+      return Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime));
+    }
+    return 0;
+  });
   const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
 
   // Update local timer every 100ms for smooth progress bar
@@ -162,7 +193,7 @@ export const ConnectFour: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-3 overflow-hidden bg-zinc-900 px-4 py-4 pb-20 sm:pb-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-4 py-2 sm:py-4 pb-16 sm:pb-4">
       {state.result?.type === "win" && perspectiveWin !== "You lose!" && <Confetti />}
 
       <h1 className="animate-fade-in select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
@@ -201,15 +232,40 @@ export const ConnectFour: React.FC = () => {
         />
       </div>
 
-      <div className="relative w-full max-w-xs">
-        <p
-          role="status"
-          aria-live="polite"
-          data-testid="status"
-          className="h-7 text-base font-bold text-gray-200 sm:text-lg truncate"
-        >
-          {statusText}
-        </p>
+      <div className="relative flex items-center justify-center h-7">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/80 bg-zinc-800/90 px-3 py-0.5 shadow-md backdrop-blur-sm transition-all">
+          {state.phase === "playing" && (
+            <span
+              className={`h-2 w-2 rounded-full ${
+                online && localTurnRemaining > 0 && localTurnRemaining <= 5000
+                  ? "bg-red-500 animate-ping"
+                  : state.currentPlayer === "X"
+                    ? "bg-blue-500"
+                    : "bg-red-500"
+              }`}
+              aria-hidden="true"
+            />
+          )}
+          {state.phase === "finished" && (
+            <span className="text-xs select-none" aria-hidden="true">
+              {state.result?.type === "win" ? "🏆" : "🤝"}
+            </span>
+          )}
+          {aiTurnPending && (
+            <span
+              className="inline-block h-2.5 w-2.5 animate-spin rounded-full border-2 border-purple-400 border-t-transparent"
+              aria-hidden="true"
+            />
+          )}
+          <p
+            role="status"
+            aria-live="polite"
+            data-testid="status"
+            className="text-xs font-bold tracking-wide text-gray-200 sm:text-sm truncate text-center"
+          >
+            {statusText}
+          </p>
+        </div>
       </div>
 
       <ConnectFourBoard
