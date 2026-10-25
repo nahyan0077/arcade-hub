@@ -114,6 +114,9 @@ export interface RoomSessionOptions {
   onTimeoutLoss?: (loserName: string, winnerName: string) => void;
 }
 
+const DEFAULT_ON_TIMEOUT = (): void => {};
+const DEFAULT_ON_TIMEOUT_LOSS = (): void => {};
+
 const DEFAULTS = {
   heartbeatMs: 2000,
   timeoutMs: 6000,
@@ -154,8 +157,8 @@ export class RoomSession<G extends GameId = GameId> {
       joinTimeoutMs: options.joinTimeoutMs ?? DEFAULTS.joinTimeoutMs,
       helloRetryMs: options.helloRetryMs ?? DEFAULTS.helloRetryMs,
       turnTimerMs: options.turnTimerMs ?? DEFAULTS.turnTimerMs[game],
-      onTimeout: options.onTimeout,
-      onTimeoutLoss: options.onTimeoutLoss,
+      onTimeout: options.onTimeout ?? DEFAULT_ON_TIMEOUT,
+      onTimeoutLoss: options.onTimeoutLoss ?? DEFAULT_ON_TIMEOUT_LOSS,
       role: options.role,
       roomCode: options.roomCode,
       myId: options.myId,
