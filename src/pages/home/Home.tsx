@@ -13,6 +13,7 @@ import { QuickEmoji } from "../../components/QuickEmoji";
 import { EmojiBurstLayer, type EmojiBurst } from "../../components/EmojiBurstLayer";
 import { ScoreBox } from "../../components/ScoreBox";
 import { Confetti } from "../../components/Confetti";
+import { useTimeoutToast } from "../../hooks/useTimeoutToast";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -51,7 +52,7 @@ export const Home: React.FC = () => {
       : { X: onlineSnap?.opponentName ?? "PLAYER 2", O: onlineSnap?.myName ?? "PLAYER 2" }
     : localNames;
 
-  const { state, playMove, rematch, resetMatch } = useGame(
+const { state, playMove, rematch, resetMatch } = useGame(
     {
       playerNames,
       mode: online ? "online" : isPve ? "pve" : "pvp",
@@ -64,6 +65,8 @@ export const Home: React.FC = () => {
   const [hintOn, setHintOn] = useState(false);
   const [emojiBursts, setEmojiBursts] = useState<EmojiBurst[]>([]);
 
+  const { toasts } = useTimeoutToast();
+
   const addEmojiBurst = useCallback((emoji: string) => {
     const id = Date.now() + Math.random();
     setEmojiBursts((prev) => [...prev, { id, emoji }]);
@@ -72,25 +75,13 @@ export const Home: React.FC = () => {
     }, 1600);
   }, []);
 
+  // Subscribe to chat events from session
   useEffect(() => {
     if (!session) return;
     return session.onChat((event) => {
       if (event.kind === "emoji" && event.emoji) addEmojiBurst(event.emoji);
     });
   }, [session, addEmojiBurst]);
-
-  const myTurn = !online || state.currentPlayer === onlineSnap?.myMark;
-  const disconnected = online && onlineSnap?.status === "disconnected";
-  const rematchWaiting =
-    online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
-
-  // Turn timer countdown
-  const turnRemaining = online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs
-    ? Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime))
-    : 0;
-  const turnPercent = online && onlineSnap?.turnTimerMs
-    ? Math.max(0, Math.min(100, (turnRemaining / onlineSnap.turnTimerMs) * 100))
-    : 0;
 
   useEffect(() => {
     if (location.pathname === "/room" && !session) {
@@ -100,6 +91,17 @@ export const Home: React.FC = () => {
 
   const aiTurnPending =
     isPve && state.phase === "playing" && state.currentPlayer === aiMark;
+
+  const myTurn = !online || state.currentPlayer === onlineSnap?.myMark;
+  const disconnected = online && onlineSnap?.status === "disconnected";
+  const rematchWaiting =
+    online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
+
+  // Turn timer countdown - only for current player
+  const turnRemaining = online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs && state.phase === 'playing'
+    ? Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime))
+    : 0;
+  const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
 
   useEffect(() => {
     if (!shaking) return;
@@ -189,6 +191,9 @@ export const Home: React.FC = () => {
           active={!isFinished && state.currentPlayer === "X"}
           accent="text-blue-500"
           testId="score-x"
+          turnRemaining={online && state.currentPlayer === "X" && state.phase === 'playing' ? turnRemaining : undefined}
+          turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? turnTimerMs : undefined}
+          isMyTurn={online && state.currentPlayer === "X" && state.phase === 'playing'}
         />
         <div className="text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">
@@ -204,6 +209,9 @@ export const Home: React.FC = () => {
           active={!isFinished && state.currentPlayer === "O"}
           accent="text-red-500"
           testId="score-o"
+          turnRemaining={online && state.currentPlayer === "O" && state.phase === 'playing' ? turnRemaining : undefined}
+          turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? turnTimerMs : undefined}
+          isMyTurn={online && state.currentPlayer === "O" && state.phase === 'playing'}
         />
       </div>
 
@@ -216,17 +224,6 @@ export const Home: React.FC = () => {
         >
           {statusText}
         </p>
-        {online && state.phase === "playing" && turnRemaining > 0 && (
-          <div
-            className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-700 overflow-hidden"
-            aria-label={`Turn time remaining: ${Math.ceil(turnRemaining / 1000)} seconds`}
-          >
-            <div
-              className="h-full bg-blue-500 transition-all duration-100 ease-linear"
-              style={{ width: `${turnPercent}%` }}
-            />
-          </div>
-        )}
       </div>
 
       <div className={shaking ? "animate-shake" : ""}>
@@ -381,6 +378,21 @@ export const Home: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Timeout toasts */}
+      <div className="fixed bottom-4 left-4 right-4 z-50 flex flex-col gap-2 sm:left-auto sm:right-4 sm:bottom-20 sm:w-80">
+        {toasts.map((toast) => (
+          <div
+            key={toast.id}
+            className={`animate-slide-up rounded-xl px-4 py-3 text-sm font-bold text-white shadow-lg ${
+              toast.type === 'timeout-loss' ? 'bg-red-600' : 'bg-orange-600'
+            }`}
+            role="alert"
+          >
+            {toast.message}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

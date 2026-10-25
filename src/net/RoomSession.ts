@@ -110,6 +110,8 @@ export interface RoomSessionOptions {
   joinTimeoutMs?: number;
   helloRetryMs?: number;
   turnTimerMs?: number;
+  onTimeout?: (playerName: string) => void;
+  onTimeoutLoss?: (loserName: string, winnerName: string) => void;
 }
 
 const DEFAULTS = {
@@ -152,6 +154,8 @@ export class RoomSession<G extends GameId = GameId> {
       joinTimeoutMs: options.joinTimeoutMs ?? DEFAULTS.joinTimeoutMs,
       helloRetryMs: options.helloRetryMs ?? DEFAULTS.helloRetryMs,
       turnTimerMs: options.turnTimerMs ?? DEFAULTS.turnTimerMs[game],
+      onTimeout: options.onTimeout,
+      onTimeoutLoss: options.onTimeoutLoss,
       role: options.role,
       roomCode: options.roomCode,
       myId: options.myId,
@@ -594,13 +598,25 @@ export class RoomSession<G extends GameId = GameId> {
 
     if (!currentPlayerId || !nextPlayerId) return;
 
+    // Get the player name who timed out
+    const timedOutPlayerName = currentPlayerId === this.options.myId
+      ? this.options.myName
+      : this.snapshot.opponentName ?? 'Opponent';
+
     // Increment timeout count for the player who timed out
     const newCount = (this.timeoutCounts[currentPlayerId] ?? 0) + 1;
     this.timeoutCounts[currentPlayerId] = newCount;
     this.update({ timeoutCounts: { ...this.timeoutCounts } });
 
+    // Notify UI of timeout
+    this.options.onTimeout?.(timedOutPlayerName);
+
     // Check for 3-strikes loss
     if (newCount >= MAX_TIMEOUTS) {
+      const winnerName = nextPlayerId === this.options.myId
+        ? this.options.myName
+        : this.snapshot.opponentName ?? 'Opponent';
+      this.options.onTimeoutLoss?.(timedOutPlayerName, winnerName);
       this.endGameByTimeout(nextPlayerId);
       return;
     }
