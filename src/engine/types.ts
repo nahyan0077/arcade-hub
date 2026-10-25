@@ -5,7 +5,7 @@ export type Board = CellValue[];
 export type GamePhase = 'waiting' | 'playing' | 'finished';
 
 export type GameResult = 
-  | { type: 'win'; player: Player; line: WinLine }
+  | { type: 'win'; player: Player; line?: WinLine }
   | { type: 'draw' }
   | { type: 'ongoing' };
 

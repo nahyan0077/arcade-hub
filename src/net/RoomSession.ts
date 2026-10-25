@@ -132,6 +132,8 @@ export class RoomSession<G extends GameId = GameId> {
   private readonly engine: GameEngine<GameStateFor<G>>;
   private readonly listeners = new Set<(snapshot: SessionSnapshot<G>) => void>();
   private readonly chatListeners = new Set<(event: ChatEvent) => void>();
+  private readonly timeoutListeners = new Set<(playerName: string) => void>();
+  private readonly timeoutLossListeners = new Set<(loserName: string, winnerName: string) => void>();
   private unsubscribeTransport: (() => void) | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private checkTimer: ReturnType<typeof setInterval> | null = null;
@@ -195,6 +197,16 @@ export class RoomSession<G extends GameId = GameId> {
     return () => this.chatListeners.delete(listener);
   }
 
+  onTimeout(listener: (playerName: string) => void): () => void {
+    this.timeoutListeners.add(listener);
+    return () => this.timeoutListeners.delete(listener);
+  }
+
+  onTimeoutLoss(listener: (loserName: string, winnerName: string) => void): () => void {
+    this.timeoutLossListeners.add(listener);
+    return () => this.timeoutLossListeners.delete(listener);
+  }
+
   getSnapshot(): SessionSnapshot<G> {
     return this.snapshot;
   }
@@ -241,6 +253,8 @@ export class RoomSession<G extends GameId = GameId> {
     this.stop();
     this.destroyed = true;
     this.chatListeners.clear();
+    this.timeoutListeners.clear();
+    this.timeoutLossListeners.clear();
     this.options.transport.close();
   }
 
@@ -388,7 +402,7 @@ export class RoomSession<G extends GameId = GameId> {
         this.onTimeoutCount(message);
         break;
       case 'game-over':
-        this.onGameOver();
+        this.onGameOver(message);
         break;
     }
   }
@@ -419,15 +433,26 @@ export class RoomSession<G extends GameId = GameId> {
   private onTurnTimeout(message: Extract<RoomMessage, { type: 'turn-timeout' }>): void {
     if (this.snapshot.status !== 'connected') return;
     if (this.snapshot.state.phase !== 'playing') return;
-    if (message.skippedPlayerId === this.options.myId) return; // already handled locally
 
     const newCount = (this.timeoutCounts[message.skippedPlayerId] ?? 0) + 1;
     this.timeoutCounts[message.skippedPlayerId] = newCount;
     this.update({ timeoutCounts: { ...this.timeoutCounts } });
 
-    // Switch turn locally
-    this.applyMove(-1);
-    this.update({ turnStartTime: Date.now() });
+    const skippedPlayerName =
+      message.skippedPlayerId === this.options.myId
+        ? this.options.myName
+        : (this.snapshot.opponentName ?? 'Opponent');
+    this.emitTimeout(skippedPlayerName);
+
+    const skippedMark: Player =
+      message.skippedPlayerId === this.options.myId
+        ? this.snapshot.myMark
+        : (this.snapshot.myMark === 'X' ? 'O' : 'X');
+
+    // Only advance turn if it is still the skipped player's turn (avoids double-advance)
+    if (this.snapshot.state.currentPlayer === skippedMark) {
+      this.applyMove(-1);
+    }
   }
 
   private onTimeoutCount(message: Extract<RoomMessage, { type: 'timeout-count' }>): void {
@@ -436,10 +461,34 @@ export class RoomSession<G extends GameId = GameId> {
     this.update({ timeoutCounts: { ...this.timeoutCounts } });
   }
 
-  private onGameOver(): void {
+  private onGameOver(message: Extract<RoomMessage, { type: 'game-over' }>): void {
     if (this.snapshot.status !== 'connected') return;
-    // Game ends - could update state to finished with winner
-    this.update({ status: 'disconnected' });
+    if (message.reason === 'timeout') {
+      const loserMark: Player =
+        message.winnerId === this.options.myId
+          ? (this.snapshot.myMark === 'X' ? 'O' : 'X')
+          : this.snapshot.myMark;
+      const loserName =
+        loserMark === this.snapshot.myMark
+          ? this.options.myName
+          : (this.snapshot.opponentName ?? 'Opponent');
+      const winnerName =
+        loserMark === this.snapshot.myMark
+          ? (this.snapshot.opponentName ?? 'Opponent')
+          : this.options.myName;
+      this.emitTimeoutLoss(loserName, winnerName);
+    }
+    this.applyGameOver(message.winnerId);
+  }
+
+  private emitTimeout(playerName: string): void {
+    this.options.onTimeout?.(playerName);
+    for (const listener of [...this.timeoutListeners]) listener(playerName);
+  }
+
+  private emitTimeoutLoss(loserName: string, winnerName: string): void {
+    this.options.onTimeoutLoss?.(loserName, winnerName);
+    for (const listener of [...this.timeoutLossListeners]) listener(loserName, winnerName);
   }
 
   private emitChat(event: ChatEvent): void {
@@ -530,17 +579,19 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   private applyMove(index: number): void {
+    const now = Date.now();
+    this.lastMoveAt = now;
     if (index === -1) {
       // Pass turn (turn timeout skip) - just switch currentPlayer
       const newState = { ...this.snapshot.state };
       newState.currentPlayer = newState.currentPlayer === 'X' ? 'O' : 'X';
-      this.update({ state: newState });
+      this.update({ state: newState, turnStartTime: now });
       return;
     }
-    this.update({ state: this.engine.makeMove(this.snapshot.state, index) });
-    const now = Date.now();
-    this.lastMoveAt = now;
-    this.update({ turnStartTime: now });
+    this.update({
+      state: this.engine.makeMove(this.snapshot.state, index),
+      turnStartTime: now,
+    });
   }
 
   private onRemoteRematch(): void {
@@ -612,14 +663,14 @@ export class RoomSession<G extends GameId = GameId> {
     this.update({ timeoutCounts: { ...this.timeoutCounts } });
 
     // Notify UI of timeout
-    this.options.onTimeout?.(timedOutPlayerName);
+    this.emitTimeout(timedOutPlayerName);
 
     // Check for 3-strikes loss
     if (newCount >= MAX_TIMEOUTS) {
       const winnerName = nextPlayerId === this.options.myId
         ? this.options.myName
         : this.snapshot.opponentName ?? 'Opponent';
-      this.options.onTimeoutLoss?.(timedOutPlayerName, winnerName);
+      this.emitTimeoutLoss(timedOutPlayerName, winnerName);
       this.endGameByTimeout(nextPlayerId);
       return;
     }
@@ -634,21 +685,49 @@ export class RoomSession<G extends GameId = GameId> {
     });
 
     // Switch turn locally
-    this.update({
-      state: this.engine.makeMove(this.snapshot.state, -1), // special index for pass
-      turnStartTime: Date.now(),
-    });
+    this.applyMove(-1);
   }
 
   private endGameByTimeout(winnerId: string): void {
     if (this.snapshot.status !== 'connected') return;
 
-    this.update({ status: 'disconnected' });
     this.post({
       type: 'game-over',
       roomCode: this.options.roomCode,
       winnerId,
       reason: 'timeout',
+    });
+    this.applyGameOver(winnerId);
+  }
+
+  private applyGameOver(winnerId: string): void {
+    const winnerMark: Player =
+      winnerId === this.options.myId
+        ? this.snapshot.myMark
+        : this.snapshot.myMark === 'X'
+          ? 'O'
+          : 'X';
+
+    const currentScores = this.snapshot.state.scores;
+    const newScores = {
+      ...currentScores,
+      [winnerMark]: (currentScores[winnerMark] ?? 0) + 1,
+    };
+
+    const newState: GameStateFor<G> = {
+      ...this.snapshot.state,
+      phase: 'finished',
+      result: {
+        type: 'win',
+        player: winnerMark,
+        line: this.snapshot.game === 'connect-four' ? ({ cells: [] } as never) : undefined,
+      },
+      scores: newScores,
+    };
+
+    this.update({
+      state: newState,
+      turnStartTime: 0,
     });
   }
 

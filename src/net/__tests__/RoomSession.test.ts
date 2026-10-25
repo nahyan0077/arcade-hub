@@ -579,7 +579,7 @@ describe('RoomSession connect-four engine', () => {
       expect(state.phase).toBe('finished');
       expect(state.result?.type).toBe('win');
       expect(state.result).toMatchObject({ type: 'win', player: 'X' });
-      if (state.result?.type === 'win' && 'cells' in state.result.line) {
+      if (state.result?.type === 'win' && state.result.line && 'cells' in state.result.line) {
         expect(state.result.line.cells).toEqual([0, 7, 14, 21]);
       }
       expect(state.scores.X).toBe(1);
@@ -600,5 +600,111 @@ describe('RoomSession connect-four engine', () => {
       expect(state.board.every((cell) => cell === 0)).toBe(true);
       expect(state.scores.X).toBe(1);
     }
+  });
+});
+
+describe('RoomSession turn timer and timeout system', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function connectTimedPair(turnTimerMs = 1000) {
+    const [hostTransport, guestTransport] = createFakeTransportPair();
+    const host = new RoomSession({
+      role: 'host',
+      roomCode: CODE,
+      myId: 'host-1',
+      myName: 'ALICE',
+      transport: hostTransport,
+      turnTimerMs,
+      ...TIMING,
+    });
+    const guest = new RoomSession({
+      role: 'guest',
+      roomCode: CODE,
+      myId: 'guest-1',
+      myName: 'BOB',
+      transport: guestTransport,
+      turnTimerMs,
+      ...TIMING,
+    });
+    host.start();
+    guest.start();
+    return { host, guest };
+  }
+
+  it('automatically skips turn on timeout without freezing the game', () => {
+    const { host, guest } = connectTimedPair(1000);
+    expect(host.getSnapshot().state.currentPlayer).toBe('X');
+    expect(guest.getSnapshot().state.currentPlayer).toBe('X');
+
+    const hostTimeouts: string[] = [];
+    const guestTimeouts: string[] = [];
+    host.onTimeout((name) => hostTimeouts.push(name));
+    guest.onTimeout((name) => guestTimeouts.push(name));
+
+    // Advance 1100ms for player X to time out
+    vi.advanceTimersByTime(1100);
+
+    // Turn should have switched to O on both host and guest
+    expect(host.getSnapshot().state.currentPlayer).toBe('O');
+    expect(guest.getSnapshot().state.currentPlayer).toBe('O');
+
+    // Both peers received the timeout notification with ALICE's name
+    expect(hostTimeouts).toEqual(['ALICE']);
+    expect(guestTimeouts).toEqual(['ALICE']);
+
+    // Guest (player O) should now be able to play move 4 successfully!
+    expect(guest.playMove(4)).toBe(true);
+    expect(host.getSnapshot().state.board[4]).toBe('O');
+    expect(guest.getSnapshot().state.board[4]).toBe('O');
+    expect(host.getSnapshot().state.currentPlayer).toBe('X');
+    expect(guest.getSnapshot().state.currentPlayer).toBe('X');
+  });
+
+  it('ends game with a win on 3 timeout strikes without disconnecting', () => {
+    const { host, guest } = connectTimedPair(1000);
+
+    let hostLossEvent: { loser: string; winner: string } | null = null;
+    let guestLossEvent: { loser: string; winner: string } | null = null;
+    host.onTimeoutLoss((loser, winner) => {
+      hostLossEvent = { loser, winner };
+    });
+    guest.onTimeoutLoss((loser, winner) => {
+      guestLossEvent = { loser, winner };
+    });
+
+    // Strike 1: X times out -> turn passes to O
+    vi.advanceTimersByTime(1100);
+    expect(host.getSnapshot().state.currentPlayer).toBe('O');
+    // O plays cell 0 -> turn passes back to X
+    expect(guest.playMove(0)).toBe(true);
+    expect(host.getSnapshot().state.currentPlayer).toBe('X');
+
+    // Strike 2: X times out -> turn passes to O
+    vi.advanceTimersByTime(1100);
+    expect(host.getSnapshot().state.currentPlayer).toBe('O');
+    // O plays cell 1 -> turn passes back to X
+    expect(guest.playMove(1)).toBe(true);
+    expect(host.getSnapshot().state.currentPlayer).toBe('X');
+
+    // Strike 3: X times out -> 3-strikes forfeit! Game ends, O wins!
+    vi.advanceTimersByTime(1100);
+
+    for (const session of [host, guest]) {
+      const snap = session.getSnapshot();
+      expect(snap.status).toBe('connected'); // Must stay connected, NOT disconnected!
+      expect(snap.state.phase).toBe('finished');
+      expect(snap.state.result).toMatchObject({ type: 'win', player: 'O' });
+      expect(snap.state.scores.O).toBe(1);
+      expect(snap.turnStartTime).toBe(0);
+    }
+
+    expect(hostLossEvent).toEqual({ loser: 'ALICE', winner: 'BOB' });
+    expect(guestLossEvent).toEqual({ loser: 'ALICE', winner: 'BOB' });
   });
 });
