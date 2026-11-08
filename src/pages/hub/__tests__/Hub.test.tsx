@@ -26,7 +26,7 @@ describe('Hub', () => {
     expect(screen.getByTestId('hub-card-connect-four')).toBeInTheDocument();
     expect(screen.getByTestId('hub-card-arrow-race')).toBeInTheDocument();
     expect(screen.getByTestId('hub-card-dots-and-boxes')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(3);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(4);
     expect(screen.getAllByText('Coming soon')).toHaveLength(1);
   });
 
