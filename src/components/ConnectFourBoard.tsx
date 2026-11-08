@@ -37,7 +37,7 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
 
   return (
     <div
-      className="grid grid-cols-7 gap-[calc(var(--c4cell)/8)] rounded-2xl bg-zinc-700/70 p-[calc(var(--c4cell)/8)]"
+      className="grid grid-cols-7 gap-[calc(var(--c4cell)/8)] rounded-2xl border-2 border-blue-500/40 bg-zinc-800/90 p-[calc(var(--c4cell)/8)] shadow-[0_0_30px_rgba(37,99,235,0.2)] backdrop-blur-sm"
       style={{ "--c4cell": CELL_SIZE } as React.CSSProperties}
     >
       {columns.map((col) => {
@@ -52,7 +52,7 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
             onClick={() => onColumnClick(col)}
             onMouseEnter={() => setHoverCol(col)}
             onMouseLeave={() => setHoverCol((prev) => (prev === col ? null : prev))}
-            className="flex flex-col gap-[calc(var(--c4cell)/8)] rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:cursor-not-allowed"
+            className="group flex flex-col gap-[calc(var(--c4cell)/8)] rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:cursor-not-allowed transition-transform active:scale-98"
           >
             {rowsTopDown.map((row) => {
               const index = row * C4_COLS + col;
@@ -62,7 +62,7 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
               return (
                 <span
                   key={index}
-                  className={`flex h-[var(--c4cell)] w-[var(--c4cell)] items-center justify-center rounded-full bg-zinc-900 ${
+                  className={`flex h-[var(--c4cell)] w-[var(--c4cell)] items-center justify-center rounded-full bg-zinc-950/90 shadow-inner transition-colors ${
                     isWinning ? "animate-win-pulse ring-4 ring-yellow-400" : ""
                   }`}
                 >
@@ -70,15 +70,17 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
                     <span
                       data-testid={`c4-disc-${index}`}
                       aria-hidden="true"
-                      className={`h-[72%] w-[72%] rounded-full animate-pop ${
-                        value === "X" ? "bg-blue-500" : "bg-red-500"
+                      className={`h-[76%] w-[76%] rounded-full animate-pop shadow-md ${
+                        value === "X"
+                          ? "bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/50"
+                          : "bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/50"
                       }`}
                     />
                   )}
                   {isGhost && (
                     <span
                       aria-hidden="true"
-                      className={`h-[72%] w-[72%] rounded-full opacity-40 ${
+                      className={`h-[76%] w-[76%] rounded-full opacity-40 animate-pulse ${
                         currentMark === "X" ? "bg-blue-500" : "bg-red-500"
                       }`}
                     />

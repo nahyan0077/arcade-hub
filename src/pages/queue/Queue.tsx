@@ -69,54 +69,88 @@ export const Queue = () => {
   };
 
   return (
-    <div className="animate-fade-in flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4">
+    <div className="animate-fade-in relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-6 overflow-hidden">
+      {/* Background glow */}
+      <div
+        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl"
+        aria-hidden="true"
+      />
+
       <Toaster />
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-100 mb-8">QUICK PLAY</h2>
 
-      {snapshot.status === 'queued' && (
-        <div className="flex flex-col items-center gap-6">
-          <div className="flex items-center gap-3 text-zinc-300" role="status">
-            <span
-              className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
-              aria-hidden="true"
-            />
-            Finding an opponent…
-          </div>
-          <button
-            type="button"
-            className="rounded-lg border-2 border-zinc-600 px-4 py-2 text-sm font-bold text-zinc-400 transition-colors hover:border-zinc-400 hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-            onClick={() => navigate('/', { replace: true })}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+      {/* Top Header Bar */}
+      <div className="w-full max-w-md flex items-center justify-between mb-4 z-10 px-1">
+        <button
+          type="button"
+          onClick={() => navigate('/', { replace: true })}
+          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          aria-label="Back to hub"
+        >
+          <span>← Hub</span>
+        </button>
+        <span className="text-[11px] font-semibold tracking-widest uppercase text-zinc-500">
+          Matchmaking
+        </span>
+      </div>
 
-      {snapshot.status === 'timeout' && (
-        <div className="flex flex-col items-center gap-6">
-          <p className="text-zinc-300" role="status">
-            No opponent found
-          </p>
-          <div className="flex gap-3">
+      <div className="w-full max-w-md rounded-3xl border border-zinc-800/90 bg-zinc-900/80 p-8 shadow-2xl backdrop-blur-md flex flex-col items-center gap-6 z-10">
+        <h2 className="text-2xl sm:text-3xl font-black tracking-wider text-gray-100">QUICK PLAY</h2>
+
+        {snapshot.status === 'queued' && (
+          <div className="flex flex-col items-center gap-6 w-full">
+            <div className="relative flex h-24 w-24 items-center justify-center">
+              <span className="absolute h-full w-full rounded-full border-2 border-blue-500/30 animate-ping" />
+              <span className="absolute h-16 w-16 rounded-full border-2 border-blue-500/60 animate-pulse" />
+              <span className="h-6 w-6 rounded-full bg-blue-500 shadow-[0_0_16px_rgba(59,130,246,0.8)]" />
+            </div>
+
+            <div className="flex items-center gap-3 text-sm font-bold text-zinc-300" role="status">
+              <span
+                className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
+                aria-hidden="true"
+              />
+              Finding an opponent…
+            </div>
+
             <button
               type="button"
-              className="rounded-lg border-2 border-blue-500 bg-blue-500/15 px-4 py-2 text-sm font-bold text-blue-300 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-              onClick={() => {
-                if (!client.queue()) showToast('Already searching for an opponent');
-              }}
-            >
-              Try again
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border-2 border-zinc-600 px-4 py-2 text-sm font-bold text-zinc-400 transition-colors hover:border-zinc-400 hover:text-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+              className="rounded-xl border border-zinc-700 bg-zinc-800 px-6 py-2.5 text-sm font-bold text-zinc-300 shadow-md transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-95"
               onClick={() => navigate('/', { replace: true })}
             >
-              Back to menu
+              Cancel
             </button>
           </div>
-        </div>
-      )}
+        )}
+
+        {snapshot.status === 'timeout' && (
+          <div className="flex flex-col items-center gap-6 w-full">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/30 text-2xl">
+              ⏱️
+            </div>
+            <p className="text-sm font-bold text-zinc-300" role="status">
+              No opponent found
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="rounded-xl border-2 border-blue-500 bg-blue-500/15 px-5 py-2.5 text-sm font-bold text-blue-300 transition-all hover:bg-blue-500/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-95"
+                onClick={() => {
+                  if (!client.queue()) showToast('Already searching for an opponent');
+                }}
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                className="rounded-xl border border-zinc-700 bg-zinc-800 px-5 py-2.5 text-sm font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-95"
+                onClick={() => navigate('/', { replace: true })}
+              >
+                Back to menu
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

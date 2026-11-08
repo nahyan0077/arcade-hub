@@ -131,64 +131,85 @@ export const Start = () => {
   const showPvpButton = local2P;
 
   return (
-    <div className="animate-fade-in flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
-        <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" >
+    <div className="animate-fade-in relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-4 overflow-hidden">
+      {/* Background glow */}
+      <div
+        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl"
+        aria-hidden="true"
+      />
+
+      {/* Top Bar with Hub Exit */}
+      <div className="w-full max-w-md flex items-center justify-between mb-4 z-10">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          aria-label="Back to hub"
+        >
+          <span>← Hub</span>
+        </button>
+        <span className="text-[11px] font-semibold tracking-widest uppercase text-zinc-500">
+          Match Setup
+        </span>
+      </div>
+
+      <div className="w-full max-w-md rounded-2xl border border-zinc-800/90 bg-zinc-900/80 p-5 sm:p-7 shadow-2xl backdrop-blur-md flex flex-col items-center z-10">
+        <div className="flex justify-center gap-4 sm:gap-6 w-full pb-4 sm:pb-6 select-none">
           {isRace ? (
             <>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-violet-500 font-extrabold" > ARROW </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > RACE </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-violet-500 font-extrabold tracking-wider"> ARROW </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider" style={{ animationDelay: "90ms" }}> RACE </h2>
             </>
           ) : isC4 ? (
             <>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-yellow-500 font-extrabold" > CONNECT </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > FOUR </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-yellow-500 font-extrabold tracking-wider"> CONNECT </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider" style={{ animationDelay: "90ms" }}> FOUR </h2>
             </>
           ) : (
             <>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-blue-600 font-extrabold" > TIC </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > TAC </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-red-600 font-extrabold" style={{ animationDelay: "180ms" }} > TOE </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-blue-500 font-extrabold tracking-wider"> TIC </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider" style={{ animationDelay: "90ms" }}> TAC </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl text-red-500 font-extrabold tracking-wider" style={{ animationDelay: "180ms" }}> TOE </h2>
             </>
           )}
         </div>
-      <Toaster />
+        <Toaster />
 
-      {showMarkPicker && (
-        <div className="flex gap-4">
-          <button
-            type="button"
-            aria-label="Play as X"
-            aria-pressed={playerType === "X"}
-            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
-              playerType === "X"
-                ? "border-blue-600 bg-blue-100 text-blue-600"
-                : "border-gray-500 text-blue-600"
-            }`}
-            onClick={() => setPlayerType("X")}
-          >
-            X
-          </button>
+        {showMarkPicker && (
+          <div className="flex gap-4 mb-4 sm:mb-5">
+            <button
+              type="button"
+              aria-label="Play as X"
+              aria-pressed={playerType === "X"}
+              className={`box-content h-16 w-16 sm:h-20 sm:w-20 p-2 sm:p-3 border-2 text-center rounded-2xl text-4xl sm:text-6xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+                playerType === "X"
+                  ? "border-blue-500 bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/40"
+                  : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-blue-400 hover:bg-zinc-800"
+              }`}
+              onClick={() => setPlayerType("X")}
+            >
+              X
+            </button>
 
-          <button
-            type="button"
-            aria-label="Play as O"
-            aria-pressed={playerType === "O"}
-            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
-              playerType === "O"
-                ? "border-red-600 bg-red-100 text-red-600"
-                : "border-gray-500 text-red-600"
-            }`}
-            onClick={() => setPlayerType("O")}
-          >
-            O
-          </button>
-        </div>
-      )}
-      {!showMarkPicker && <div className="mb-8" aria-hidden="true" />}
+            <button
+              type="button"
+              aria-label="Play as O"
+              aria-pressed={playerType === "O"}
+              className={`box-content h-16 w-16 sm:h-20 sm:w-20 p-2 sm:p-3 border-2 text-center rounded-2xl text-4xl sm:text-6xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
+                playerType === "O"
+                  ? "border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.35)] ring-2 ring-red-500/40"
+                  : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-red-400 hover:bg-zinc-800"
+              }`}
+              onClick={() => setPlayerType("O")}
+            >
+              O
+            </button>
+          </div>
+        )}
+        {!showMarkPicker && <div className="mb-2" aria-hidden="true" />}
 
-      <>
         <input
-          className="box-content h-12 w-64 max-w-full p-4 border-4 border-gray-500 mb-6 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-2xl sm:text-4xl font-extrabold text-gray-900 focus:outline-none"
+          className="h-12 w-64 max-w-full px-4 border-2 border-zinc-700 mb-4 sm:mb-5 text-center rounded-xl bg-zinc-800/90 hover:border-zinc-500 text-xl sm:text-2xl font-bold tracking-wider text-gray-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
           placeholder="Enter your name"
           maxLength={24}
           style={{ textTransform: "uppercase" }}
@@ -196,7 +217,7 @@ export const Start = () => {
           onChange={(e) => setName(e.target.value)}
         />
 
-        <div className="mb-4 flex flex-wrap justify-center gap-3" role="group" aria-label="Game mode">
+        <div className="mb-4 flex flex-wrap justify-center gap-2 sm:gap-3" role="group" aria-label="Game mode">
           {showPvpButton && (
             <button
               type="button"
@@ -236,7 +257,7 @@ export const Start = () => {
         </div>
 
         {(effectiveMode === "pve" || (isRace && mode !== "online" && mode !== "quick")) && (
-          <div className="mb-4 flex flex-wrap justify-center gap-2" role="group" aria-label="AI difficulty">
+          <div className="mb-4 flex flex-wrap justify-center gap-1.5 sm:gap-2" role="group" aria-label="AI difficulty">
             {difficulties.map((level) => (
               <button
                 key={level}
@@ -253,8 +274,8 @@ export const Start = () => {
         )}
 
         {mode === "online" && (
-          <div className="mb-4 flex flex-col items-center gap-3" role="group" aria-label="Online room">
-            <div className="flex gap-3">
+          <div className="mb-4 flex flex-col items-center gap-3 w-full" role="group" aria-label="Online room">
+            <div className="flex gap-2 sm:gap-3">
               <button
                 type="button"
                 aria-pressed={onlineAction === "create"}
@@ -287,12 +308,12 @@ export const Start = () => {
 
         <button
           type="button"
-          className="mt-2 w-64 max-w-full rounded-xl bg-blue-600 px-8 py-3 text-lg font-extrabold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105 hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400"
+          className="mt-1 w-64 max-w-full rounded-xl bg-blue-600 px-8 py-3 text-base sm:text-lg font-extrabold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105 hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 active:scale-95"
           onClick={handleStart}
         >
           Start Game
         </button>
-      </>
+      </div>
     </div>
   );
 };

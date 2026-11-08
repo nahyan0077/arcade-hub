@@ -204,13 +204,35 @@ export const ConnectFour: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-4 py-2 sm:py-4 pb-16 sm:pb-4">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-4 py-2 sm:py-4">
       {state.result?.type === "win" && perspectiveWin !== "You lose!" && <Confetti />}
 
-      <h1 className="animate-fade-in select-none text-3xl font-extrabold sm:text-4xl md:text-5xl">
-        <span className="text-yellow-500">CONNECT</span>{" "}
-        <span className="text-gray-100">FOUR</span>
-      </h1>
+      {/* Top Header Bar */}
+      <header className="flex w-full max-w-sm sm:max-w-md items-center justify-between px-1">
+        <button
+          type="button"
+          onClick={online ? handleLeave : () => navigate("/")}
+          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+          aria-label="Back to hub"
+        >
+          <span>← Hub</span>
+        </button>
+
+        <h1 className="animate-fade-in select-none text-2xl font-black tracking-wider sm:text-3xl md:text-4xl">
+          <span className="text-yellow-500">CONNECT</span>{" "}
+          <span className="text-gray-100">FOUR</span>
+        </h1>
+
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={!soundOn}
+          aria-label={soundOn ? "Mute sound" : "Unmute sound"}
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+        >
+          {soundOn ? "🔊" : "🔇"}
+        </button>
+      </header>
 
       <div className="flex items-center gap-3 sm:gap-4">
         <ScoreBox
@@ -291,7 +313,7 @@ export const ConnectFour: React.FC = () => {
         <button
           type="button"
           onClick={rematch}
-          className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:px-6 sm:py-3 sm:text-base"
+          className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-500 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:px-6 sm:py-3 sm:text-base"
         >
           Rematch
         </button>
@@ -299,7 +321,7 @@ export const ConnectFour: React.FC = () => {
           <button
             type="button"
             onClick={handleLeave}
-            className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
+            className="rounded-xl bg-zinc-800 border border-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 shadow-md transition-all hover:bg-zinc-700 hover:border-zinc-600 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
           >
             Leave Room
           </button>
@@ -307,24 +329,12 @@ export const ConnectFour: React.FC = () => {
           <button
             type="button"
             onClick={resetMatch}
-            className="rounded-xl bg-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
+            className="rounded-xl bg-zinc-800 border border-zinc-700 px-5 py-2.5 text-sm font-bold text-gray-200 shadow-md transition-all hover:bg-zinc-700 hover:border-zinc-600 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500 sm:px-6 sm:py-3 sm:text-base"
           >
             Reset Scores
           </button>
         )}
       </div>
-
-      <button
-        type="button"
-        onClick={toggleSound}
-        aria-pressed={!soundOn}
-        aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-        className={`fixed bottom-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-700 text-xl shadow-lg transition-all hover:scale-110 hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 sm:bottom-52 sm:right-8 ${
-          online ? "right-52" : "right-4"
-        }`}
-      >
-        {soundOn ? "🔊" : "🔇"}
-      </button>
 
       {online && onlineSnap?.status === "connected" && session && (
         <>

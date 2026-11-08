@@ -86,12 +86,12 @@ export const Board: React.FC<BoardProps> = ({
               disabled={!interactionEnabled || !isEmpty}
               onClick={() => onCellClick(index)}
               data-testid={isHint ? "hint-cell" : undefined}
-              className={`flex h-[var(--cell)] w-[var(--cell)] items-center justify-center rounded-[calc(var(--cell)/14)] transition-colors focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+              className={`flex h-[var(--cell)] w-[var(--cell)] items-center justify-center rounded-2xl border transition-all focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
                 isWinning
-                  ? "bg-gray-500 animate-win-pulse"
+                  ? "border-yellow-400 bg-zinc-700/90 shadow-[0_0_24px_rgba(250,204,21,0.5)] animate-win-pulse"
                   : isHint
-                    ? "bg-gray-600 ring-4 ring-yellow-400 animate-pulse"
-                    : "bg-gray-600 hover:bg-gray-500 disabled:hover:bg-gray-600"
+                    ? "border-yellow-400/90 bg-zinc-800/95 ring-4 ring-yellow-400/50 animate-pulse shadow-lg"
+                    : "border-zinc-700/80 bg-zinc-800/85 hover:border-zinc-500 hover:bg-zinc-700/80 disabled:hover:border-zinc-700/80 disabled:hover:bg-zinc-800/85 shadow-md active:scale-95"
               }`}
             >
               {value !== 0 && (

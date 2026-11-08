@@ -264,7 +264,7 @@ const DirectionRush: React.FC = () => {
   const score = state.history.filter((r) => r.correct).length * 100 + (streak > 3 ? streak * 20 : 0);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-between gap-3 overflow-hidden bg-zinc-900 px-4 py-4 text-gray-100">
+    <div className="flex min-h-[100dvh] flex-col items-center justify-between gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-3 sm:px-4 py-2.5 sm:py-4 text-gray-100">
       {/* Top Header */}
       <header className="flex w-full max-w-lg items-center justify-between">
         <button
@@ -385,7 +385,7 @@ const DirectionRush: React.FC = () => {
 
       {/* Main Game Arena */}
       <div
-        className={`relative w-full max-w-lg h-64 sm:h-72 rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
+        className={`relative w-full max-w-lg h-52 sm:h-64 md:h-72 rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
           feedbackFlash === 'correct'
             ? 'border-emerald-400 shadow-[0_0_30px_rgba(34,197,94,0.35)]'
             : feedbackFlash === 'incorrect'
