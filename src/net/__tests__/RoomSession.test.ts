@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { RoomSession } from '../RoomSession';
 import type { ChatEvent, SessionSnapshot } from '../RoomSession';
+import type { GameId } from '../protocol';
 import { createFakeTransportBus, createFakeTransportPair } from '../transport';
 import type { RoomTransport } from '../transport';
 
@@ -13,8 +14,8 @@ const TIMING = {
   helloRetryMs: 40,
 };
 
-function makeHost(transport: RoomTransport, name = 'ALICE') {
-  return new RoomSession({
+function makeHost(transport: RoomTransport, name = 'ALICE'): RoomSession<'tictactoe'> {
+  return new RoomSession<'tictactoe'>({
     role: 'host',
     roomCode: CODE,
     myId: 'host-1',
@@ -24,8 +25,12 @@ function makeHost(transport: RoomTransport, name = 'ALICE') {
   });
 }
 
-function makeGuest(transport: RoomTransport, name = 'BOB', id = 'guest-1') {
-  return new RoomSession({
+function makeGuest(
+  transport: RoomTransport,
+  name = 'BOB',
+  id = 'guest-1',
+): RoomSession<'tictactoe'> {
+  return new RoomSession<'tictactoe'>({
     role: 'guest',
     roomCode: CODE,
     myId: id,
@@ -44,7 +49,7 @@ function connectPair() {
   return { host, guest, hostTransport, guestTransport };
 }
 
-function settled(session: RoomSession): SessionSnapshot {
+function settled<G extends GameId>(session: RoomSession<G>): SessionSnapshot<G> {
   return session.getSnapshot();
 }
 
@@ -524,7 +529,7 @@ describe('RoomSession connect-four engine', () => {
 
   function connectC4Pair() {
     const [hostTransport, guestTransport] = createFakeTransportPair();
-    const host = new RoomSession({
+    const host = new RoomSession<'connect-four'>({
       role: 'host',
       roomCode: CODE,
       myId: 'host-1',
@@ -533,7 +538,7 @@ describe('RoomSession connect-four engine', () => {
       game: 'connect-four',
       ...TIMING,
     });
-    const guest = new RoomSession({
+    const guest = new RoomSession<'connect-four'>({
       role: 'guest',
       roomCode: CODE,
       myId: 'guest-1',
@@ -547,7 +552,10 @@ describe('RoomSession connect-four engine', () => {
     return { host, guest };
   }
 
-  function playToC4Win(host: RoomSession, guest: RoomSession) {
+  function playToC4Win(
+    host: RoomSession<'connect-four'>,
+    guest: RoomSession<'connect-four'>,
+  ) {
     host.playMove(0);
     guest.playMove(1);
     host.playMove(0);
@@ -614,7 +622,7 @@ describe('RoomSession turn timer and timeout system', () => {
 
   function connectTimedPair(turnTimerMs = 1000) {
     const [hostTransport, guestTransport] = createFakeTransportPair();
-    const host = new RoomSession({
+    const host = new RoomSession<'tictactoe'>({
       role: 'host',
       roomCode: CODE,
       myId: 'host-1',
@@ -623,7 +631,7 @@ describe('RoomSession turn timer and timeout system', () => {
       turnTimerMs,
       ...TIMING,
     });
-    const guest = new RoomSession({
+    const guest = new RoomSession<'tictactoe'>({
       role: 'guest',
       roomCode: CODE,
       myId: 'guest-1',
@@ -757,5 +765,185 @@ describe('RoomSession turn timer and timeout system', () => {
       expect(mover.playMove(cell)).toBe(true);
       expect(host.getSnapshot().state.board).toEqual(guest.getSnapshot().state.board);
     }
+  });
+});
+
+describe('RoomSession arrow-race rounds', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function connectRacePair() {
+    const [hostTransport, guestTransport] = createFakeTransportPair();
+    const host = new RoomSession<'arrow-race'>({
+      role: 'host',
+      roomCode: CODE,
+      myId: 'host-1',
+      myName: 'ALICE',
+      transport: hostTransport,
+      game: 'arrow-race',
+      ...TIMING,
+    });
+    const guest = new RoomSession<'arrow-race'>({
+      role: 'guest',
+      roomCode: CODE,
+      myId: 'guest-1',
+      myName: 'BOB',
+      transport: guestTransport,
+      game: 'arrow-race',
+      ...TIMING,
+    });
+    host.start();
+    guest.start();
+    return { host, guest, hostTransport, guestTransport };
+  }
+
+  it('starts the first round on both sides when the guest joins', () => {
+    const { host, guest } = connectRacePair();
+
+    const hostState = settled(host).state;
+    const guestState = settled(guest).state;
+
+    expect(hostState.phase).toBe('playing');
+    expect(guestState.phase).toBe('playing');
+    expect(hostState.roundId).toBe(1);
+    expect(guestState.roundId).toBe(1);
+    expect(hostState.stimulus).not.toBeNull();
+    expect(guestState.stimulus).toEqual(hostState.stimulus);
+  });
+
+  it('scores a correct host answer and starts the next round after the gap', () => {
+    const { host, guest } = connectRacePair();
+    const stimulus = settled(host).state.stimulus;
+    if (stimulus === null) throw new Error('expected live stimulus');
+
+    expect(host.answerRaceRound(stimulus.moving)).toBe(true);
+
+    const hostAfter = settled(host).state;
+    const guestAfter = settled(guest).state;
+    expect(hostAfter.scores.X).toBe(1);
+    expect(guestAfter.scores.X).toBe(1);
+    expect(hostAfter.stimulus).toBeNull();
+    expect(guestAfter.stimulus).toBeNull();
+    expect(hostAfter.roundId).toBe(1);
+
+    vi.advanceTimersByTime(1500);
+    expect(settled(host).state.roundId).toBe(2);
+    expect(settled(guest).state.roundId).toBe(2);
+    expect(settled(guest).state.stimulus).toEqual(settled(host).state.stimulus);
+  });
+
+  it('awards the opponent when the host answers wrong', () => {
+    const { host, guest } = connectRacePair();
+    const stimulus = settled(host).state.stimulus;
+    if (stimulus === null) throw new Error('expected live stimulus');
+
+    const wrong =
+      stimulus.moving === 'up'
+        ? ('down' as const)
+        : ('up' as const);
+    expect(host.answerRaceRound(wrong)).toBe(true);
+
+    expect(settled(host).state.scores.O).toBe(1);
+    expect(settled(guest).state.scores.O).toBe(1);
+    expect(settled(host).state.scores.X).toBe(0);
+  });
+
+  it('uses the first answer only and ignores a second one for the same round', () => {
+    const { host, guest } = connectRacePair();
+    const stimulus = settled(host).state.stimulus;
+    if (stimulus === null) throw new Error('expected live stimulus');
+
+    expect(host.answerRaceRound(stimulus.moving)).toBe(true);
+    const wrong =
+      stimulus.moving === 'up'
+        ? ('down' as const)
+        : ('up' as const);
+    expect(guest.answerRaceRound(wrong)).toBe(false);
+
+    expect(settled(host).state.scores.X).toBe(1);
+    expect(settled(host).state.scores.O).toBe(0);
+  });
+
+  it('drops a stale answer for an already-decided round', () => {
+    const { host, guest, hostTransport } = connectRacePair();
+    const stimulus = settled(host).state.stimulus;
+    if (stimulus === null) throw new Error('expected live stimulus');
+
+    expect(host.answerRaceRound(stimulus.moving)).toBe(true);
+    expect(settled(host).state.scores.X).toBe(1);
+
+    hostTransport.post({
+      type: 'answer',
+      roomCode: CODE,
+      playerId: 'guest-1',
+      roundId: 1,
+      direction: 'up',
+      game: 'arrow-race',
+    });
+
+    expect(settled(host).state.scores.X).toBe(1);
+    expect(settled(host).state.scores.O).toBe(0);
+    expect(guest).toBeDefined();
+  });
+
+  it('voids the round when nobody answers in time', () => {
+    const { host, guest } = connectRacePair();
+
+    vi.advanceTimersByTime(8000);
+
+    expect(settled(host).state.draws).toBe(1);
+    expect(settled(guest).state.draws).toBe(1);
+    expect(settled(host).state.scores).toEqual({ X: 0, O: 0 });
+    expect(settled(host).state.stimulus).toBeNull();
+
+    vi.advanceTimersByTime(1500);
+    expect(settled(host).state.roundId).toBe(2);
+    expect(settled(guest).state.roundId).toBe(2);
+  });
+
+  it('ends the match when a score reaches the target and rematch restarts', () => {
+    const { host, guest } = connectRacePair();
+
+    for (let i = 0; i < 5; i++) {
+      const stimulus = settled(host).state.stimulus;
+      if (stimulus === null) throw new Error(`expected stimulus on round ${i + 1}`);
+      expect(host.answerRaceRound(stimulus.moving)).toBe(true);
+      if (i < 4) {
+        vi.advanceTimersByTime(1500);
+      }
+    }
+
+    const hostDone = settled(host);
+    const guestDone = settled(guest);
+    expect(hostDone.state.phase).toBe('finished');
+    expect(guestDone.state.phase).toBe('finished');
+    expect(hostDone.state.result).toEqual({ type: 'win', player: 'X' });
+    expect(hostDone.state.scores.X).toBe(5);
+    expect(guestDone.state.scores.X).toBe(5);
+
+    expect(host.requestRematch()).toBe(true);
+    expect(guest.requestRematch()).toBe(true);
+
+    expect(settled(host).state.phase).toBe('playing');
+    expect(settled(guest).state.phase).toBe('playing');
+    expect(settled(host).state.scores).toEqual({ X: 0, O: 0 });
+    expect(settled(host).state.roundId).toBe(0);
+    expect(settled(host).state.stimulus).toBeNull();
+
+    vi.advanceTimersByTime(1500);
+    expect(settled(host).state.roundId).toBe(1);
+    expect(settled(guest).state.roundId).toBe(1);
+    expect(settled(guest).state.stimulus).toEqual(settled(host).state.stimulus);
+  });
+
+  it('ignores playMove for arrow-race sessions', () => {
+    const { host } = connectRacePair();
+    expect(host.playMove(0)).toBe(false);
+    expect(host.playMove(4)).toBe(false);
   });
 });

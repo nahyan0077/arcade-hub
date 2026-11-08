@@ -14,6 +14,16 @@ import {
   c4StartGame,
 } from '../engine/connect-four';
 import type { C4GameState } from '../engine/connect-four';
+import {
+  applyRoundResult,
+  arrowRaceRestart,
+  arrowRaceStart,
+  createArrowRaceInitialState,
+  generateStimulus,
+  isCorrectAnswer,
+  startRound,
+} from '../engine/arrow-race';
+import type { ArrowDirection, ArrowRaceState, RaceRoundResult } from '../engine/arrow-race';
 import type { RoomMessage, RoomRole, GameId } from './protocol';
 import {
   CHAT_MESSAGE_MAX_LENGTH,
@@ -21,8 +31,11 @@ import {
   isChatEmoji,
   markForRole,
   MAX_TIMEOUTS,
+  RACE_ROUND_GAP_MS,
+  RACE_ROUND_MS,
   TURN_TIMEOUT_GRACE_MS,
   TURN_TIMER_MS,
+  usesTurnTimer,
 } from './protocol';
 import type { RoomTransport } from './transport';
 
@@ -43,7 +56,11 @@ export interface ChatEvent {
 
 export type GameStateFor<G extends GameId> = G extends 'connect-four'
   ? C4GameState
-  : GameState;
+  : G extends 'arrow-race'
+    ? ArrowRaceState
+    : GameState;
+
+type BoardGameState = GameState | C4GameState;
 
 interface GameEngine<State> {
   createInitialState: (config?: {
@@ -72,12 +89,22 @@ const CONNECT_FOUR_ENGINE: GameEngine<C4GameState> = {
   startGame: c4StartGame,
 };
 
+const ARROW_RACE_ENGINE: GameEngine<ArrowRaceState> = {
+  createInitialState: createArrowRaceInitialState,
+  isValidMove: () => false,
+  makeMove: (state) => state,
+  restartGame: arrowRaceRestart,
+  startGame: arrowRaceStart,
+};
+
 function engineFor(game: GameId): GameEngine<GameStateFor<GameId>> {
   switch (game) {
     case 'tictactoe':
       return TICTACTOE_ENGINE as GameEngine<GameStateFor<GameId>>;
     case 'connect-four':
       return CONNECT_FOUR_ENGINE as GameEngine<GameStateFor<GameId>>;
+    case 'arrow-race':
+      return ARROW_RACE_ENGINE as GameEngine<GameStateFor<GameId>>;
     default:
       throw new Error(`Unsupported game: ${String(game)}`);
   }
@@ -150,6 +177,10 @@ export class RoomSession<G extends GameId = GameId> {
   private rematchRequested = false;
   private opponentRematchRequested = false;
   private timeoutCounts: Record<string, number> = {};
+  private raceAnswer: { playerId: string; direction: ArrowDirection } | null = null;
+  private raceAnsweredRound = 0;
+  private raceRoundTimer: ReturnType<typeof setTimeout> | null = null;
+  private raceNextRoundTimer: ReturnType<typeof setTimeout> | null = null;
   private snapshot: SessionSnapshot<G>;
 
   constructor(options: RoomSessionOptions) {
@@ -169,7 +200,7 @@ export class RoomSession<G extends GameId = GameId> {
       game,
       transport: options.transport,
     };
-    this.engine = engineFor(game) as GameEngine<GameStateFor<G>>;
+    this.engine = engineFor(game) as unknown as GameEngine<GameStateFor<G>>;
 
     this.snapshot = {
       status: options.role === 'host' ? 'waiting' : 'connecting',
@@ -242,11 +273,19 @@ export class RoomSession<G extends GameId = GameId> {
     if (this.turnTimer) clearInterval(this.turnTimer);
     if (this.helloRetryTimer) clearInterval(this.helloRetryTimer);
     if (this.helloDeadlineTimer) clearTimeout(this.helloDeadlineTimer);
+    this.clearRaceTimers();
     this.heartbeatTimer = null;
     this.checkTimer = null;
     this.turnTimer = null;
     this.helloRetryTimer = null;
     this.helloDeadlineTimer = null;
+  }
+
+  private clearRaceTimers(): void {
+    if (this.raceRoundTimer) clearTimeout(this.raceRoundTimer);
+    if (this.raceNextRoundTimer) clearTimeout(this.raceNextRoundTimer);
+    this.raceRoundTimer = null;
+    this.raceNextRoundTimer = null;
   }
 
   destroy(): void {
@@ -267,10 +306,11 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   playMove(index: number): boolean {
-    const { state } = this.snapshot;
+    if (this.options.game === 'arrow-race') return false;
     if (this.snapshot.status !== 'connected') return false;
+    const state = this.boardState();
     if (state.currentPlayer !== this.snapshot.myMark) return false;
-    if (!this.engine.isValidMove(state, index)) return false;
+    if (!this.engine.isValidMove(state as GameStateFor<G>, index)) return false;
 
     this.applyMove(index);
     const now = Date.now();
@@ -278,6 +318,48 @@ export class RoomSession<G extends GameId = GameId> {
     this.update({ turnStartTime: now });
     this.post({ type: 'move', roomCode: this.options.roomCode, playerId: this.options.myId, index });
     return true;
+  }
+
+  /** Submit a direction for the live arrow-race round. Host decides; guest relays. */
+  answerRaceRound(direction: ArrowDirection): boolean {
+    if (this.options.game !== 'arrow-race') return false;
+    if (this.snapshot.status !== 'connected') return false;
+    const state = this.raceState();
+    if (state.phase !== 'playing' || state.stimulus === null) return false;
+    if (this.options.role === 'host') {
+      if (this.raceAnswer !== null) return false;
+    } else if (this.raceAnsweredRound === state.roundId) {
+      return false;
+    }
+
+    this.post({
+      type: 'answer',
+      roomCode: this.options.roomCode,
+      playerId: this.options.myId,
+      roundId: state.roundId,
+      direction,
+    });
+
+    if (this.options.role === 'host') {
+      this.handleRaceAnswer(this.options.myId, direction, state.roundId);
+    } else {
+      this.raceAnsweredRound = state.roundId;
+    }
+    return true;
+  }
+
+  private raceState(): ArrowRaceState {
+    if (this.options.game !== 'arrow-race') {
+      throw new Error('raceState requires arrow-race session');
+    }
+    return this.snapshot.state as ArrowRaceState;
+  }
+
+  private boardState(): BoardGameState {
+    if (this.options.game === 'arrow-race') {
+      throw new Error('boardState unavailable for arrow-race');
+    }
+    return this.snapshot.state as BoardGameState;
   }
 
   requestRematch(): boolean {
@@ -405,6 +487,15 @@ export class RoomSession<G extends GameId = GameId> {
       case 'game-over':
         this.onGameOver(message);
         break;
+      case 'round-start':
+        this.onRoundStart(message);
+        break;
+      case 'answer':
+        this.onRaceAnswer(message);
+        break;
+      case 'round-result':
+        this.onRoundResult(message);
+        break;
     }
   }
 
@@ -451,7 +542,7 @@ export class RoomSession<G extends GameId = GameId> {
         : (this.snapshot.myMark === 'X' ? 'O' : 'X');
 
     // Only advance turn if it is still the skipped player's turn (avoids double-advance)
-    if (this.snapshot.state.currentPlayer === skippedMark) {
+    if (this.boardState().currentPlayer === skippedMark) {
       this.applyMove(-1);
     }
   }
@@ -529,6 +620,9 @@ export class RoomSession<G extends GameId = GameId> {
         state: this.createOnlineState(message.name),
         turnStartTime: this.lastMoveAt,
       });
+      if (this.options.game === 'arrow-race') {
+        this.startRaceRound();
+      }
     }
   }
 
@@ -574,21 +668,25 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   private onRemoteMove(message: Extract<RoomMessage, { type: 'move' }>): void {
+    if (this.options.game === 'arrow-race') return;
     if (this.snapshot.status !== 'connected') return;
     const peerMark: Player = this.snapshot.myMark === 'X' ? 'O' : 'X';
-    if (this.snapshot.state.currentPlayer !== peerMark) return;
-    if (!this.engine.isValidMove(this.snapshot.state, message.index)) return;
+    const state = this.boardState();
+    if (state.currentPlayer !== peerMark) return;
+    if (!this.engine.isValidMove(state as GameStateFor<G>, message.index)) return;
     this.applyMove(message.index);
   }
 
   private applyMove(index: number): void {
+    if (this.options.game === 'arrow-race') return;
     const now = Date.now();
     this.lastMoveAt = now;
     if (index === -1) {
       // Pass turn (turn timeout skip) - just switch currentPlayer
-      const newState = { ...this.snapshot.state };
+      const state = this.boardState();
+      const newState = { ...state };
       newState.currentPlayer = newState.currentPlayer === 'X' ? 'O' : 'X';
-      this.update({ state: newState, turnStartTime: now });
+      this.update({ state: newState as GameStateFor<G>, turnStartTime: now });
       return;
     }
     this.update({
@@ -613,6 +711,9 @@ export class RoomSession<G extends GameId = GameId> {
     this.rematchRequested = false;
     this.opponentRematchRequested = false;
     this.timeoutCounts = {};
+    this.raceAnswer = null;
+    this.raceAnsweredRound = 0;
+    this.clearRaceTimers();
     const newState = this.engine.restartGame(this.snapshot.state);
     this.lastMoveAt = Date.now();
     this.update({
@@ -621,6 +722,12 @@ export class RoomSession<G extends GameId = GameId> {
       timeoutCounts: {},
       turnStartTime: this.lastMoveAt,
     });
+    if (this.options.game === 'arrow-race' && this.options.role === 'host') {
+      this.raceNextRoundTimer = setTimeout(() => {
+        this.raceNextRoundTimer = null;
+        this.startRaceRound();
+      }, RACE_ROUND_GAP_MS);
+    }
   }
 
   private checkTimeout(): void {
@@ -632,6 +739,7 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   private checkTurnTimer(): void {
+    if (!usesTurnTimer(this.options.game)) return;
     // Host-authoritative: only the host decides timeouts. Guests apply via
     // the turn-timeout message so both peers cannot double-count or race.
     if (this.options.role !== 'host') return;
@@ -650,10 +758,11 @@ export class RoomSession<G extends GameId = GameId> {
     if (this.snapshot.status !== 'connected') return;
     if (this.snapshot.state.phase !== 'playing') return;
 
-    const currentPlayerId = this.snapshot.state.currentPlayer === this.snapshot.myMark
+    const board = this.boardState();
+    const currentPlayerId = board.currentPlayer === this.snapshot.myMark
       ? this.options.myId
       : this.guestId;
-    const nextPlayerId = this.snapshot.state.currentPlayer === this.snapshot.myMark
+    const nextPlayerId = board.currentPlayer === this.snapshot.myMark
       ? this.guestId
       : this.options.myId;
 
@@ -711,7 +820,21 @@ export class RoomSession<G extends GameId = GameId> {
           ? 'O'
           : 'X';
 
-    const currentScores = this.snapshot.state.scores;
+    // Arrow Race ends via applyRoundResult (scores already final).
+    if (this.options.game === 'arrow-race') {
+      const state = this.raceState();
+      this.update({
+        state: {
+          ...state,
+          phase: 'finished',
+          result: { type: 'win', player: winnerMark },
+        } as GameStateFor<G>,
+        turnStartTime: 0,
+      });
+      return;
+    }
+
+    const currentScores = this.boardState().scores;
     const newScores = {
       ...currentScores,
       [winnerMark]: (currentScores[winnerMark] ?? 0) + 1,
@@ -734,6 +857,209 @@ export class RoomSession<G extends GameId = GameId> {
     });
   }
 
+  // --- Arrow Race round flow (host-authoritative) ---
+
+  private startRaceRound(): void {
+    if (this.options.game !== 'arrow-race') return;
+    if (this.options.role !== 'host') return;
+    if (this.snapshot.status !== 'connected') return;
+
+    const state = this.raceState();
+    if (state.phase !== 'playing') return;
+    if (state.stimulus !== null) return;
+
+    const stimulus = generateStimulus();
+    const next = startRound(state, stimulus);
+    this.raceAnswer = null;
+    this.update({ state: next as GameStateFor<G>, turnStartTime: Date.now() });
+
+    this.post({
+      type: 'round-start',
+      roomCode: this.options.roomCode,
+      roundId: next.roundId,
+      pointing: stimulus.pointing,
+      moving: stimulus.moving,
+    });
+
+    this.clearRaceTimers();
+    this.raceRoundTimer = setTimeout(() => {
+      this.raceRoundTimer = null;
+      this.voidRaceRound(next.roundId);
+    }, RACE_ROUND_MS);
+  }
+
+  private voidRaceRound(roundId: number): void {
+    if (this.options.game !== 'arrow-race' || this.options.role !== 'host') return;
+    if (this.snapshot.status !== 'connected') return;
+    const state = this.raceState();
+    if (state.phase !== 'playing' || state.roundId !== roundId) return;
+    if (state.stimulus === null) return;
+    if (this.raceAnswer !== null) return;
+    this.resolveRaceRound(null);
+  }
+
+  private onRoundStart(message: Extract<RoomMessage, { type: 'round-start' }>): void {
+    if (this.options.game !== 'arrow-race') return;
+    if (this.snapshot.status !== 'connected') return;
+    if (this.options.role !== 'guest') return;
+
+    const state = this.raceState();
+    if (state.phase !== 'playing') return;
+    if (message.roundId !== state.roundId + 1) return;
+
+    const next = startRound(state, {
+      pointing: message.pointing,
+      moving: message.moving,
+    });
+    this.raceAnsweredRound = 0;
+    this.update({ state: next as GameStateFor<G>, turnStartTime: Date.now() });
+  }
+
+  private onRaceAnswer(message: Extract<RoomMessage, { type: 'answer' }>): void {
+    if (this.options.game !== 'arrow-race') return;
+    if (this.options.role !== 'host') return;
+    if (this.snapshot.status !== 'connected') return;
+    this.handleRaceAnswer(message.playerId, message.direction, message.roundId);
+  }
+
+  private handleRaceAnswer(
+    playerId: string,
+    direction: ArrowDirection,
+    roundId: number,
+  ): void {
+    if (this.options.game !== 'arrow-race' || this.options.role !== 'host') return;
+    if (this.snapshot.status !== 'connected') return;
+    const state = this.raceState();
+    if (state.phase !== 'playing' || state.stimulus === null) return;
+    if (state.roundId !== roundId) return;
+    if (this.raceAnswer !== null) return;
+
+    this.raceAnswer = { playerId, direction };
+    this.resolveRaceRound(this.raceAnswer);
+  }
+
+  private resolveRaceRound(
+    answer: { playerId: string; direction: ArrowDirection } | null,
+  ): void {
+    if (this.options.game !== 'arrow-race' || this.options.role !== 'host') return;
+    const state = this.raceState();
+    if (state.phase !== 'playing' || state.stimulus === null) return;
+
+    if (this.raceRoundTimer) {
+      clearTimeout(this.raceRoundTimer);
+      this.raceRoundTimer = null;
+    }
+
+    let scorer: Player | null = null;
+    let correct = false;
+    let answerDirection: ArrowDirection | null = null;
+
+    if (answer !== null) {
+      answerDirection = answer.direction;
+      correct = isCorrectAnswer(state.stimulus, answer.direction);
+      const answererMark: Player =
+        answer.playerId === this.options.myId
+          ? this.myMarkForRace()
+          : this.peerMarkForRace();
+      scorer = correct ? answererMark : answererMark === 'X' ? 'O' : 'X';
+    }
+
+    const result: RaceRoundResult = {
+      roundId: state.roundId,
+      stimulus: state.stimulus,
+      scorer,
+      answer: answerDirection,
+      correct,
+    };
+
+    const next = applyRoundResult(state, result);
+    this.raceAnswer = null;
+    this.update({ state: next as GameStateFor<G>, turnStartTime: Date.now() });
+
+    const scorerId =
+      scorer === null
+        ? null
+        : scorer === this.myMarkForRace()
+          ? this.options.myId
+          : this.guestId;
+
+    this.post({
+      type: 'round-result',
+      roomCode: this.options.roomCode,
+      roundId: result.roundId,
+      scorerId,
+      answer: answerDirection,
+      correct,
+      scores: { ...next.scores },
+      draws: next.draws,
+    });
+
+    if (next.phase === 'playing') {
+      this.raceNextRoundTimer = setTimeout(() => {
+        this.raceNextRoundTimer = null;
+        this.startRaceRound();
+      }, RACE_ROUND_GAP_MS);
+    }
+  }
+
+  private onRoundResult(message: Extract<RoomMessage, { type: 'round-result' }>): void {
+    if (this.options.game !== 'arrow-race') return;
+    if (this.snapshot.status !== 'connected') return;
+
+    const state = this.raceState();
+    if (state.phase !== 'playing' && state.phase !== 'finished') return;
+    if (message.roundId !== state.roundId) return;
+    if (state.lastResult !== null && state.lastResult.roundId === message.roundId) return;
+    if (state.stimulus === null) return;
+
+    let scorer: Player | null = null;
+    if (message.scorerId !== null) {
+      scorer =
+        message.scorerId === this.options.myId
+          ? this.myMarkForRace()
+          : this.peerMarkForRace();
+    }
+
+    const result: RaceRoundResult = {
+      roundId: message.roundId,
+      stimulus: state.stimulus,
+      scorer,
+      answer: message.answer,
+      correct: message.correct,
+    };
+
+    let next = applyRoundResult(state, result);
+    // Trust host scores/draws as authority.
+    next = { ...next, scores: { ...message.scores }, draws: message.draws };
+    if (
+      next.scores.X >= next.targetScore ||
+      next.scores.O >= next.targetScore
+    ) {
+      const winner: Player = next.scores.X >= next.targetScore ? 'X' : 'O';
+      next = {
+        ...next,
+        phase: 'finished',
+        result: { type: 'win', player: winner },
+        stimulus: null,
+      };
+    }
+
+    if (this.raceRoundTimer) {
+      clearTimeout(this.raceRoundTimer);
+      this.raceRoundTimer = null;
+    }
+    this.raceAnswer = null;
+    this.update({ state: next as GameStateFor<G>, turnStartTime: Date.now() });
+  }
+
+  private myMarkForRace(): Player {
+    return markForRole(this.options.role);
+  }
+
+  private peerMarkForRace(): Player {
+    return this.options.role === 'host' ? 'O' : 'X';
+  }
+
   private update(partial: Partial<SessionSnapshot<G>>): void {
     this.snapshot = { ...this.snapshot, ...partial };
     for (const listener of [...this.listeners]) listener(this.snapshot);
@@ -752,4 +1078,10 @@ export function isConnectFourSession(
   session: AnyRoomSession | null,
 ): session is RoomSession<'connect-four'> {
   return session !== null && session.getSnapshot().game === 'connect-four';
+}
+
+export function isArrowRaceSession(
+  session: AnyRoomSession | null,
+): session is RoomSession<'arrow-race'> {
+  return session !== null && session.getSnapshot().game === 'arrow-race';
 }

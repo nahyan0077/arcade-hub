@@ -11,6 +11,8 @@ import {
   parseMatchmakerMessage,
   parseMatchmakerEvent,
   DEFAULT_GAME,
+  usesTurnTimer,
+  RACE_ROUND_GAP_MS,
 } from '../protocol';
 
 function mulberry32(seed: number) {
@@ -63,6 +65,8 @@ describe('room codes', () => {
 describe('game scoping', () => {
   it('recognizes known game ids only', () => {
     expect(isGameId('tictactoe')).toBe(true);
+    expect(isGameId('connect-four')).toBe(true);
+    expect(isGameId('arrow-race')).toBe(true);
     expect(isGameId('connectfour')).toBe(false);
     expect(isGameId(42)).toBe(false);
     expect(isGameId(undefined)).toBe(false);
@@ -71,7 +75,15 @@ describe('game scoping', () => {
   it('scopes room ids and channels by game', () => {
     expect(scopedRoomId('tictactoe', 'abc234')).toBe('tictactoe:ABC234');
     expect(roomChannelName('ABC234', 'tictactoe')).toBe('room:tictactoe:ABC234');
+    expect(roomChannelName('ABC234', 'arrow-race')).toBe('room:arrow-race:ABC234');
     expect(DEFAULT_GAME).toBe('tictactoe');
+  });
+
+  it('gates turn timers to board games only', () => {
+    expect(usesTurnTimer('tictactoe')).toBe(true);
+    expect(usesTurnTimer('connect-four')).toBe(true);
+    expect(usesTurnTimer('arrow-race')).toBe(false);
+    expect(RACE_ROUND_GAP_MS).toBeGreaterThan(0);
   });
 
   it('accepts matchmaker messages carrying a game and rejects unknown ones', () => {

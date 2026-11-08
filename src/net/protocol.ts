@@ -1,9 +1,10 @@
 import type { Player } from '../engine';
+import type { ArrowDirection } from '../engine/arrow-race';
 
 export const ROOM_CODE_LENGTH = 6;
 const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
-export const GAMES = ['tictactoe', 'connect-four'] as const;
+export const GAMES = ['tictactoe', 'connect-four', 'arrow-race'] as const;
 export type GameId = (typeof GAMES)[number];
 export const DEFAULT_GAME: GameId = 'tictactoe';
 
@@ -44,11 +45,16 @@ export type ChatEmoji = (typeof CHAT_EMOJIS)[number];
 export const TURN_TIMER_MS = {
   tictactoe: 20000,
   'connect-four': 30000,
+  'arrow-race': 0,
 } as const;
-export type TurnTimerMs = (typeof TURN_TIMER_MS)[GameId];
+export type TurnTimerMs = number;
 export const MAX_TIMEOUTS = 3;
 /** Extra wait after the turn timer so an in-flight move can arrive before we skip. */
 export const TURN_TIMEOUT_GRACE_MS = 500;
+/** Pause after a decided round before the host starts the next one. */
+export const RACE_ROUND_GAP_MS = 1500;
+/** No answer within this window voids the round (host-authoritative). */
+export const RACE_ROUND_MS = 8000;
 
 export function isChatEmoji(input: unknown): input is ChatEmoji {
   return typeof input === 'string' && (CHAT_EMOJIS as readonly string[]).includes(input);
@@ -68,7 +74,10 @@ export type RoomMessage =
   | { type: 'emoji'; roomCode: string; playerId: string; name: string; emoji: string; game?: GameId }
   | { type: 'turn-timeout'; roomCode: string; skippedPlayerId: string; nextPlayerId: string; counts: Record<string, number>; game?: GameId }
   | { type: 'timeout-count'; roomCode: string; counts: Record<string, number>; game?: GameId }
-  | { type: 'game-over'; roomCode: string; winnerId: string; reason: 'win' | 'draw' | 'timeout'; game?: GameId };
+  | { type: 'game-over'; roomCode: string; winnerId: string; reason: 'win' | 'draw' | 'timeout'; game?: GameId }
+  | { type: 'round-start'; roomCode: string; roundId: number; pointing: ArrowDirection; moving: ArrowDirection; game?: GameId }
+  | { type: 'answer'; roomCode: string; playerId: string; roundId: number; direction: ArrowDirection; game?: GameId }
+  | { type: 'round-result'; roomCode: string; roundId: number; scorerId: string | null; answer: ArrowDirection | null; correct: boolean; scores: Record<Player, number>; draws: number; game?: GameId };
 
 export function roomChannelName(roomCode: string, game: GameId = DEFAULT_GAME): string {
   return `room:${scopedRoomId(game, roomCode)}`;
@@ -78,6 +87,11 @@ export type RoomRole = 'host' | 'guest';
 
 export function markForRole(role: RoomRole): Player {
   return role === 'host' ? 'X' : 'O';
+}
+
+/** Board games run a turn timer; arrow-race uses per-round timers instead. */
+export function usesTurnTimer(game: GameId): boolean {
+  return game !== 'arrow-race';
 }
 
 export const MATCHMAKER_PATH = '/matchmake';
