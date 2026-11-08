@@ -28,6 +28,14 @@ const GAMES: GameCard[] = [
     playable: true,
   },
   {
+    id: "arrow-race",
+    title: "ARROW RACE",
+    tagline: "Follow the slide, not the point — vs AI or online",
+    mark: "▲",
+    markClass: "text-violet-500",
+    playable: true,
+  },
+  {
     id: "dots-and-boxes",
     title: "DOTS & BOXES",
     tagline: "Claim squares, close the boxes",
@@ -54,7 +62,7 @@ export const Hub = () => {
         </p>
       </div>
 
-      <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-3">
+      <div className="grid w-full max-w-3xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {GAMES.map((game, index) => (
           <div
             key={game.id}

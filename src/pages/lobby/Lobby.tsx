@@ -67,6 +67,11 @@ export const Lobby = () => {
           <span className="text-yellow-500">CONNECT</span>{" "}
           <span className="text-gray-100">FOUR</span>
         </h1>
+      ) : snapshot.game === "arrow-race" ? (
+        <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
+          <span className="text-violet-500">ARROW</span>{" "}
+          <span className="text-gray-100">RACE</span>
+        </h1>
       ) : (
         <h1 className="animate-pop select-none text-3xl font-extrabold sm:text-4xl">
           <span className="text-blue-500">TIC</span>{" "}

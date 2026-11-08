@@ -10,3 +10,8 @@
 .animate-blink-red {
   animation: blink-red 0.5s ease-in-out infinite;
 }
+
+@keyframes race-slide {
+  from { transform: translateX(0) translateY(0); }
+  to { transform: var(--race-slide, translateY(-20px)); }
+}

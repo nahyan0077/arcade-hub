@@ -158,4 +158,22 @@ describe('Lobby', () => {
     expect(screen.getByText('CONNECT')).toBeInTheDocument();
     expect(screen.getByText('FOUR')).toBeInTheDocument();
   });
+
+  it('renders ARROW RACE header when room game is arrow-race', () => {
+    const bus = createFakeTransportBus();
+    const host = new RoomSession({
+      role: 'host',
+      roomCode: CODE,
+      myId: 'host-1',
+      myName: 'ALICE',
+      transport: bus.createEndpoint(),
+      game: 'arrow-race',
+      ...TIMING,
+    });
+    sessions.push(host);
+    renderLobby(host);
+
+    expect(screen.getByText('ARROW')).toBeInTheDocument();
+    expect(screen.getByText('RACE')).toBeInTheDocument();
+  });
 });

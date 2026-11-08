@@ -20,12 +20,13 @@ function renderHub() {
 }
 
 describe('Hub', () => {
-  it('lists two playable games and the rest as coming soon', () => {
+  it('lists three playable games and the rest as coming soon', () => {
     renderHub();
     expect(screen.getByTestId('hub-card-tictactoe')).toBeInTheDocument();
     expect(screen.getByTestId('hub-card-connect-four')).toBeInTheDocument();
+    expect(screen.getByTestId('hub-card-arrow-race')).toBeInTheDocument();
     expect(screen.getByTestId('hub-card-dots-and-boxes')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: 'Play' })).toHaveLength(3);
     expect(screen.getAllByText('Coming soon')).toHaveLength(1);
   });
 
@@ -43,6 +44,15 @@ describe('Hub', () => {
     renderHub();
     await user.click(
       within(screen.getByTestId('hub-card-connect-four')).getByRole('button', { name: 'Play' }),
+    );
+    expect(screen.getByText('start page')).toBeInTheDocument();
+  });
+
+  it('navigates to the start screen from the arrow-race card', async () => {
+    const user = userEvent.setup();
+    renderHub();
+    await user.click(
+      within(screen.getByTestId('hub-card-arrow-race')).getByRole('button', { name: 'Play' }),
     );
     expect(screen.getByText('start page')).toBeInTheDocument();
   });

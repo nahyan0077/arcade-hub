@@ -6,6 +6,8 @@ import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
 import type { AIDifficulty } from "../../engine";
 import { C4_DIFFICULTIES } from "../../engine/connect-four/types";
 import type { C4Difficulty } from "../../engine/connect-four/types";
+import { RACE_AI_PERSONALITIES, RACE_DIFFICULTIES } from "../../engine/arrow-race";
+import type { RaceDifficulty } from "../../engine/arrow-race";
 import { useOnlineSession } from "../../net/OnlineSessionContext";
 import {
   generateRoomCode,
@@ -15,7 +17,7 @@ import {
 
 type GameMode = "pvp" | "pve" | "online" | "quick";
 type OnlineAction = "create" | "join";
-type StartGame = "tictactoe" | "connect-four";
+type StartGame = "tictactoe" | "connect-four" | "arrow-race";
 
 const quickPlayEnabled = (): boolean => Boolean(import.meta.env.VITE_WS_URL);
 
@@ -31,16 +33,24 @@ export const Start = () => {
   const location = useLocation();
   const { openRoom } = useOnlineSession();
 
+  const rawGame = (location.state as { game?: string } | null)?.game;
   const game: StartGame =
-    (location.state as { game?: string } | null)?.game === "connect-four"
+    rawGame === "connect-four"
       ? "connect-four"
-      : "tictactoe";
+      : rawGame === "arrow-race"
+        ? "arrow-race"
+        : "tictactoe";
   const isC4 = game === "connect-four";
+  const isRace = game === "arrow-race";
+  // Arrow Race has no local 2P mode — only vs AI or online.
+  const local2P = !isRace;
 
   const [playerType, setPlayerType] = useState("");
   const [name, setName] = useState("");
   const [mode, setMode] = useState<GameMode>("pvp");
-  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty>("medium");
+  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty | RaceDifficulty>(
+    "medium",
+  );
   const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
   const [joinCode, setJoinCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,8 +96,14 @@ export const Start = () => {
       navigate("/lobby");
       return;
     }
-    if (!isC4 && !playerType) {
+    if (local2P && !isC4 && !playerType) {
       showToast("Please select the player type");
+      return;
+    }
+    if (isRace) {
+      navigate("/arrow-race", {
+        state: { name: trimmedName, mode: effectiveMode, difficulty },
+      });
       return;
     }
     if (isC4) {
@@ -97,13 +113,32 @@ export const Start = () => {
     navigate("/game", { state: { playerType, name: trimmedName, mode, difficulty } });
   };
 
-  const showMarkPicker = !isC4 && (mode === "pvp" || mode === "pve");
-  const difficulties = isC4 ? C4_DIFFICULTIES : AIDIFFICULTIES;
+  const showMarkPicker = local2P && !isC4 && (mode === "pvp" || mode === "pve");
+  const difficulties = isRace
+    ? RACE_DIFFICULTIES
+    : isC4
+      ? C4_DIFFICULTIES
+      : AIDIFFICULTIES;
+  const personalityName = (level: string): string => {
+    if (isRace) {
+      return RACE_AI_PERSONALITIES[level as RaceDifficulty]?.name ?? level;
+    }
+    return PERSONALITIES[level as AIDifficulty]?.name ?? level;
+  };
+
+  // Race defaults to vs AI when the player has not picked a local mode yet.
+  const effectiveMode: GameMode = isRace && mode === "pvp" ? "pve" : mode;
+  const showPvpButton = local2P;
 
   return (
     <div className="animate-fade-in flex flex-col mx-auto min-h-[100dvh] justify-center justify-items-center items-center bg-zinc-900 px-4">
         <div className="flex justify-center gap-8 sm:gap-16 md:gap-24 w-full pb-6 sm:pb-10" >
-          {isC4 ? (
+          {isRace ? (
+            <>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-violet-500 font-extrabold" > ARROW </h2>
+              <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > RACE </h2>
+            </>
+          ) : isC4 ? (
             <>
               <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-yellow-500 font-extrabold" > CONNECT </h2>
               <h2 className="animate-pop text-3xl sm:text-4xl md:text-5xl text-gray-100 font-extrabold" style={{ animationDelay: "90ms" }} > FOUR </h2>
@@ -138,7 +173,7 @@ export const Start = () => {
             type="button"
             aria-label="Play as O"
             aria-pressed={playerType === "O"}
-            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
+            className={`box-content h-20 w-20 p-4 border-4 mb-8 text-center rounded-xl bg-gray-300 hover:bg-gray-200 text-7xl font-semibold cursor-pointer transition-transform hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
               playerType === "O"
                 ? "border-red-600 bg-red-100 text-red-600"
                 : "border-gray-500 text-red-600"
@@ -162,18 +197,20 @@ export const Start = () => {
         />
 
         <div className="mb-4 flex flex-wrap justify-center gap-3" role="group" aria-label="Game mode">
+          {showPvpButton && (
+            <button
+              type="button"
+              aria-pressed={mode === "pvp"}
+              className={optionClass(mode === "pvp")}
+              onClick={() => setMode("pvp")}
+            >
+              2 Players
+            </button>
+          )}
           <button
             type="button"
-            aria-pressed={mode === "pvp"}
-            className={optionClass(mode === "pvp")}
-            onClick={() => setMode("pvp")}
-          >
-            2 Players
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "pve"}
-            className={optionClass(mode === "pve")}
+            aria-pressed={effectiveMode === "pve"}
+            className={optionClass(effectiveMode === "pve")}
             onClick={() => setMode("pve")}
           >
             vs AI
@@ -198,14 +235,14 @@ export const Start = () => {
           )}
         </div>
 
-        {mode === "pve" && (
+        {(effectiveMode === "pve" || (isRace && mode !== "online" && mode !== "quick")) && (
           <div className="mb-4 flex flex-wrap justify-center gap-2" role="group" aria-label="AI difficulty">
             {difficulties.map((level) => (
               <button
                 key={level}
                 type="button"
                 aria-pressed={difficulty === level}
-                title={`AI personality: ${PERSONALITIES[level].name}`}
+                title={`AI personality: ${personalityName(level)}`}
                 className={optionClass(difficulty === level)}
                 onClick={() => setDifficulty(level)}
               >
