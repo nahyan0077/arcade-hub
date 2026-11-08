@@ -3,7 +3,7 @@ import { test as base, expect, type Page, type Browser } from '@playwright/test'
 export { expect };
 
 const SOUND_MUTE_KEY = 'tic-tac-toe.muted.v1';
-const MUTE_SOUND_INIT = `try { window.localStorage.setItem('${SOUND_MUTE_KEY}', 'true'); } catch {}`;
+const MUTE_SOUND_INIT = `try { window.localStorage.setItem('${SOUND_MUTE_KEY}', 'true'); window.sessionStorage.setItem('arcade_has_booted', 'true'); } catch {}`;
 
 // Games would audibly blip on every click during test runs; seed the persisted
 // mute flag before any app script runs. Tests that need sound opt out by

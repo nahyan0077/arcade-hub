@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import { Hub } from './pages/hub/Hub'
+import { Landing } from './pages/landing/Landing'
 import { Home } from './pages/home/Home'
 import { Start } from './pages/start/Start'
 import { ConnectFour } from './pages/connect-four/ConnectFour'
@@ -23,13 +24,12 @@ function RoomRouter() {
 }
 
 function App() {
-
-
   return (
     <OnlineSessionProvider>
       <Router>
         <Routes>
           <Route path='/' element={<Hub />} />
+          <Route path='/landing' element={<Landing />} />
           <Route path='/start' element={<Start />} />
           <Route path='/game' element={<Home />} />
           <Route path='/connect-four' element={<ConnectFour />} />

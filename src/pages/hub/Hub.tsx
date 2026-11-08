@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { isMuted, setMuted } from "../../sound/audio";
 import { MatrixBackground } from "../../components/MatrixBackground";
+import { Landing } from "../landing/Landing";
 
 interface GameCard {
   id: string;
@@ -102,6 +103,14 @@ const GAMES: GameCard[] = [
 export const Hub: React.FC = () => {
   const navigate = useNavigate();
   const [soundOn, setSoundOn] = useState(!isMuted());
+  const [showLanding, setShowLanding] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.sessionStorage.getItem("arcade_has_booted") !== "true";
+    } catch {
+      return false;
+    }
+  });
 
   const handleToggleSound = () => {
     const next = !soundOn;
@@ -110,7 +119,22 @@ export const Hub: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-zinc-950 text-gray-100 flex flex-col justify-between px-4 py-8 sm:py-12">
+    <>
+      <AnimatePresence>
+        {showLanding && (
+          <motion.div
+            key="landing-overlay"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.04 }}
+            transition={{ duration: 0.45 }}
+            className="fixed inset-0 z-50 overflow-hidden"
+          >
+            <Landing onEnter={() => setShowLanding(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative min-h-[100dvh] w-full overflow-x-hidden bg-zinc-950 text-gray-100 flex flex-col justify-between px-4 py-8 sm:py-12">
       <Toaster />
 
       {/* Cyber Matrix Trail Background */}
@@ -261,7 +285,17 @@ export const Hub: React.FC = () => {
           <span>Fast, Responsive & Zero Dependencies</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowLanding(true)}
+            aria-label="Replay intro title screen"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-all hover:border-cyan-500/50 hover:bg-zinc-800 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            <span>🎬</span>
+            <span>Title Screen</span>
+          </button>
+
           <button
             type="button"
             onClick={handleToggleSound}
@@ -274,5 +308,6 @@ export const Hub: React.FC = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };

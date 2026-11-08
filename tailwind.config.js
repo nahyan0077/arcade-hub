@@ -46,6 +46,11 @@ export default {
           '0%, 100%': { boxShadow: '0 0 18px -6px rgba(59, 130, 246, 0.55)' },
           '50%': { boxShadow: '0 0 26px -2px rgba(59, 130, 246, 0.75)' },
         },
+        scan: {
+          '0%': { transform: 'translateY(-100%)', opacity: '0.1' },
+          '50%': { opacity: '0.4' },
+          '100%': { transform: 'translateY(1000%)', opacity: '0.1' },
+        },
       },
       animation: {
         pop: 'pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both',
@@ -57,6 +62,7 @@ export default {
         'slide-up': 'slide-up 0.22s ease-out both',
         'emoji-float': 'emoji-float 1.5s ease-out forwards',
         'card-glow': 'card-glow 2.4s ease-in-out infinite',
+        scan: 'scan 5s ease-in-out infinite',
       },
     },
   },
