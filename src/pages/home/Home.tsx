@@ -7,6 +7,7 @@ import { AIDIFFICULTIES, PERSONALITIES, getBestMove } from "../../engine";
 import type { AIDifficulty, Player } from "../../engine";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 import { isTttSession } from "../../net/RoomSession";
+import { TURN_TIMEOUT_GRACE_MS } from "../../net/protocol";
 import { VoiceControls } from "../../components/VoiceControls";
 import { ChatPanel } from "../../components/ChatPanel";
 import { QuickEmoji } from "../../components/QuickEmoji";
@@ -55,18 +56,25 @@ export const Home: React.FC = () => {
       ? onlineSnap.myName
       : (onlineSnap.opponentName || "PLAYER 2")
     : "PLAYER 2";
-  const playerNames: Record<Player, string> = online
-    ? { X: hostName, O: guestName }
-    : localNames;
+  const onlineFallbackNames: Record<Player, string> = { X: hostName, O: guestName };
 
   const { state, playMove, rematch, resetMatch } = useGame(
     {
-      playerNames,
+      playerNames: online ? onlineFallbackNames : localNames,
       mode: online ? "online" : isPve ? "pve" : "pvp",
       aiDifficulty: difficulty,
     },
     { humanMark: playerMark, aiDelayMs: AI_DELAY_MS, session },
   );
+
+  // After connect, session state carries both real names set atomically.
+  const playerNames: Record<Player, string> =
+    online && onlineSnap?.status === "connected" && state.playerNames
+      ? state.playerNames
+      : online
+        ? onlineFallbackNames
+        : localNames;
+
   const [shaking, setShaking] = useState(false);
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [hintOn, setHintOn] = useState(false);
@@ -120,14 +128,19 @@ export const Home: React.FC = () => {
   const rematchWaiting =
     online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
 
-  // Turn timer countdown - initialize immediately from snapshot to avoid mount delay
+  // Turn timer countdown - initialize immediately from snapshot to avoid mount delay.
+  // Display window includes grace so the bar empties when the host will actually skip.
+  const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
+  const displayTimerMs = turnTimerMs + (online ? TURN_TIMEOUT_GRACE_MS : 0);
   const [localTurnRemaining, setLocalTurnRemaining] = useState(() => {
     if (online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs) {
-      return Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime));
+      return Math.max(
+        0,
+        onlineSnap.turnTimerMs + TURN_TIMEOUT_GRACE_MS - (Date.now() - onlineSnap.turnStartTime),
+      );
     }
     return 0;
   });
-  const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
 
   // Update local timer every 100ms for smooth progress bar
   useEffect(() => {
@@ -137,7 +150,10 @@ export const Home: React.FC = () => {
     }
 
     const updateTimer = () => {
-      const remaining = Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime));
+      const remaining = Math.max(
+        0,
+        onlineSnap.turnTimerMs + TURN_TIMEOUT_GRACE_MS - (Date.now() - onlineSnap.turnStartTime),
+      );
       setLocalTurnRemaining(remaining);
     };
 
@@ -206,11 +222,6 @@ export const Home: React.FC = () => {
     statusText = "It's a draw!";
   } else if (aiTurnPending) {
     statusText = `${aiName} is thinking...`;
-  } else if (online && state.phase === "playing") {
-    const turnLabel = localTurnRemaining > 0
-      ? `${playerNames[state.currentPlayer]}'s turn — ${Math.ceil(localTurnRemaining / 1000)}s`
-      : `${playerNames[state.currentPlayer]}'s turn`;
-    statusText = turnLabel;
   } else {
     statusText = `${playerNames[state.currentPlayer]}'s turn`;
   }
@@ -235,7 +246,7 @@ export const Home: React.FC = () => {
           accent="text-blue-500"
           testId="score-x"
           turnRemaining={online && state.currentPlayer === "X" && state.phase === 'playing' ? localTurnRemaining : undefined}
-          turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? turnTimerMs : undefined}
+          turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? displayTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "X" && state.phase === 'playing'}
         />
         <div className="text-center">
@@ -253,7 +264,7 @@ export const Home: React.FC = () => {
           accent="text-red-500"
           testId="score-o"
           turnRemaining={online && state.currentPlayer === "O" && state.phase === 'playing' ? localTurnRemaining : undefined}
-          turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? turnTimerMs : undefined}
+          turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? displayTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "O" && state.phase === 'playing'}
         />
       </div>

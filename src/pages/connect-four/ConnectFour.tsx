@@ -13,6 +13,7 @@ import { C4_DIFFICULTIES, C4_PERSONALITIES } from "../../engine/connect-four/typ
 import type { C4Difficulty } from "../../engine/connect-four/types";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 import { isConnectFourSession } from "../../net/RoomSession";
+import { TURN_TIMEOUT_GRACE_MS } from "../../net/protocol";
 import { useTimeoutToast } from "../../hooks/useTimeoutToast";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
@@ -52,18 +53,25 @@ export const ConnectFour: React.FC = () => {
       ? onlineSnap.myName
       : (onlineSnap.opponentName || "PLAYER 2")
     : "PLAYER 2";
-  const playerNames = online
-    ? { X: hostName, O: guestName }
-    : localNames;
+  const onlineFallbackNames = { X: hostName, O: guestName };
 
   const { state, playMove, rematch, resetMatch } = useConnectFour(
     {
-      playerNames,
+      playerNames: online ? onlineFallbackNames : localNames,
       mode: online ? "online" : isPve ? "pve" : "pvp",
       aiDifficulty: difficulty,
     },
     { aiDelayMs: AI_DELAY_MS, session },
   );
+
+  // After connect, session state carries both real names set atomically.
+  const playerNames =
+    online && onlineSnap?.status === "connected" && state.playerNames
+      ? state.playerNames
+      : online
+        ? onlineFallbackNames
+        : localNames;
+
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [emojiBursts, setEmojiBursts] = useState<EmojiBurst[]>([]);
 
@@ -106,14 +114,19 @@ export const ConnectFour: React.FC = () => {
   const rematchWaiting =
     online && state.phase === "finished" && onlineSnap?.rematchRequested === true;
 
-  // Turn timer countdown - initialize immediately from snapshot to avoid mount delay
+  // Turn timer countdown - initialize immediately from snapshot to avoid mount delay.
+  // Display window includes grace so the bar empties when the host will actually skip.
+  const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
+  const displayTimerMs = turnTimerMs + (online ? TURN_TIMEOUT_GRACE_MS : 0);
   const [localTurnRemaining, setLocalTurnRemaining] = useState(() => {
     if (online && onlineSnap?.turnStartTime && onlineSnap?.turnTimerMs) {
-      return Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime));
+      return Math.max(
+        0,
+        onlineSnap.turnTimerMs + TURN_TIMEOUT_GRACE_MS - (Date.now() - onlineSnap.turnStartTime),
+      );
     }
     return 0;
   });
-  const turnTimerMs = onlineSnap?.turnTimerMs ?? 0;
 
   // Update local timer every 100ms for smooth progress bar
   useEffect(() => {
@@ -123,7 +136,10 @@ export const ConnectFour: React.FC = () => {
     }
 
     const updateTimer = () => {
-      const remaining = Math.max(0, onlineSnap.turnTimerMs - (Date.now() - onlineSnap.turnStartTime));
+      const remaining = Math.max(
+        0,
+        onlineSnap.turnTimerMs + TURN_TIMEOUT_GRACE_MS - (Date.now() - onlineSnap.turnStartTime),
+      );
       setLocalTurnRemaining(remaining);
     };
 
@@ -167,11 +183,6 @@ export const ConnectFour: React.FC = () => {
     statusText = "It's a draw!";
   } else if (aiTurnPending) {
     statusText = `${aiName} is thinking...`;
-  } else if (online && state.phase === "playing") {
-    const turnLabel = localTurnRemaining > 0
-      ? `${playerNames[state.currentPlayer]}'s turn — ${Math.ceil(localTurnRemaining / 1000)}s`
-      : `${playerNames[state.currentPlayer]}'s turn`;
-    statusText = turnLabel;
   } else {
     statusText = `${playerNames[state.currentPlayer]}'s turn`;
   }
@@ -209,7 +220,7 @@ export const ConnectFour: React.FC = () => {
           accent="text-blue-500"
           testId="score-x"
           turnRemaining={online && state.currentPlayer === "X" && state.phase === 'playing' ? localTurnRemaining : undefined}
-          turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? turnTimerMs : undefined}
+          turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? displayTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "X" && state.phase === 'playing'}
         />
         <div className="text-center">
@@ -227,7 +238,7 @@ export const ConnectFour: React.FC = () => {
           accent="text-red-500"
           testId="score-o"
           turnRemaining={online && state.currentPlayer === "O" && state.phase === 'playing' ? localTurnRemaining : undefined}
-          turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? turnTimerMs : undefined}
+          turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? displayTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "O" && state.phase === 'playing'}
         />
       </div>
