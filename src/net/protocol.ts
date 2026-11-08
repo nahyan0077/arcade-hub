@@ -47,6 +47,8 @@ export const TURN_TIMER_MS = {
 } as const;
 export type TurnTimerMs = (typeof TURN_TIMER_MS)[GameId];
 export const MAX_TIMEOUTS = 3;
+/** Extra wait after the turn timer so an in-flight move can arrive before we skip. */
+export const TURN_TIMEOUT_GRACE_MS = 500;
 
 export function isChatEmoji(input: unknown): input is ChatEmoji {
   return typeof input === 'string' && (CHAT_EMOJIS as readonly string[]).includes(input);
@@ -64,7 +66,7 @@ export type RoomMessage =
   | { type: 'pong'; roomCode: string; playerId: string; game?: GameId }
   | { type: 'chat'; roomCode: string; playerId: string; name: string; text: string; game?: GameId }
   | { type: 'emoji'; roomCode: string; playerId: string; name: string; emoji: string; game?: GameId }
-  | { type: 'turn-timeout'; roomCode: string; skippedPlayerId: string; nextPlayerId: string; game?: GameId }
+  | { type: 'turn-timeout'; roomCode: string; skippedPlayerId: string; nextPlayerId: string; counts: Record<string, number>; game?: GameId }
   | { type: 'timeout-count'; roomCode: string; counts: Record<string, number>; game?: GameId }
   | { type: 'game-over'; roomCode: string; winnerId: string; reason: 'win' | 'draw' | 'timeout'; game?: GameId };
 

@@ -647,8 +647,8 @@ describe('RoomSession turn timer and timeout system', () => {
     host.onTimeout((name) => hostTimeouts.push(name));
     guest.onTimeout((name) => guestTimeouts.push(name));
 
-    // Advance 1100ms for player X to time out
-    vi.advanceTimersByTime(1100);
+    // Advance past turn timer (1000) + grace (500) for player X to time out
+    vi.advanceTimersByTime(1600);
 
     // Turn should have switched to O on both host and guest
     expect(host.getSnapshot().state.currentPlayer).toBe('O');
@@ -658,12 +658,40 @@ describe('RoomSession turn timer and timeout system', () => {
     expect(hostTimeouts).toEqual(['ALICE']);
     expect(guestTimeouts).toEqual(['ALICE']);
 
+    // Counts must be exactly 1 (no double-count from independent timers)
+    expect(host.getSnapshot().timeoutCounts['host-1']).toBe(1);
+    expect(guest.getSnapshot().timeoutCounts['host-1']).toBe(1);
+
     // Guest (player O) should now be able to play move 4 successfully!
     expect(guest.playMove(4)).toBe(true);
     expect(host.getSnapshot().state.board[4]).toBe('O');
     expect(guest.getSnapshot().state.board[4]).toBe('O');
     expect(host.getSnapshot().state.currentPlayer).toBe('X');
     expect(guest.getSnapshot().state.currentPlayer).toBe('X');
+  });
+
+  it('does not double-count or desync when both peer timers would fire', () => {
+    const { host, guest } = connectTimedPair(1000);
+
+    // Past timer+grace: under the old dual-timer design both peers fired here
+    vi.advanceTimersByTime(1600);
+
+    expect(host.getSnapshot().state.currentPlayer).toBe('O');
+    expect(guest.getSnapshot().state.currentPlayer).toBe('O');
+    expect(host.getSnapshot().timeoutCounts['host-1']).toBe(1);
+    expect(guest.getSnapshot().timeoutCounts['host-1']).toBe(1);
+    expect(host.getSnapshot().state.board).toEqual(guest.getSnapshot().state.board);
+
+    // O moves, then X times out again — one count each, boards stay in sync
+    expect(guest.playMove(0)).toBe(true);
+    vi.advanceTimersByTime(1600);
+
+    expect(host.getSnapshot().state.currentPlayer).toBe('O');
+    expect(guest.getSnapshot().state.currentPlayer).toBe('O');
+    expect(host.getSnapshot().timeoutCounts['host-1']).toBe(2);
+    expect(guest.getSnapshot().timeoutCounts['host-1']).toBe(2);
+    expect(host.getSnapshot().state.board).toEqual(guest.getSnapshot().state.board);
+    expect(host.getSnapshot().state.scores).toEqual(guest.getSnapshot().state.scores);
   });
 
   it('ends game with a win on 3 timeout strikes without disconnecting', () => {
@@ -679,21 +707,21 @@ describe('RoomSession turn timer and timeout system', () => {
     });
 
     // Strike 1: X times out -> turn passes to O
-    vi.advanceTimersByTime(1100);
+    vi.advanceTimersByTime(1600);
     expect(host.getSnapshot().state.currentPlayer).toBe('O');
     // O plays cell 0 -> turn passes back to X
     expect(guest.playMove(0)).toBe(true);
     expect(host.getSnapshot().state.currentPlayer).toBe('X');
 
     // Strike 2: X times out -> turn passes to O
-    vi.advanceTimersByTime(1100);
+    vi.advanceTimersByTime(1600);
     expect(host.getSnapshot().state.currentPlayer).toBe('O');
     // O plays cell 1 -> turn passes back to X
     expect(guest.playMove(1)).toBe(true);
     expect(host.getSnapshot().state.currentPlayer).toBe('X');
 
     // Strike 3: X times out -> 3-strikes forfeit! Game ends, O wins!
-    vi.advanceTimersByTime(1100);
+    vi.advanceTimersByTime(1600);
 
     for (const session of [host, guest]) {
       const snap = session.getSnapshot();
@@ -704,7 +732,30 @@ describe('RoomSession turn timer and timeout system', () => {
       expect(snap.turnStartTime).toBe(0);
     }
 
+    // Score must not double-apply from local + remote game-over
+    expect(host.getSnapshot().state.scores.O).toBe(1);
+    expect(guest.getSnapshot().state.scores.O).toBe(1);
+
     expect(hostLossEvent).toEqual({ loser: 'ALICE', winner: 'BOB' });
     expect(guestLossEvent).toEqual({ loser: 'ALICE', winner: 'BOB' });
+  });
+
+  it('keeps both peers on the same board after repeated timeouts', () => {
+    const { host, guest } = connectTimedPair(500);
+
+    for (let i = 0; i < 2; i++) {
+      vi.advanceTimersByTime(1100); // 500 timer + 500 grace + tick margin
+      expect(host.getSnapshot().state.currentPlayer).toBe(
+        guest.getSnapshot().state.currentPlayer,
+      );
+      expect(host.getSnapshot().state.board).toEqual(guest.getSnapshot().state.board);
+      expect(host.getSnapshot().timeoutCounts).toEqual(guest.getSnapshot().timeoutCounts);
+
+      // Alternate a real move so the board changes under timeout pressure
+      const mover = host.getSnapshot().state.currentPlayer === 'X' ? host : guest;
+      const cell = i * 2;
+      expect(mover.playMove(cell)).toBe(true);
+      expect(host.getSnapshot().state.board).toEqual(guest.getSnapshot().state.board);
+    }
   });
 });

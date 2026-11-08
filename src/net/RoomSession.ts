@@ -21,6 +21,7 @@ import {
   isChatEmoji,
   markForRole,
   MAX_TIMEOUTS,
+  TURN_TIMEOUT_GRACE_MS,
   TURN_TIMER_MS,
 } from './protocol';
 import type { RoomTransport } from './transport';
@@ -434,8 +435,8 @@ export class RoomSession<G extends GameId = GameId> {
     if (this.snapshot.status !== 'connected') return;
     if (this.snapshot.state.phase !== 'playing') return;
 
-    const newCount = (this.timeoutCounts[message.skippedPlayerId] ?? 0) + 1;
-    this.timeoutCounts[message.skippedPlayerId] = newCount;
+    // Sync counts from the host so peers never double-count independently.
+    this.timeoutCounts = { ...message.counts };
     this.update({ timeoutCounts: { ...this.timeoutCounts } });
 
     const skippedPlayerName =
@@ -463,6 +464,7 @@ export class RoomSession<G extends GameId = GameId> {
 
   private onGameOver(message: Extract<RoomMessage, { type: 'game-over' }>): void {
     if (this.snapshot.status !== 'connected') return;
+    if (this.snapshot.state.phase === 'finished') return;
     if (message.reason === 'timeout') {
       const loserMark: Player =
         message.winnerId === this.options.myId
@@ -476,6 +478,7 @@ export class RoomSession<G extends GameId = GameId> {
         loserMark === this.snapshot.myMark
           ? (this.snapshot.opponentName ?? 'Opponent')
           : this.options.myName;
+      this.emitTimeout(loserName);
       this.emitTimeoutLoss(loserName, winnerName);
     }
     this.applyGameOver(message.winnerId);
@@ -629,43 +632,43 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   private checkTurnTimer(): void {
+    // Host-authoritative: only the host decides timeouts. Guests apply via
+    // the turn-timeout message so both peers cannot double-count or race.
+    if (this.options.role !== 'host') return;
     if (this.snapshot.status !== 'connected') return;
     if (this.snapshot.state.phase !== 'playing') return;
     if (this.snapshot.turnStartTime === 0) return;
 
     const elapsed = Date.now() - this.snapshot.turnStartTime;
-    if (elapsed >= this.options.turnTimerMs) {
+    if (elapsed >= this.options.turnTimerMs + TURN_TIMEOUT_GRACE_MS) {
       this.handleTurnTimeout();
     }
   }
 
   private handleTurnTimeout(): void {
+    if (this.options.role !== 'host') return;
     if (this.snapshot.status !== 'connected') return;
     if (this.snapshot.state.phase !== 'playing') return;
 
     const currentPlayerId = this.snapshot.state.currentPlayer === this.snapshot.myMark
       ? this.options.myId
-      : (this.options.role === 'host' ? this.guestId : this.hostId);
+      : this.guestId;
     const nextPlayerId = this.snapshot.state.currentPlayer === this.snapshot.myMark
-      ? (this.options.role === 'host' ? this.guestId : this.hostId)
+      ? this.guestId
       : this.options.myId;
 
     if (!currentPlayerId || !nextPlayerId) return;
 
-    // Get the player name who timed out
     const timedOutPlayerName = currentPlayerId === this.options.myId
       ? this.options.myName
       : this.snapshot.opponentName ?? 'Opponent';
 
-    // Increment timeout count for the player who timed out
     const newCount = (this.timeoutCounts[currentPlayerId] ?? 0) + 1;
     this.timeoutCounts[currentPlayerId] = newCount;
     this.update({ timeoutCounts: { ...this.timeoutCounts } });
 
-    // Notify UI of timeout
     this.emitTimeout(timedOutPlayerName);
 
-    // Check for 3-strikes loss
     if (newCount >= MAX_TIMEOUTS) {
       const winnerName = nextPlayerId === this.options.myId
         ? this.options.myName
@@ -675,16 +678,14 @@ export class RoomSession<G extends GameId = GameId> {
       return;
     }
 
-    // Auto-skip turn: apply a pass (no-op move) and switch to next player
-    // We simulate this by posting a turn-timeout message and updating state
     this.post({
       type: 'turn-timeout',
       roomCode: this.options.roomCode,
       skippedPlayerId: currentPlayerId,
       nextPlayerId,
+      counts: { ...this.timeoutCounts },
     });
 
-    // Switch turn locally
     this.applyMove(-1);
   }
 
@@ -701,6 +702,8 @@ export class RoomSession<G extends GameId = GameId> {
   }
 
   private applyGameOver(winnerId: string): void {
+    if (this.snapshot.state.phase === 'finished') return;
+
     const winnerMark: Player =
       winnerId === this.options.myId
         ? this.snapshot.myMark
