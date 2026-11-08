@@ -31,14 +31,17 @@ export async function isPageScrollable(page: Page): Promise<boolean> {
   );
 }
 
-async function openStartForGame(page: Page, game: 'tictactoe' | 'connect-four') {
+async function openStartForGame(
+  page: Page,
+  game: 'tictactoe' | 'connect-four' | 'arrow-race',
+) {
   if (game === 'tictactoe') {
     await page.goto('/start');
     return;
   }
   await page.goto('/');
   await page
-    .getByTestId('hub-card-connect-four')
+    .getByTestId(`hub-card-${game}`)
     .getByRole('button', { name: 'Play' })
     .click();
   await expect(page).toHaveURL(/\/start/);
@@ -47,7 +50,7 @@ async function openStartForGame(page: Page, game: 'tictactoe' | 'connect-four') 
 export async function createRoom(
   page: Page,
   name: string,
-  game: 'tictactoe' | 'connect-four' = 'tictactoe',
+  game: 'tictactoe' | 'connect-four' | 'arrow-race' = 'tictactoe',
 ): Promise<string> {
   await openStartForGame(page, game);
   await page.getByPlaceholder('Enter your name').fill(name);
@@ -66,7 +69,7 @@ export async function joinRoom(
   page: Page,
   name: string,
   code: string,
-  game: 'tictactoe' | 'connect-four' = 'tictactoe',
+  game: 'tictactoe' | 'connect-four' | 'arrow-race' = 'tictactoe',
 ): Promise<void> {
   await openStartForGame(page, game);
   await page.getByPlaceholder('Enter your name').fill(name);
