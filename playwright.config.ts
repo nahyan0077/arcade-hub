@@ -17,6 +17,11 @@ const relayServer =
         command: 'npm run relay',
         port: 8787,
         reuseExistingServer: true,
+        env: {
+          LIVEKIT_URL: '',
+          LIVEKIT_API_KEY: '',
+          LIVEKIT_API_SECRET: '',
+        },
         timeout: 15_000,
       };
 

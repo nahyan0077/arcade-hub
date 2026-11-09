@@ -110,7 +110,7 @@ export const LeafField: React.FC<LeafFieldProps> = ({
 
     tick();
     return () => cancelAnimationFrame(animId);
-  }, [stimulus?.moving, dimensions]);
+  }, [stimulus, dimensions]);
 
   const pointingAngle = stimulus ? directionToRotate(stimulus.pointing) : 0;
 

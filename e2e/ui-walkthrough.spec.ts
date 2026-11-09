@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { test, shots, newMutedContext, createRoom, joinRoom, isPageScrollable } from './helpers';
+import { test, shots, newMutedContext, createRoom, joinRoom } from './helpers';
 
 /**
  * Broad UI walkthrough: navigation, validation, lobby, all three games,
@@ -8,7 +8,7 @@ import { test, shots, newMutedContext, createRoom, joinRoom, isPageScrollable } 
 test.describe('UI walkthrough', () => {
   test('hub → all three games → start validation → lobby leave', async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.goto('/');
     await expect(page.getByTestId('hub-card-tictactoe')).toBeVisible();
     await expect(page.getByTestId('hub-card-connect-four')).toBeVisible();
@@ -41,7 +41,7 @@ test.describe('UI walkthrough', () => {
 
   test('tictactoe 2P local: alternate turns, wrong-cell guard, draw board reset', async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.goto('/start');
     await page.getByPlaceholder('Enter your name').fill('Ann');
     await page.getByRole('button', { name: 'Play as X' }).click();
@@ -78,7 +78,7 @@ test.describe('UI walkthrough', () => {
 
   test('connect-four 2P local: gravity, win line, rematch keeps score', async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.goto('/');
     await page.getByTestId('hub-card-connect-four').getByRole('button', { name: 'Play' }).click();
     await page.getByPlaceholder('Enter your name').fill('Cara');
@@ -102,7 +102,7 @@ test.describe('UI walkthrough', () => {
 
   test('arrow-race vs AI: wrong answer awards AI, correct awards human', async ({
     page,
-  }, testInfo) => {
+  }) => {
     await page.goto('/');
     await page.getByTestId('hub-card-arrow-race').getByRole('button', { name: 'Play' }).click();
     await expect(page).toHaveURL(/\/start/);
@@ -125,7 +125,8 @@ test.describe('UI walkthrough', () => {
 
     await expect(page.getByTestId('answer-up')).toBeEnabled({ timeout: 5000 });
     const label2 = (await page.getByTestId('race-arrow').getAttribute('aria-label')) ?? '';
-    const moving2 = /moving (up|down|left|right)/.exec(label2)?.[1]!;
+    const match2 = /moving (up|down|left|right)/.exec(label2);
+    const moving2 = match2 ? match2[1] : 'up';
     await page.getByTestId(`answer-${moving2}`).click();
     await expect(page.getByTestId('score-x')).toHaveText(/1/);
   });
@@ -170,7 +171,7 @@ test.describe('UI walkthrough', () => {
     await context.close();
   });
 
-  test('online arrow-race: wrong host answer scores guest', async ({ browser }, testInfo) => {
+  test('online arrow-race: wrong host answer scores guest', async ({ browser }) => {
     const context = await newMutedContext(browser);
     const host = await context.newPage();
     const guest = await context.newPage();
@@ -181,7 +182,8 @@ test.describe('UI walkthrough', () => {
     await expect(guest).toHaveURL(/\/room/);
 
     const label = (await host.getByTestId('race-arrow').getAttribute('aria-label')) ?? '';
-    const moving = /moving (up|down|left|right)/.exec(label)?.[1]!;
+    const match = /moving (up|down|left|right)/.exec(label);
+    const moving = match ? match[1] : 'up';
     const dirs = ['up', 'down', 'left', 'right'] as const;
     const wrong = dirs.find((d) => d !== moving)!;
     await host.getByTestId(`answer-${wrong}`).click();

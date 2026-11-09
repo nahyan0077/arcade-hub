@@ -121,24 +121,6 @@ const DirectionRush: React.FC = () => {
     prevInstructionRef.current = state.instruction;
   }, [state?.instruction]);
 
-  // Quick mode countdown timer
-  useEffect(() => {
-    if (navMode !== 'quick' || showResults || state?.phase !== 'playing') return;
-
-    const timer = setInterval(() => {
-      setSecondsRemaining((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          finishGame();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [navMode, showResults, state?.phase]);
-
   const finishGame = useCallback(() => {
     if (!state) return;
     pause();
@@ -165,6 +147,24 @@ const DirectionRush: React.FC = () => {
     });
     setShowResults(true);
   }, [state, pause]);
+
+  // Quick mode countdown timer
+  useEffect(() => {
+    if (navMode !== 'quick' || showResults || state?.phase !== 'playing') return;
+
+    const timer = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          finishGame();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [navMode, showResults, state?.phase, finishGame]);
 
   // Handle user answer
   const handleAnswer = useCallback(

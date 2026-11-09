@@ -46,13 +46,13 @@ export function computeLeaves(
   const remainder = count - perSide * 4;
 
   // Helper to add a leaf
-  const addLeaf = (side: string, offsetPx: number, speedMult: number) => {
+  const addLeaf = (side: LeafMeta['spawnSide'], offsetPx: number, speedMult: number) => {
     const speed = 2 + Math.random() * 3; // 2–5 px/frame
     result.push({
       rotate: stimulus.pointing === 'up' ? 0 : stimulus.pointing === 'down' ? 180 : stimulus.pointing === 'left' ? 270 : 90,
       move: stimulus.moving,
       speed: speed * speedMult,
-      spawnSide: side as any,
+      spawnSide: side,
       offset: offsetPx,
     });
   };
@@ -67,8 +67,9 @@ export function computeLeaves(
   for (let i = 0; i < perSide; i++) addLeaf('right', width - 40 - i * (height / (perSide + 1)), 1);
 
   // Remainder in center with random spawn
+  const sides: LeafMeta['spawnSide'][] = ['top', 'bottom', 'left', 'right'];
   for (let i = 0; i < remainder; i++) {
-    const side = ['top', 'bottom', 'left', 'right'][i % 4];
+    const side = sides[i % 4];
     const offset = 40 + Math.random() * (side === 'top' || side === 'bottom' ? width : height);
     addLeaf(side, offset, 0.8 + Math.random() * 0.4);
   }
