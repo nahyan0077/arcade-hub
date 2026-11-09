@@ -69,7 +69,7 @@ export const Queue = () => {
   };
 
   return (
-    <div className="animate-fade-in relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-6 overflow-hidden">
+    <div className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-6 overflow-hidden">
       {/* Background glow */}
       <div
         className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl"

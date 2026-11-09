@@ -243,7 +243,7 @@ export const Home: React.FC = () => {
           <span>← Hub</span>
         </button>
 
-        <h1 className="animate-fade-in select-none text-2xl font-black tracking-wider sm:text-3xl md:text-4xl">
+        <h1 className="select-none text-2xl font-black tracking-wider sm:text-3xl md:text-4xl">
           <span className="text-blue-500">TIC</span>{" "}
           <span className="text-gray-100">TAC</span>{" "}
           <span className="text-red-500">TOE</span>

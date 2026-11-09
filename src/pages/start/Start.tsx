@@ -131,7 +131,7 @@ export const Start = () => {
   const showPvpButton = local2P;
 
   return (
-    <div className="animate-fade-in relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-4 overflow-hidden">
+    <div className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-4 overflow-hidden">
       {/* Background glow */}
       <div
         className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl"
@@ -157,19 +157,19 @@ export const Start = () => {
         <div className="flex justify-center gap-4 sm:gap-6 w-full pb-4 sm:pb-6 select-none">
           {isRace ? (
             <>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-violet-500 font-extrabold tracking-wider"> ARROW </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider" style={{ animationDelay: "90ms" }}> RACE </h2>
+              <h2 className="text-3xl sm:text-4xl text-violet-500 font-extrabold tracking-wider"> ARROW </h2>
+              <h2 className="text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider"> RACE </h2>
             </>
           ) : isC4 ? (
             <>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-yellow-500 font-extrabold tracking-wider"> CONNECT </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider" style={{ animationDelay: "90ms" }}> FOUR </h2>
+              <h2 className="text-3xl sm:text-4xl text-yellow-500 font-extrabold tracking-wider"> CONNECT </h2>
+              <h2 className="text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider"> FOUR </h2>
             </>
           ) : (
             <>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-blue-500 font-extrabold tracking-wider"> TIC </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider" style={{ animationDelay: "90ms" }}> TAC </h2>
-              <h2 className="animate-pop text-3xl sm:text-4xl text-red-500 font-extrabold tracking-wider" style={{ animationDelay: "180ms" }}> TOE </h2>
+              <h2 className="text-3xl sm:text-4xl text-blue-500 font-extrabold tracking-wider"> TIC </h2>
+              <h2 className="text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider"> TAC </h2>
+              <h2 className="text-3xl sm:text-4xl text-red-500 font-extrabold tracking-wider"> TOE </h2>
             </>
           )}
         </div>
