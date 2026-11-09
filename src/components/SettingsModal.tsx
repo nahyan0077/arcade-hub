@@ -68,7 +68,11 @@ export const SettingsModal: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-zinc-800 bg-zinc-900/80 px-4 pt-2 gap-1 overflow-x-auto">
+        <div
+          role="tablist"
+          aria-label="Arcade settings tabs"
+          className="flex border-b border-zinc-800 bg-zinc-900/80 px-4 pt-2 gap-1 overflow-x-auto"
+        >
           {[
             { id: 'audio', label: '🔊 Audio', desc: 'Sound & Volume' },
             { id: 'display', label: '🎨 Display', desc: 'Themes & Effects' },
@@ -77,6 +81,11 @@ export const SettingsModal: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`tabpanel-${tab.id}`}
+              tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => handleTabChange(tab.id as TabKey)}
               className={`px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-t-lg transition whitespace-nowrap border-b-2 ${
                 activeTab === tab.id
@@ -90,7 +99,12 @@ export const SettingsModal: React.FC = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div
+          role="tabpanel"
+          id={`tabpanel-${activeTab}`}
+          aria-labelledby={`tab-${activeTab}`}
+          className="flex-1 overflow-y-auto p-6 space-y-6"
+        >
           {/* AUDIO TAB */}
           {activeTab === 'audio' && (
             <div className="space-y-5 animate-fade-in">
@@ -108,6 +122,7 @@ export const SettingsModal: React.FC = () => {
                     settings.muted ? 'bg-rose-500' : 'bg-emerald-600'
                   }`}
                   aria-pressed={settings.muted}
+                  aria-label="Mute All Sounds"
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -127,6 +142,7 @@ export const SettingsModal: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  aria-label="Master Volume"
                   min="0"
                   max="1"
                   step="0.05"
@@ -147,6 +163,7 @@ export const SettingsModal: React.FC = () => {
                 </div>
                 <input
                   type="range"
+                  aria-label="Game Effects SFX Volume"
                   min="0"
                   max="1"
                   step="0.05"
@@ -218,6 +235,8 @@ export const SettingsModal: React.FC = () => {
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                       settings.matrixRain ? 'bg-cyan-600' : 'bg-zinc-700'
                     }`}
+                    aria-pressed={settings.matrixRain}
+                    aria-label="Toggle matrix rain canvas"
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -237,6 +256,7 @@ export const SettingsModal: React.FC = () => {
                     </div>
                     <input
                       type="range"
+                      aria-label="Matrix Rain Opacity"
                       min="0.05"
                       max="0.4"
                       step="0.02"
@@ -262,6 +282,8 @@ export const SettingsModal: React.FC = () => {
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     settings.reducedMotion ? 'bg-cyan-600' : 'bg-zinc-700'
                   }`}
+                  aria-pressed={settings.reducedMotion}
+                  aria-label="Toggle reduced motion"
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -285,6 +307,8 @@ export const SettingsModal: React.FC = () => {
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     settings.confettiEnabled ? 'bg-cyan-600' : 'bg-zinc-700'
                   }`}
+                  aria-pressed={settings.confettiEnabled}
+                  aria-label="Toggle victory confetti"
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
@@ -470,6 +494,8 @@ export const SettingsModal: React.FC = () => {
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     settings.hapticsEnabled ? 'bg-cyan-600' : 'bg-zinc-700'
                   }`}
+                  aria-pressed={settings.hapticsEnabled}
+                  aria-label="Toggle mobile haptic feedback"
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${

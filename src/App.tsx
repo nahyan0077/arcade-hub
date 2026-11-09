@@ -12,6 +12,7 @@ import { Queue } from './pages/queue/Queue'
 import { OnlineSessionProvider, useOnlineSession } from './net/OnlineSessionContext'
 import { SettingsProvider } from './settings/SettingsContext'
 import { SettingsModal } from './components/SettingsModal'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 function RoomRouter() {
   const { session } = useOnlineSession()
@@ -59,14 +60,16 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <SettingsProvider>
-      <OnlineSessionProvider>
-        <Router>
-          <SettingsModal />
-          <AnimatedRoutes />
-        </Router>
-      </OnlineSessionProvider>
-    </SettingsProvider>
+    <ErrorBoundary>
+      <SettingsProvider>
+        <OnlineSessionProvider>
+          <Router>
+            <SettingsModal />
+            <AnimatedRoutes />
+          </Router>
+        </OnlineSessionProvider>
+      </SettingsProvider>
+    </ErrorBoundary>
   )
 }
 
