@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Hub } from './pages/hub/Hub'
 import { Landing } from './pages/landing/Landing'
 import { Home } from './pages/home/Home'
@@ -25,26 +25,45 @@ function RoomRouter() {
   return <Home />
 }
 
+function AnimatedRoutes() {
+  const location = useLocation()
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="w-full h-full"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Hub />} />
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/start" element={<Start />} />
+          <Route path="/game" element={<Home />} />
+          <Route path="/connect-four" element={<ConnectFour />} />
+          <Route path="/arrow-race" element={<ArrowRace />} />
+          <Route path="/direction-rush" element={<DirectionRush />} />
+          <Route path="/lobby" element={<Lobby />} />
+          <Route path="/room" element={<RoomRouter />} />
+          <Route path="/queue" element={<Queue />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
 function App() {
   return (
     <SettingsProvider>
       <OnlineSessionProvider>
         <Router>
           <SettingsModal />
-          <Routes>
-            <Route path='/' element={<Hub />} />
-            <Route path='/landing' element={<Landing />} />
-            <Route path='/start' element={<Start />} />
-            <Route path='/game' element={<Home />} />
-            <Route path='/connect-four' element={<ConnectFour />} />
-            <Route path='/arrow-race' element={<ArrowRace />} />
-            <Route path='/direction-rush' element={<DirectionRush />} />
-            <Route path='/lobby' element={<Lobby />} />
-            <Route path='/room' element={<RoomRouter />} />
-            <Route path='/queue' element={<Queue />} />
-
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AnimatedRoutes />
         </Router>
       </OnlineSessionProvider>
     </SettingsProvider>
