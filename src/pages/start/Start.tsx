@@ -23,13 +23,6 @@ type StartGame = "tictactoe" | "connect-four" | "arrow-race";
 
 const quickPlayEnabled = (): boolean => Boolean(import.meta.env.VITE_WS_URL);
 
-const optionClass = (active: boolean): string =>
-  `rounded-lg border-2 px-4 py-2 text-sm font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
-    active
-      ? "border-blue-500 bg-blue-500/15 text-blue-300"
-      : "border-zinc-600 text-zinc-400 hover:border-zinc-400 hover:text-gray-200"
-  }`;
-
 export const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,201 +136,328 @@ export const Start = () => {
   const showPvpButton = local2P;
 
   return (
-    <div className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-900 px-4 py-4 overflow-hidden">
-      {/* Background glow */}
+    <main className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-950 px-3 sm:px-4 py-4 overflow-hidden text-gray-100">
+      {/* Dynamic ambient background glow */}
       <div
-        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl"
+        className={`pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full ${
+          isRace
+            ? "bg-violet-600/15"
+            : isC4
+              ? "bg-amber-500/15"
+              : "bg-blue-600/15"
+        } blur-3xl`}
         aria-hidden="true"
       />
 
       {/* Top Bar with Hub Exit & Settings */}
-      <div className="w-full max-w-md flex items-center justify-between mb-4 z-10">
+      <div className="w-full max-w-xl flex items-center justify-between mb-3 z-10 px-1">
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-600 hover:bg-zinc-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
           aria-label="Back to hub"
         >
           <span>← Hub</span>
         </button>
-        <span className="text-[11px] font-semibold tracking-widest uppercase text-zinc-500">
-          Match Setup
-        </span>
+
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[11px] font-black tracking-widest uppercase text-zinc-400">
+            Battle Setup
+          </span>
+        </div>
+
         <button
           type="button"
           onClick={() => {
-            playEffect('click');
+            playEffect("click");
             openSettings();
           }}
           aria-label="Open settings"
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300"
+          className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300"
         >
           <span>{settings.avatar}</span>
           <span>⚙️</span>
         </button>
       </div>
 
-      <div className="w-full max-w-md rounded-2xl border border-zinc-800/90 bg-zinc-900/80 p-5 sm:p-7 shadow-2xl backdrop-blur-md flex flex-col items-center z-10">
-        <div className="flex justify-center gap-4 sm:gap-6 w-full pb-4 sm:pb-6 select-none">
+      {/* Main Glassmorphism Card */}
+      <div className="w-full max-w-xl rounded-3xl border border-zinc-800/80 bg-zinc-900/90 p-5 sm:p-7 shadow-2xl backdrop-blur-xl flex flex-col items-center z-10 space-y-5">
+        {/* Game Title Heading */}
+        <div className="flex justify-center items-center gap-3 w-full pb-1 select-none">
           {isRace ? (
             <>
-              <h2 className="text-3xl sm:text-4xl text-violet-500 font-extrabold tracking-wider"> ARROW </h2>
-              <h2 className="text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider"> RACE </h2>
+              <h2 className="text-3xl sm:text-4xl text-violet-400 font-black tracking-wider">ARROW</h2>
+              <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">RACE</h2>
             </>
           ) : isC4 ? (
             <>
-              <h2 className="text-3xl sm:text-4xl text-yellow-500 font-extrabold tracking-wider"> CONNECT </h2>
-              <h2 className="text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider"> FOUR </h2>
+              <h2 className="text-3xl sm:text-4xl text-amber-400 font-black tracking-wider">CONNECT</h2>
+              <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">FOUR</h2>
             </>
           ) : (
             <>
-              <h2 className="text-3xl sm:text-4xl text-blue-500 font-extrabold tracking-wider"> TIC </h2>
-              <h2 className="text-3xl sm:text-4xl text-gray-100 font-extrabold tracking-wider"> TAC </h2>
-              <h2 className="text-3xl sm:text-4xl text-red-500 font-extrabold tracking-wider"> TOE </h2>
+              <h2 className="text-3xl sm:text-4xl text-blue-400 font-black tracking-wider">TIC</h2>
+              <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">TAC</h2>
+              <h2 className="text-3xl sm:text-4xl text-red-500 font-black tracking-wider">TOE</h2>
             </>
           )}
         </div>
+
+        {/* 3-Step Progress Indicator */}
+        <div className="w-full flex items-center justify-between px-2 text-[11px] font-bold text-zinc-400 border-y border-zinc-800/80 py-2.5">
+          <div className="flex items-center gap-1.5 text-cyan-400">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-[10px] font-black border border-cyan-500/40">
+              1
+            </span>
+            <span>Game Mode</span>
+          </div>
+          <div className="h-[1px] w-8 sm:w-16 bg-zinc-800" />
+          <div className="flex items-center gap-1.5 text-zinc-300">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-black border border-zinc-700">
+              2
+            </span>
+            <span>Customize</span>
+          </div>
+          <div className="h-[1px] w-8 sm:w-16 bg-zinc-800" />
+          <div className="flex items-center gap-1.5 text-zinc-400">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-black border border-zinc-700">
+              3
+            </span>
+            <span>Launch</span>
+          </div>
+        </div>
+
         <Toaster />
 
-        {showMarkPicker && (
-          <div className="flex gap-4 mb-4 sm:mb-5">
-            <button
-              type="button"
-              aria-label="Play as X"
-              aria-pressed={playerType === "X"}
-              className={`box-content h-16 w-16 sm:h-20 sm:w-20 p-2 sm:p-3 border-2 text-center rounded-2xl text-4xl sm:text-6xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
-                playerType === "X"
-                  ? "border-blue-500 bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/40"
-                  : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-blue-400 hover:bg-zinc-800"
-              }`}
-              onClick={() => setPlayerType("X")}
-            >
-              X
-            </button>
-
-            <button
-              type="button"
-              aria-label="Play as O"
-              aria-pressed={playerType === "O"}
-              className={`box-content h-16 w-16 sm:h-20 sm:w-20 p-2 sm:p-3 border-2 text-center rounded-2xl text-4xl sm:text-6xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
-                playerType === "O"
-                  ? "border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.35)] ring-2 ring-red-500/40"
-                  : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-red-400 hover:bg-zinc-800"
-              }`}
-              onClick={() => setPlayerType("O")}
-            >
-              O
-            </button>
+        {/* STEP 1: Game Mode Cards */}
+        <div className="w-full flex flex-col gap-2">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1">
+            Step 1: Choose How to Play
           </div>
-        )}
-        {!showMarkPicker && <div className="mb-2" aria-hidden="true" />}
+          <div
+            className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full"
+            role="group"
+            aria-label="Game mode"
+          >
+            {showPvpButton && (
+              <button
+                type="button"
+                aria-label="2 Players"
+                aria-pressed={mode === "pvp"}
+                onClick={() => setMode("pvp")}
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                  mode === "pvp"
+                    ? "border-blue-500 bg-blue-500/20 text-white shadow-[0_0_15px_rgba(59,130,246,0.25)] ring-1 ring-blue-400/50 scale-[1.02]"
+                    : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
+                }`}
+              >
+                <span aria-hidden="true" className="text-xl mb-1 select-none">👥</span>
+                <span className="text-xs font-black">2 Players</span>
+                <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Pass & Play</span>
+              </button>
+            )}
 
-        <input
-          className="h-12 w-64 max-w-full px-4 border-2 border-zinc-700 mb-4 sm:mb-5 text-center rounded-xl bg-zinc-800/90 hover:border-zinc-500 text-xl sm:text-2xl font-bold tracking-wider text-gray-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
-          placeholder="Enter your name"
-          maxLength={24}
-          style={{ textTransform: "uppercase" }}
-          ref={inputRef}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        <div className="mb-4 flex flex-wrap justify-center gap-2 sm:gap-3" role="group" aria-label="Game mode">
-          {showPvpButton && (
             <button
               type="button"
-              aria-pressed={mode === "pvp"}
-              className={optionClass(mode === "pvp")}
-              onClick={() => setMode("pvp")}
+              aria-label="vs AI"
+              aria-pressed={effectiveMode === "pve"}
+              onClick={() => setMode("pve")}
+              className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                effectiveMode === "pve"
+                  ? "border-purple-500 bg-purple-500/20 text-white shadow-[0_0_15px_rgba(168,85,247,0.25)] ring-1 ring-purple-400/50 scale-[1.02]"
+                  : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
+              }`}
             >
-              2 Players
+              <span aria-hidden="true" className="text-xl mb-1 select-none">🤖</span>
+              <span className="text-xs font-black">vs AI</span>
+              <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Solo Match</span>
             </button>
+
+            <button
+              type="button"
+              aria-label="Online"
+              aria-pressed={mode === "online"}
+              onClick={() => setMode("online")}
+              className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                mode === "online"
+                  ? "border-emerald-500 bg-emerald-500/20 text-white shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/50 scale-[1.02]"
+                  : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
+              }`}
+            >
+              <span aria-hidden="true" className="text-xl mb-1 select-none">🌐</span>
+              <span className="text-xs font-black">Online</span>
+              <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Host or Join</span>
+            </button>
+
+            {quickPlayEnabled() && (
+              <button
+                type="button"
+                aria-label="Quick Play"
+                aria-pressed={mode === "quick"}
+                onClick={() => setMode("quick")}
+                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                  mode === "quick"
+                    ? "border-amber-500 bg-amber-500/20 text-white shadow-[0_0_15px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/50 scale-[1.02]"
+                    : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
+                }`}
+              >
+                <span aria-hidden="true" className="text-xl mb-1 select-none">⚡</span>
+                <span className="text-xs font-black">Quick Play</span>
+                <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Fast Queue</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* STEP 2: Player & Match Customization */}
+        <div className="w-full flex flex-col gap-3 pt-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1">
+            Step 2: Player Setup
+          </div>
+
+          {/* Mark Selection for Tic-Tac-Toe */}
+          {showMarkPicker && (
+            <div className="flex flex-col items-center gap-1.5 w-full">
+              <span className="text-xs text-zinc-400 font-medium">Pick Your Symbol</span>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  aria-label="Play as X"
+                  aria-pressed={playerType === "X"}
+                  className={`box-content h-16 w-16 sm:h-18 sm:w-18 p-2 border-2 text-center rounded-2xl text-4xl sm:text-5xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+                    playerType === "X"
+                      ? "border-blue-500 bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/40"
+                      : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-blue-400 hover:bg-zinc-800"
+                  }`}
+                  onClick={() => setPlayerType("X")}
+                >
+                  X
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Play as O"
+                  aria-pressed={playerType === "O"}
+                  className={`box-content h-16 w-16 sm:h-18 sm:w-18 p-2 border-2 text-center rounded-2xl text-4xl sm:text-5xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
+                    playerType === "O"
+                      ? "border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.35)] ring-2 ring-red-500/40"
+                      : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-red-400 hover:bg-zinc-800"
+                  }`}
+                  onClick={() => setPlayerType("O")}
+                >
+                  O
+                </button>
+              </div>
+            </div>
           )}
-          <button
-            type="button"
-            aria-pressed={effectiveMode === "pve"}
-            className={optionClass(effectiveMode === "pve")}
-            onClick={() => setMode("pve")}
-          >
-            vs AI
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "online"}
-            className={optionClass(mode === "online")}
-            onClick={() => setMode("online")}
-          >
-            Online
-          </button>
-          {quickPlayEnabled() && (
-            <button
-              type="button"
-              aria-pressed={mode === "quick"}
-              className={optionClass(mode === "quick")}
-              onClick={() => setMode("quick")}
+
+          {/* Name Input Field */}
+          <div className="flex items-center justify-center w-full">
+            <div className="relative w-full max-w-sm">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg select-none">
+                {settings.avatar || "👤"}
+              </span>
+              <input
+                className="h-12 w-full pl-10 pr-4 border-2 border-zinc-700 text-center rounded-xl bg-zinc-800/90 hover:border-zinc-500 text-lg sm:text-xl font-bold tracking-wider text-gray-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+                placeholder="Enter your name"
+                maxLength={24}
+                style={{ textTransform: "uppercase" }}
+                ref={inputRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* AI Difficulty Selector */}
+          {(effectiveMode === "pve" || (isRace && mode !== "online" && mode !== "quick")) && (
+            <div className="flex flex-col items-center gap-1.5 w-full pt-1">
+              <span className="text-xs text-zinc-400 font-medium">Difficulty Level</span>
+              <div
+                className="flex flex-wrap justify-center gap-2 w-full"
+                role="group"
+                aria-label="AI difficulty"
+              >
+                {difficulties.map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    aria-pressed={difficulty === level}
+                    title={`AI personality: ${personalityName(level)}`}
+                    className={`rounded-xl border-2 px-3.5 py-1.5 text-xs sm:text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 ${
+                      difficulty === level
+                        ? "border-purple-500 bg-purple-500/25 text-purple-200 shadow-[0_0_12px_rgba(168,85,247,0.3)] ring-1 ring-purple-400/40"
+                        : "border-zinc-700 bg-zinc-800/60 text-zinc-400 hover:border-zinc-500 hover:text-gray-200"
+                    }`}
+                    onClick={() => setDifficulty(level)}
+                  >
+                    {level.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Online Room Controls */}
+          {mode === "online" && (
+            <div
+              className="flex flex-col items-center gap-3 w-full pt-1"
+              role="group"
+              aria-label="Online room"
             >
-              Quick Play
-            </button>
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  aria-pressed={onlineAction === "create"}
+                  className={`rounded-xl border-2 px-4 py-2 text-xs sm:text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
+                    onlineAction === "create"
+                      ? "border-emerald-500 bg-emerald-500/25 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)] ring-1 ring-emerald-400/40"
+                      : "border-zinc-700 bg-zinc-800/60 text-zinc-400 hover:border-zinc-500 hover:text-gray-200"
+                  }`}
+                  onClick={() => setOnlineAction("create")}
+                >
+                  Create Room
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={onlineAction === "join"}
+                  className={`rounded-xl border-2 px-4 py-2 text-xs sm:text-sm font-bold transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
+                    onlineAction === "join"
+                      ? "border-emerald-500 bg-emerald-500/25 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)] ring-1 ring-emerald-400/40"
+                      : "border-zinc-700 bg-zinc-800/60 text-zinc-400 hover:border-zinc-500 hover:text-gray-200"
+                  }`}
+                  onClick={() => setOnlineAction("join")}
+                >
+                  Join Room
+                </button>
+              </div>
+
+              {onlineAction === "join" && (
+                <input
+                  className="h-11 w-56 max-w-full rounded-xl border-2 border-zinc-700 bg-zinc-800 px-3 text-center text-lg font-bold uppercase tracking-widest text-gray-100 placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none"
+                  placeholder="Room code"
+                  aria-label="Room code"
+                  maxLength={7}
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                />
+              )}
+            </div>
           )}
         </div>
 
-        {(effectiveMode === "pve" || (isRace && mode !== "online" && mode !== "quick")) && (
-          <div className="mb-4 flex flex-wrap justify-center gap-1.5 sm:gap-2" role="group" aria-label="AI difficulty">
-            {difficulties.map((level) => (
-              <button
-                key={level}
-                type="button"
-                aria-pressed={difficulty === level}
-                title={`AI personality: ${personalityName(level)}`}
-                className={optionClass(difficulty === level)}
-                onClick={() => setDifficulty(level)}
-              >
-                {level.toUpperCase()}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {mode === "online" && (
-          <div className="mb-4 flex flex-col items-center gap-3 w-full" role="group" aria-label="Online room">
-            <div className="flex gap-2 sm:gap-3">
-              <button
-                type="button"
-                aria-pressed={onlineAction === "create"}
-                className={optionClass(onlineAction === "create")}
-                onClick={() => setOnlineAction("create")}
-              >
-                Create Room
-              </button>
-              <button
-                type="button"
-                aria-pressed={onlineAction === "join"}
-                className={optionClass(onlineAction === "join")}
-                onClick={() => setOnlineAction("join")}
-              >
-                Join Room
-              </button>
-            </div>
-            {onlineAction === "join" && (
-              <input
-                className="h-11 w-56 max-w-full rounded-lg border-2 border-zinc-600 bg-zinc-800 px-3 text-center text-lg font-bold uppercase tracking-widest text-gray-100 placeholder:normal-case placeholder:tracking-normal placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none"
-                placeholder="Room code"
-                aria-label="Room code"
-                maxLength={7}
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              />
-            )}
-          </div>
-        )}
-
-        <button
-          type="button"
-          className="mt-1 w-64 max-w-full rounded-xl bg-blue-600 px-8 py-3 text-base sm:text-lg font-extrabold text-white shadow-lg shadow-blue-500/25 transition-all hover:scale-105 hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 active:scale-95"
-          onClick={handleStart}
-        >
-          Start Game
-        </button>
+        {/* STEP 3: Launch Action */}
+        <div className="w-full pt-2 flex flex-col items-center">
+          <button
+            type="button"
+            className="w-full max-w-sm rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 px-8 py-3.5 text-base sm:text-lg font-black text-white shadow-xl shadow-blue-500/25 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400"
+            onClick={handleStart}
+          >
+            Start Game
+          </button>
+        </div>
       </div>
-    </div>
+    </main>
   );
 };
