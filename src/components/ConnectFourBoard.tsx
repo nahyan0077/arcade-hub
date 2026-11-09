@@ -70,7 +70,7 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
                     <span
                       data-testid={`c4-disc-${index}`}
                       aria-hidden="true"
-                      className={`h-[76%] w-[76%] rounded-full animate-pop shadow-md ${
+                      className={`h-[76%] w-[76%] rounded-full animate-c4-drop shadow-md ${
                         value === "X"
                           ? "bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-500/50"
                           : "bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/50"

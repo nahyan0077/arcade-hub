@@ -51,9 +51,16 @@ export default {
           '50%': { opacity: '0.4' },
           '100%': { transform: 'translateY(1000%)', opacity: '0.1' },
         },
+        'c4-drop': {
+          '0%': { transform: 'translateY(-260%) scale(0.9)', opacity: '0.6' },
+          '72%': { transform: 'translateY(0) scale(1.06)', opacity: '1' },
+          '86%': { transform: 'translateY(-6%) scale(0.98)' },
+          '100%': { transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         pop: 'pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both',
+        'c4-drop': 'c4-drop 0.36s cubic-bezier(0.22, 1, 0.36, 1) both',
         shake: 'shake 0.3s ease-in-out',
         'draw-line': 'draw-line 0.6s ease-out 0.2s both',
         'confetti-fall': 'confetti-fall linear forwards',

@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useSettings } from "../settings/SettingsContext";
 
 const CONFETTI_COLORS = [
   "#3b82f6",
@@ -10,6 +11,12 @@ const CONFETTI_COLORS = [
 ];
 
 export const Confetti: React.FC = () => {
+  const { settings } = useSettings();
+
+  const isReduced =
+    settings.reducedMotion ||
+    (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+
   const pieces = useMemo(
     () =>
       Array.from({ length: 40 }, (_, i) => ({
@@ -22,6 +29,8 @@ export const Confetti: React.FC = () => {
       })),
     [],
   );
+
+  if (!settings.confettiEnabled || isReduced) return null;
 
   return (
     <div aria-hidden="true" data-testid="win-confetti" className="pointer-events-none fixed inset-0 z-50 overflow-hidden">

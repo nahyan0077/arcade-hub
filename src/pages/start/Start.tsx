@@ -9,6 +9,8 @@ import type { C4Difficulty } from "../../engine/connect-four/types";
 import { RACE_AI_PERSONALITIES, RACE_DIFFICULTIES } from "../../engine/arrow-race";
 import type { RaceDifficulty } from "../../engine/arrow-race";
 import { useOnlineSession } from "../../net/OnlineSessionContext";
+import { useSettings } from "../../settings/SettingsContext";
+import { playEffect } from "../../sound/audio";
 import {
   generateRoomCode,
   isValidRoomCode,
@@ -33,6 +35,7 @@ export const Start = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const { openRoom } = useOnlineSession();
+  const { settings, updateSettings, openSettings } = useSettings();
 
   const paramGame = searchParams.get("game");
   const rawGame =
@@ -52,9 +55,11 @@ export const Start = () => {
   const [playerType, setPlayerType] = useState("");
   const [name, setName] = useState("");
   const [mode, setMode] = useState<GameMode>("pvp");
-  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty | RaceDifficulty>(
-    "medium",
-  );
+  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty | RaceDifficulty>(() => {
+    if (isC4 && settings.defaultDifficulty === "impossible") return "hard";
+    if (isRace && settings.defaultDifficulty === "impossible") return "hard";
+    return settings.defaultDifficulty;
+  });
   const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
   const [joinCode, setJoinCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +87,7 @@ export const Start = () => {
       showToast("Please Enter your name");
       return;
     }
+    updateSettings({ playerName: trimmedName });
     if (mode === "quick") {
       navigate("/queue", { state: { name: trimmedName, game } });
       return;
@@ -111,7 +117,9 @@ export const Start = () => {
       return;
     }
     if (isC4) {
-      navigate("/connect-four", { state: { name: trimmedName, mode, difficulty } });
+      navigate("/connect-four", {
+        state: { name: trimmedName, playerType: playerType || "X", mode, difficulty },
+      });
       return;
     }
     navigate("/game", { state: { playerType, name: trimmedName, mode, difficulty } });
@@ -142,7 +150,7 @@ export const Start = () => {
         aria-hidden="true"
       />
 
-      {/* Top Bar with Hub Exit */}
+      {/* Top Bar with Hub Exit & Settings */}
       <div className="w-full max-w-md flex items-center justify-between mb-4 z-10">
         <button
           type="button"
@@ -155,6 +163,18 @@ export const Start = () => {
         <span className="text-[11px] font-semibold tracking-widest uppercase text-zinc-500">
           Match Setup
         </span>
+        <button
+          type="button"
+          onClick={() => {
+            playEffect('click');
+            openSettings();
+          }}
+          aria-label="Open settings"
+          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300"
+        >
+          <span>{settings.avatar}</span>
+          <span>⚙️</span>
+        </button>
       </div>
 
       <div className="w-full max-w-md rounded-2xl border border-zinc-800/90 bg-zinc-900/80 p-5 sm:p-7 shadow-2xl backdrop-blur-md flex flex-col items-center z-10">

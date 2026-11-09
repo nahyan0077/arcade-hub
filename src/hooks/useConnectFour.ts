@@ -20,6 +20,7 @@ const DEFAULT_AI_DELAY_MS = 600;
 export interface C4AITurnOptions {
   aiDelayMs?: number;
   session?: RoomSession<'connect-four'> | null;
+  humanMark?: Player;
 }
 
 export function useConnectFour(
@@ -87,8 +88,9 @@ export function useConnectFour(
   }, [session]);
 
   const aiDelayMs = options.aiDelayMs ?? DEFAULT_AI_DELAY_MS;
-  const humanMark: Player = 'X';
-  const aiMark: Player | null = state.mode === 'pve' ? 'O' : null;
+  const humanMark = options.humanMark ?? 'X';
+  const aiMark: Player | null =
+    state.mode === 'pve' ? (humanMark === 'X' ? 'O' : 'X') : null;
 
   const applyMove = useCallback(
     (col: number) => {
@@ -106,7 +108,7 @@ export function useConnectFour(
       setState(next);
       return next;
     },
-    [aiMark],
+    [aiMark, humanMark],
   );
 
   const playMove = useCallback(

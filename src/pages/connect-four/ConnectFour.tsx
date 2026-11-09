@@ -11,10 +11,12 @@ import { useConnectFour } from "../../hooks/useConnectFour";
 import { isMuted, playEffect, setMuted } from "../../sound/audio";
 import { C4_DIFFICULTIES, C4_PERSONALITIES } from "../../engine/connect-four/types";
 import type { C4Difficulty } from "../../engine/connect-four/types";
+import type { Player } from "../../engine";
 import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 import { isConnectFourSession } from "../../net/RoomSession";
 import { TURN_TIMEOUT_GRACE_MS } from "../../net/protocol";
 import { useTimeoutToast } from "../../hooks/useTimeoutToast";
+import { useSettings } from "../../settings/SettingsContext";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -24,24 +26,27 @@ interface NavState {
   name?: string;
   mode?: string;
   difficulty?: string;
+  playerType?: Player;
 }
 
 export const ConnectFour: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { openSettings } = useSettings();
   const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
   const session = isConnectFourSession(anySession) ? anySession : null;
   const online = session !== null;
   const navState = (location.state ?? null) as NavState | null;
 
   const playerName = navState?.name?.trim().toUpperCase() || "PLAYER 1";
+  const humanMark: Player = navState?.playerType === "O" ? "O" : "X";
   const isPve = navState?.mode === "pve";
   const difficulty: C4Difficulty =
     C4_DIFFICULTIES.find((level) => level === navState?.difficulty) ?? "medium";
   const aiName = C4_PERSONALITIES[difficulty].name;
   const opponentLabel = isPve ? aiName : "PLAYER 2";
-  const defaultP1 = playerName;
-  const defaultP2 = opponentLabel;
+  const defaultP1 = humanMark === "X" ? playerName : opponentLabel;
+  const defaultP2 = humanMark === "X" ? opponentLabel : playerName;
   const localNames = { X: defaultP1, O: defaultP2 };
   const hostName = onlineSnap
     ? onlineSnap.role === "host"
@@ -61,7 +66,7 @@ export const ConnectFour: React.FC = () => {
       mode: online ? "online" : isPve ? "pve" : "pvp",
       aiDifficulty: difficulty,
     },
-    { aiDelayMs: AI_DELAY_MS, session },
+    { aiDelayMs: AI_DELAY_MS, session, humanMark },
   );
 
   // After connect, session state carries both real names set atomically.
@@ -223,15 +228,28 @@ export const ConnectFour: React.FC = () => {
           <span className="text-gray-100">FOUR</span>
         </h1>
 
-        <button
-          type="button"
-          onClick={toggleSound}
-          aria-pressed={!soundOn}
-          aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
-        >
-          {soundOn ? "🔊" : "🔇"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              playEffect('click');
+              openSettings();
+            }}
+            aria-label="Open settings"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            ⚙️
+          </button>
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-pressed={!soundOn}
+            aria-label={soundOn ? "Mute sound" : "Unmute sound"}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
+          >
+            {soundOn ? "🔊" : "🔇"}
+          </button>
+        </div>
       </header>
 
       <div className="flex items-center gap-3 sm:gap-4">

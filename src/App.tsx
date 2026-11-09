@@ -10,6 +10,8 @@ import DirectionRush from './pages/direction-rush/DirectionRush'
 import { Lobby } from './pages/lobby/Lobby'
 import { Queue } from './pages/queue/Queue'
 import { OnlineSessionProvider, useOnlineSession } from './net/OnlineSessionContext'
+import { SettingsProvider } from './settings/SettingsContext'
+import { SettingsModal } from './components/SettingsModal'
 
 function RoomRouter() {
   const { session } = useOnlineSession()
@@ -25,24 +27,27 @@ function RoomRouter() {
 
 function App() {
   return (
-    <OnlineSessionProvider>
-      <Router>
-        <Routes>
-          <Route path='/' element={<Hub />} />
-          <Route path='/landing' element={<Landing />} />
-          <Route path='/start' element={<Start />} />
-          <Route path='/game' element={<Home />} />
-          <Route path='/connect-four' element={<ConnectFour />} />
-          <Route path='/arrow-race' element={<ArrowRace />} />
-          <Route path='/direction-rush' element={<DirectionRush />} />
-          <Route path='/lobby' element={<Lobby />} />
-          <Route path='/room' element={<RoomRouter />} />
-          <Route path='/queue' element={<Queue />} />
+    <SettingsProvider>
+      <OnlineSessionProvider>
+        <Router>
+          <SettingsModal />
+          <Routes>
+            <Route path='/' element={<Hub />} />
+            <Route path='/landing' element={<Landing />} />
+            <Route path='/start' element={<Start />} />
+            <Route path='/game' element={<Home />} />
+            <Route path='/connect-four' element={<ConnectFour />} />
+            <Route path='/arrow-race' element={<ArrowRace />} />
+            <Route path='/direction-rush' element={<DirectionRush />} />
+            <Route path='/lobby' element={<Lobby />} />
+            <Route path='/room' element={<RoomRouter />} />
+            <Route path='/queue' element={<Queue />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </OnlineSessionProvider>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </OnlineSessionProvider>
+    </SettingsProvider>
   )
 }
 

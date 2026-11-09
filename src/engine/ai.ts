@@ -143,18 +143,19 @@ function pickBest(ranked: number[], rng: Rng): number {
 function tacticalMove(board: Board, aiMark: Player, rng: Rng): number {
   const opponent = opponentOf(aiMark);
   const moves = getAvailableMoves(board);
+  const testBoard = [...board];
   const winning = moves.find((move) => {
-    board[move] = aiMark;
-    const wins = checkWin(board).type === 'win';
-    board[move] = 0;
+    testBoard[move] = aiMark;
+    const wins = checkWin(testBoard).type === 'win';
+    testBoard[move] = 0;
     return wins;
   });
   if (winning !== undefined) return winning;
 
   const blocking = moves.find((move) => {
-    board[move] = opponent;
-    const wins = checkWin(board).type === 'win';
-    board[move] = 0;
+    testBoard[move] = opponent;
+    const wins = checkWin(testBoard).type === 'win';
+    testBoard[move] = 0;
     return wins;
   });
   if (blocking !== undefined) return blocking;

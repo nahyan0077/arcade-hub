@@ -142,26 +142,15 @@ export function rushAnswer(
 
   // Determine which instruction is active
   const activeIsMoving = state.instruction === 'moving';
-
-  let correct = false;
-  let pointingCorrect = false;
-
-  if (activeIsMoving) {
-    correct = isMovingCorrect;
-    pointingCorrect = false;
-  } else {
-    correct = isPointingCorrect;
-    pointingCorrect = true;
-  }
+  const correct = activeIsMoving ? isMovingCorrect : isPointingCorrect;
+  const pointingCorrect = isPointingCorrect;
 
   // Streak logic
   const streakNew = correct ? state.streak + 1 : 0;
   const streakChanged = streakNew !== state.streak;
 
-  // Reaction time
+  // Reaction time calculation (stimulus started at deadline - responseWindowMs)
   const now = Date.now();
-  state.reactionTimes.push(now - (state.activeStimulus?.deadline ?? now - 100)); // rough
-  if (state.reactionTimes.length > 50) state.reactionTimes.shift();
 
   // New result
   const result: RushRoundResult = {
@@ -170,6 +159,7 @@ export function rushAnswer(
     correct,
     pointingCorrect,
     instruction: state.instruction,
+    answerTimestamp: now,
   };
 
   // Simple game-over check: finished when stimuliServed reaches a cap or Survival lives = 0
@@ -202,6 +192,8 @@ export function rushNextStimulus(state: RushState): RushStimulusGroup | null {
 
   // Update state
   state.stimulus = { pointing, moving };
+  state.pointingDirection = pointing;
+  state.movingDirection = moving;
   state.activeStimulus = group;
   state.stimuliSinceSwitch += 1;
 
@@ -249,35 +241,36 @@ export function rushApplyResult(state: RushState, result: RushRoundResult): void
   if (result.correct) {
     state.streak += 1;
     if (state.streak > state.bestStreak) state.bestStreak = state.streak;
-    state.pointingCorrect += result.pointingCorrect ? 1 : 0;
-    state.pointingTotal += 1;
-    if (!state.instruction || result.pointingCorrect) {
-      state.movingCorrect += result.answer === result.stimulus.moving ? 1 : 0;
+    if (result.instruction === 'pointing') {
+      state.pointingCorrect += 1;
+      state.pointingTotal += 1;
+    } else {
+      state.movingCorrect += 1;
+      state.movingTotal += 1;
     }
-    state.movingTotal += 1;
     state.lastFeedback = 'correct';
   } else {
     state.streak = 0;
-    state.lastFeedback = 'incorrect';
+    if (result.instruction === 'pointing') {
+      state.pointingTotal += 1;
+    } else {
+      state.movingTotal += 1;
+    }
+    state.lastFeedback = result.answer === null ? 'timeout' : 'incorrect';
   }
 
-  // Reaction time
+  // Reaction time (ms from stimulus start)
   if (result.answer !== null && state.activeStimulus) {
+    const stimulusStart = state.activeStimulus.deadline - state.config.responseWindowMs;
     const rt = result.answerTimestamp
-      ? Date.now() - state.activeStimulus.deadline + result.answerTimestamp
-      : 0;
+      ? Math.max(0, result.answerTimestamp - stimulusStart)
+      : Math.max(0, Date.now() - stimulusStart);
     state.reactionTimes.push(rt);
     if (state.reactionTimes.length > 50) state.reactionTimes.shift();
     state.bestReactionTime = Math.min(...state.reactionTimes, Infinity);
   }
 
-  // Switch instruction if interval reached (may already have happened; idempotent)
-  if (state.stimuliSinceSwitch >= state.config.switchInterval && state.stimuliServed > 0) {
-    state.instruction = state.instruction === 'pointing' ? 'moving' : 'pointing';
-    state.stimuliSinceSwitch = 0;
-  }
-
-  // Prepare next stimulus immediately so leaves keep moving
+  // Prepare next stimulus immediately (handles instruction switching internally)
   rushNextStimulus(state);
 }
 

@@ -3,7 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useDirectionRush } from '../../hooks/useDirectionRush';
 import { LeafField } from './LeafField';
 import type { RushDifficulty, RushConfig, RushDirection } from '../../engine/direction-rush';
-import { isMuted, playEffect, setMuted } from '../../sound/audio';
+import { isMuted, playEffect, setMuted, triggerHaptic } from '../../sound/audio';
+import { useSettings } from '../../settings/SettingsContext';
 
 type Mode = 'quick' | 'practice' | 'survival';
 
@@ -44,6 +45,7 @@ const DirectionRush: React.FC = () => {
     : { mode: 'quick' as Mode, difficulty: 'beginner' as RushDifficulty };
 
   const { state, startGame, submitAnswer, pause, resume, restart } = useDirectionRush();
+  const { openSettings } = useSettings();
 
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [showResults, setShowResults] = useState(false);
@@ -180,10 +182,17 @@ const DirectionRush: React.FC = () => {
         : dir === activeStimulus.pointing;
 
       if (isCorrect) {
-        playEffect('place-x');
+        if ((state.streak + 1) % 5 === 0) {
+          playEffect('streak');
+          triggerHaptic('heavy');
+        } else {
+          playEffect('place-x');
+          triggerHaptic('light');
+        }
         setFeedbackFlash('correct');
       } else {
         playEffect('invalid');
+        triggerHaptic('error');
         setFeedbackFlash('incorrect');
         if (navMode === 'survival') {
           setLives((curr) => {
@@ -237,7 +246,7 @@ const DirectionRush: React.FC = () => {
       else if (!showResults) resume();
     };
     document.addEventListener('visibilitychange', handler);
-    return () => window.removeEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
   }, [pause, resume, showResults]);
 
   const toggleSound = () => {
@@ -286,7 +295,18 @@ const DirectionRush: React.FC = () => {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              playEffect('click');
+              openSettings();
+            }}
+            aria-label="Open settings"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            ⚙️
+          </button>
           <button
             type="button"
             onClick={toggleSound}

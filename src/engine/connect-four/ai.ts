@@ -94,7 +94,8 @@ function minimax(
   if (depth >= depthLimit) return evaluateWindows(board, aiMark);
 
   const mark: Player = isMaximizing ? aiMark : opponentOf(aiMark);
-  const open = c4GetOpenColumns(board);
+  // Center-out exploration order yields earlier alpha-beta cutoffs
+  const open = c4GetOpenColumns(board).sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
 
   if (isMaximizing) {
     let best = Number.NEGATIVE_INFINITY;

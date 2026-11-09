@@ -19,7 +19,9 @@ export const MatrixBackground: React.FC<MatrixBackgroundProps> = ({
     if (!ctx) return;
 
     // Respect user motion preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const prefersReducedMotion =
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+      document.documentElement.getAttribute('data-reduced-motion') === 'true';
     if (prefersReducedMotion) return;
 
     let animId: number;

@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { isMuted, setMuted } from "../../sound/audio";
+import { isMuted, setMuted, playEffect } from "../../sound/audio";
 import { MatrixBackground } from "../../components/MatrixBackground";
 import { Landing } from "../landing/Landing";
+import { useSettings } from "../../settings/SettingsContext";
 
 interface GameCard {
   id: string;
@@ -102,6 +103,7 @@ const GAMES: GameCard[] = [
 
 export const Hub: React.FC = () => {
   const navigate = useNavigate();
+  const { settings, openSettings } = useSettings();
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [showLanding, setShowLanding] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -142,7 +144,7 @@ export const Hub: React.FC = () => {
       <Toaster />
 
       {/* Cyber Matrix Trail Background */}
-      <MatrixBackground opacity={0.28} />
+      {settings.matrixRain && <MatrixBackground opacity={settings.matrixOpacity} />}
 
       {/* Ambient background glow accents */}
       <div className="pointer-events-none fixed -top-40 left-1/2 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[130px]" />
@@ -158,10 +160,26 @@ export const Hub: React.FC = () => {
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="flex flex-col items-center text-center gap-3 max-w-2xl"
         >
-          {/* Top Pill */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-900/90 px-3.5 py-1 text-xs font-semibold text-zinc-300 shadow-inner backdrop-blur-md">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>ARCADE PLATFORM • 4 GAMES LIVE</span>
+          {/* Top Bar with Status and Profile Settings Pill */}
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-900/90 px-3.5 py-1 text-xs font-semibold text-zinc-300 shadow-inner backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>ARCADE PLATFORM • 4 GAMES LIVE</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                playEffect('click');
+                openSettings();
+              }}
+              aria-label="Open arcade settings"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-900/90 px-3.5 py-1 text-xs font-semibold text-zinc-200 hover:border-cyan-400 hover:text-cyan-300 transition shadow-inner backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            >
+              <span className="text-sm">{settings.avatar}</span>
+              <span>{settings.playerName}</span>
+              <span className="text-zinc-500 hover:text-zinc-300">⚙️</span>
+            </button>
           </div>
 
           {/* Main Title */}
@@ -290,6 +308,19 @@ export const Hub: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              playEffect('click');
+              openSettings();
+            }}
+            aria-label="Open arcade settings"
+            className="flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-all hover:border-cyan-500/50 hover:bg-zinc-800 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            <span>⚙️</span>
+            <span>Settings</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setShowLanding(true)}

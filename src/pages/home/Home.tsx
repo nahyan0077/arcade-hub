@@ -15,6 +15,7 @@ import { EmojiBurstLayer, type EmojiBurst } from "../../components/EmojiBurstLay
 import { ScoreBox } from "../../components/ScoreBox";
 import { Confetti } from "../../components/Confetti";
 import { useTimeoutToast } from "../../hooks/useTimeoutToast";
+import { useSettings } from "../../settings/SettingsContext";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -30,6 +31,7 @@ interface NavState {
 export const Home: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { openSettings } = useSettings();
   const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
   const session = isTttSession(anySession) ? anySession : null;
   const online = session !== null;
@@ -249,15 +251,28 @@ export const Home: React.FC = () => {
           <span className="text-red-500">TOE</span>
         </h1>
 
-        <button
-          type="button"
-          onClick={toggleSound}
-          aria-pressed={!soundOn}
-          aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
-        >
-          {soundOn ? "🔊" : "🔇"}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              playEffect('click');
+              openSettings();
+            }}
+            aria-label="Open settings"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+          >
+            ⚙️
+          </button>
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-pressed={!soundOn}
+            aria-label={soundOn ? "Mute sound" : "Unmute sound"}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+          >
+            {soundOn ? "🔊" : "🔇"}
+          </button>
+        </div>
       </header>
 
       <div className="flex items-center gap-3 sm:gap-4">
