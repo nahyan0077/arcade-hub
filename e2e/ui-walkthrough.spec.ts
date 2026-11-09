@@ -12,9 +12,9 @@ test.describe('UI walkthrough', () => {
     await page.goto('/');
     await expect(page.getByTestId('hub-card-tictactoe')).toBeVisible();
     await expect(page.getByTestId('hub-card-connect-four')).toBeVisible();
-    await expect(page.getByTestId('hub-card-arrow-race')).toBeVisible();
-    await expect(page.getByTestId('hub-card-dots-and-boxes')).toBeVisible();
-    await expect(page.getByText('Coming soon')).toHaveCount(1);
+    await expect(page.getByTestId('hub-card-direction-rush')).toBeVisible();
+    await expect(page.getByTestId('hub-card-arrow-race')).toHaveCount(0);
+    await expect(page.getByTestId('hub-card-dots-and-boxes')).toHaveCount(0);
     await page.screenshot({ path: shots('desktop', 'walk-hub') });
 
     // Validation: empty name
@@ -100,37 +100,6 @@ test.describe('UI walkthrough', () => {
     await expect(page.getByRole('status')).toHaveText("PLAYER 2's turn");
   });
 
-  test('arrow-race vs AI: wrong answer awards AI, correct awards human', async ({
-    page,
-  }) => {
-    await page.goto('/');
-    await page.getByTestId('hub-card-arrow-race').getByRole('button', { name: 'Play' }).click();
-    await expect(page).toHaveURL(/\/start/);
-    // No 2 Players for race
-    await expect(page.getByRole('button', { name: '2 Players' })).toHaveCount(0);
-    await page.getByPlaceholder('Enter your name').fill('Ria');
-    await page.getByRole('button', { name: 'Start Game' }).click();
-    await expect(page).toHaveURL(/\/arrow-race/);
-
-    await expect(page.getByTestId('race-arrow')).toBeVisible();
-    const label = (await page.getByTestId('race-arrow').getAttribute('aria-label')) ?? '';
-    const moving = /moving (up|down|left|right)/.exec(label)?.[1];
-    expect(moving).toBeTruthy();
-    const dirs = ['up', 'down', 'left', 'right'] as const;
-    const wrong = dirs.find((d) => d !== moving)!;
-    await page.getByTestId(`answer-${wrong}`).click();
-    await expect(page.getByTestId('score-o')).toHaveText(/1/);
-    await expect(page.getByRole('status')).toHaveText('Next round…');
-    await page.screenshot({ path: shots('desktop', 'walk-race-wrong') });
-
-    await expect(page.getByTestId('answer-up')).toBeEnabled({ timeout: 5000 });
-    const label2 = (await page.getByTestId('race-arrow').getAttribute('aria-label')) ?? '';
-    const match2 = /moving (up|down|left|right)/.exec(label2);
-    const moving2 = match2 ? match2[1] : 'up';
-    await page.getByTestId(`answer-${moving2}`).click();
-    await expect(page.getByTestId('score-x')).toHaveText(/1/);
-  });
-
   test('online tictactoe: chat, emoji burst, leave → disconnect dialog', async ({
     browser,
   }, testInfo) => {
@@ -168,29 +137,6 @@ test.describe('UI walkthrough', () => {
     await host.getByRole('button', { name: 'Back to menu' }).click();
     await expect(host).toHaveURL(/\/$/);
     await pageScreenshot(host, testInfo, 'walk-disconnect');
-    await context.close();
-  });
-
-  test('online arrow-race: wrong host answer scores guest', async ({ browser }, testInfo) => {
-    const context = await newMutedContext(browser);
-    const host = await context.newPage();
-    const guest = await context.newPage();
-
-    const code = await createRoom(host, 'Rae', 'arrow-race');
-    await joinRoom(guest, 'Sam', code, 'arrow-race');
-    await expect(host).toHaveURL(/\/room/);
-    await expect(guest).toHaveURL(/\/room/);
-
-    const label = (await host.getByTestId('race-arrow').getAttribute('aria-label')) ?? '';
-    const match = /moving (up|down|left|right)/.exec(label);
-    const moving = match ? match[1] : 'up';
-    const dirs = ['up', 'down', 'left', 'right'] as const;
-    const wrong = dirs.find((d) => d !== moving)!;
-    await host.getByTestId(`answer-${wrong}`).click();
-
-    await expect(host.getByTestId('score-o')).toHaveText(/1/);
-    await expect(guest.getByTestId('score-o')).toHaveText(/1/);
-    await host.screenshot({ path: shots(testInfo.project.name, 'walk-race-online-wrong') });
     await context.close();
   });
 });

@@ -57,16 +57,6 @@ function ConnectFourProbe() {
   );
 }
 
-function ArrowRaceProbe() {
-  const location = useLocation();
-  return (
-    <div>
-      arrow race screen
-      <span data-testid="race-state">{JSON.stringify(location.state)}</span>
-    </div>
-  );
-}
-
 function renderStart() {
   return render(
     <OnlineSessionProvider>
@@ -91,7 +81,6 @@ function renderStartForGame(game: string) {
           <Route path="/" element={<Start />} />
           <Route path="/game" element={<GameProbe />} />
           <Route path="/connect-four" element={<ConnectFourProbe />} />
-          <Route path="/arrow-race" element={<ArrowRaceProbe />} />
           <Route path="/lobby" element={<LobbyProbe />} />
           <Route path="/queue" element={<QueueProbe />} />
         </Routes>
@@ -392,63 +381,8 @@ describe('Start screen for connect-four', () => {
     expect(state).toMatchObject({ name: 'Zed', mode: 'pve', difficulty: 'hard' });
   });
 });
-describe('Start screen for arrow-race', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    toast.dismiss();
-  });
 
-  it('shows the arrow-race heading without mark selection', () => {
-    renderStartForGame('arrow-race');
-    expect(screen.getByText('ARROW')).toBeInTheDocument();
-    expect(screen.getByText('RACE')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Play as X' })).not.toBeInTheDocument();
-  });
-
-  it('hides local 2 Players and defaults to vs AI', () => {
-    renderStartForGame('arrow-race');
-    expect(screen.queryByRole('button', { name: '2 Players' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'vs AI' })).toHaveAttribute('aria-pressed', 'true');
-    const group = screen.getByRole('group', { name: 'AI difficulty' });
-    expect(within(group).getByRole('button', { name: 'EASY' })).toBeInTheDocument();
-    expect(within(group).getByRole('button', { name: 'MEDIUM' })).toBeInTheDocument();
-    expect(within(group).getByRole('button', { name: 'HARD' })).toBeInTheDocument();
-  });
-
-  it('creates an arrow-race host room tagged with the game', async () => {
-    const user = userEvent.setup();
-    renderStartForGame('arrow-race');
-    await user.type(screen.getByPlaceholderText('Enter your name'), 'Zoe');
-    await user.click(screen.getByRole('button', { name: 'Online' }));
-    await user.click(screen.getByRole('button', { name: 'Create Room' }));
-    await user.click(screen.getByRole('button', { name: 'Start Game' }));
-    await screen.findByText('lobby screen');
-    const snapshot = lobbySnapshot();
-    expect(snapshot.game).toBe('arrow-race');
-    expect(snapshot.role).toBe('host');
-  });
-
-  it('navigates to the arrow-race route without requiring a mark', async () => {
-    const user = userEvent.setup();
-    renderStartForGame('arrow-race');
-    await user.type(screen.getByPlaceholderText('Enter your name'), 'Zoe');
-    await user.click(screen.getByRole('button', { name: 'Start Game' }));
-    await screen.findByText('arrow race screen');
-    const state = JSON.parse(screen.getByTestId('race-state').textContent ?? 'null');
-    expect(state).toMatchObject({ name: 'Zoe', mode: 'pve', difficulty: 'medium' });
-  });
-
-  it('passes pve mode and chosen difficulty to the arrow-race route', async () => {
-    const user = userEvent.setup();
-    renderStartForGame('arrow-race');
-    await user.click(screen.getByRole('button', { name: 'HARD' }));
-    await user.type(screen.getByPlaceholderText('Enter your name'), 'Zed');
-    await user.click(screen.getByRole('button', { name: 'Start Game' }));
-    await screen.findByText('arrow race screen');
-    const state = JSON.parse(screen.getByTestId('race-state').textContent ?? 'null');
-    expect(state).toMatchObject({ name: 'Zed', mode: 'pve', difficulty: 'hard' });
-  });
-
+describe('Start screen general query parameters', () => {
   it('recognizes game from query parameters', () => {
     render(
       <OnlineSessionProvider>

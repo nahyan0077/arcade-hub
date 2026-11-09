@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TttPreview,
   ConnectFourPreview,
-  ArrowRacePreview,
   DirectionRushPreview,
   DefaultPreview,
 } from "./GamePreviews";
@@ -32,8 +31,6 @@ export const GameHeroCard: React.FC<GameHeroCardProps> = ({ game, onPlay }) => {
         return <TttPreview />;
       case "connect-four":
         return <ConnectFourPreview />;
-      case "arrow-race":
-        return <ArrowRacePreview />;
       case "direction-rush":
         return <DirectionRushPreview />;
       default:

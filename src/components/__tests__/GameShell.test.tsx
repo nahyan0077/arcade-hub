@@ -111,8 +111,8 @@ describe('GameShell component', () => {
     render(
       <SettingsProvider>
         <GameShell
-          game="arrow"
-          title={<h1>ARROW RACE</h1>}
+          game="rush"
+          title={<h1>DIRECTION RUSH</h1>}
           onBack={vi.fn()}
           soundOn={true}
           onToggleSound={vi.fn()}

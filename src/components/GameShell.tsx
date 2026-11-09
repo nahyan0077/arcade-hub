@@ -2,7 +2,7 @@ import React, { ReactNode, useEffect } from "react";
 import { useSettings } from "../settings/SettingsContext";
 import { playEffect } from "../sound/audio";
 
-export type GameId = "ttt" | "c4" | "arrow" | "rush";
+export type GameId = "ttt" | "c4" | "rush";
 
 export interface GameShellProps {
   game: GameId;

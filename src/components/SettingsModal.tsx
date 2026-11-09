@@ -454,31 +454,6 @@ export const SettingsModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Arrow Race Target Score */}
-              <div>
-                <label className="block text-sm font-semibold text-zinc-200 mb-2">
-                  Arrow Race Target Score (Points to Win)
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {([3, 5, 7, 10] as const).map((pts) => (
-                    <button
-                      key={pts}
-                      onClick={() => {
-                        playEffect('click');
-                        updateSettings({ arrowRaceTargetScore: pts });
-                      }}
-                      className={`py-2 rounded-xl border text-xs font-semibold transition ${
-                        settings.arrowRaceTargetScore === pts
-                          ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 ring-1 ring-cyan-400'
-                          : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      {pts} Points
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Mobile Haptics */}
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
                 <div>

@@ -5,7 +5,6 @@ import { Landing } from './pages/landing/Landing'
 import { Home } from './pages/home/Home'
 import { Start } from './pages/start/Start'
 import { ConnectFour } from './pages/connect-four/ConnectFour'
-import { ArrowRace } from './pages/arrow-race/ArrowRace'
 import DirectionRush from './pages/direction-rush/DirectionRush'
 import { Lobby } from './pages/lobby/Lobby'
 import { Queue } from './pages/queue/Queue'
@@ -19,9 +18,6 @@ function RoomRouter() {
   const game = session?.getSnapshot().game
   if (game === 'connect-four') {
     return <ConnectFour />
-  }
-  if (game === 'arrow-race') {
-    return <ArrowRace />
   }
   return <Home />
 }
@@ -45,7 +41,6 @@ function AnimatedRoutes() {
           <Route path="/start" element={<Start />} />
           <Route path="/game" element={<Home />} />
           <Route path="/connect-four" element={<ConnectFour />} />
-          <Route path="/arrow-race" element={<ArrowRace />} />
           <Route path="/direction-rush" element={<DirectionRush />} />
           <Route path="/lobby" element={<Lobby />} />
           <Route path="/room" element={<RoomRouter />} />

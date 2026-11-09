@@ -33,7 +33,7 @@ export async function isPageScrollable(page: Page): Promise<boolean> {
 
 async function openStartForGame(
   page: Page,
-  game: 'tictactoe' | 'connect-four' | 'arrow-race',
+  game: 'tictactoe' | 'connect-four',
 ) {
   const url = game === 'tictactoe' ? '/start' : `/start?game=${game}`;
   await page.goto(url);
@@ -43,7 +43,7 @@ async function openStartForGame(
 export async function createRoom(
   page: Page,
   name: string,
-  game: 'tictactoe' | 'connect-four' | 'arrow-race' = 'tictactoe',
+  game: 'tictactoe' | 'connect-four' = 'tictactoe',
 ): Promise<string> {
   await openStartForGame(page, game);
   const nameInput = page.getByPlaceholder('Enter your name');
@@ -64,7 +64,7 @@ export async function joinRoom(
   page: Page,
   name: string,
   code: string,
-  game: 'tictactoe' | 'connect-four' | 'arrow-race' = 'tictactoe',
+  game: 'tictactoe' | 'connect-four' = 'tictactoe',
 ): Promise<void> {
   await openStartForGame(page, game);
   const nameInput = page.getByPlaceholder('Enter your name');

@@ -6,8 +6,6 @@ import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
 import type { AIDifficulty } from "../../engine";
 import { C4_DIFFICULTIES } from "../../engine/connect-four/types";
 import type { C4Difficulty } from "../../engine/connect-four/types";
-import { RACE_AI_PERSONALITIES, RACE_DIFFICULTIES } from "../../engine/arrow-race";
-import type { RaceDifficulty } from "../../engine/arrow-race";
 import { useOnlineSession } from "../../net/OnlineSessionContext";
 import { useSettings } from "../../settings/SettingsContext";
 import { playEffect } from "../../sound/audio";
@@ -19,7 +17,7 @@ import {
 
 type GameMode = "pvp" | "pve" | "online" | "quick";
 type OnlineAction = "create" | "join";
-type StartGame = "tictactoe" | "connect-four" | "arrow-race";
+type StartGame = "tictactoe" | "connect-four";
 
 const quickPlayEnabled = (): boolean => Boolean(import.meta.env.VITE_WS_URL);
 
@@ -37,20 +35,15 @@ export const Start = () => {
   const game: StartGame =
     rawGame === "connect-four"
       ? "connect-four"
-      : rawGame === "arrow-race"
-        ? "arrow-race"
-        : "tictactoe";
+      : "tictactoe";
   const isC4 = game === "connect-four";
-  const isRace = game === "arrow-race";
-  // Arrow Race has no local 2P mode — only vs AI or online.
-  const local2P = !isRace;
+  const local2P = true;
 
   const [playerType, setPlayerType] = useState("");
   const [name, setName] = useState("");
   const [mode, setMode] = useState<GameMode>("pvp");
-  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty | RaceDifficulty>(() => {
+  const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty>(() => {
     if (isC4 && settings.defaultDifficulty === "impossible") return "hard";
-    if (isRace && settings.defaultDifficulty === "impossible") return "hard";
     return settings.defaultDifficulty;
   });
   const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
@@ -103,12 +96,6 @@ export const Start = () => {
       showToast("Please select the player type");
       return;
     }
-    if (isRace) {
-      navigate("/arrow-race", {
-        state: { name: trimmedName, mode: effectiveMode, difficulty },
-      });
-      return;
-    }
     if (isC4) {
       navigate("/connect-four", {
         state: { name: trimmedName, playerType: playerType || "X", mode, difficulty },
@@ -119,32 +106,22 @@ export const Start = () => {
   };
 
   const showMarkPicker = local2P && !isC4 && (mode === "pvp" || mode === "pve");
-  const difficulties = isRace
-    ? RACE_DIFFICULTIES
-    : isC4
-      ? C4_DIFFICULTIES
-      : AIDIFFICULTIES;
+  const difficulties = isC4 ? C4_DIFFICULTIES : AIDIFFICULTIES;
   const personalityName = (level: string): string => {
-    if (isRace) {
-      return RACE_AI_PERSONALITIES[level as RaceDifficulty]?.name ?? level;
-    }
     return PERSONALITIES[level as AIDifficulty]?.name ?? level;
   };
 
-  // Race defaults to vs AI when the player has not picked a local mode yet.
-  const effectiveMode: GameMode = isRace && mode === "pvp" ? "pve" : mode;
-  const showPvpButton = local2P;
+  const effectiveMode: GameMode = mode;
+  const showPvpButton = true;
 
   return (
     <main className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-950 px-3 sm:px-4 py-4 overflow-hidden text-gray-100">
       {/* Dynamic ambient background glow */}
       <div
         className={`pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full ${
-          isRace
-            ? "bg-violet-600/15"
-            : isC4
-              ? "bg-amber-500/15"
-              : "bg-blue-600/15"
+          isC4
+            ? "bg-amber-500/15"
+            : "bg-blue-600/15"
         } blur-3xl`}
         aria-hidden="true"
       />
@@ -185,12 +162,7 @@ export const Start = () => {
       <div className="w-full max-w-xl rounded-3xl border border-zinc-800/80 bg-zinc-900/90 p-5 sm:p-7 shadow-2xl backdrop-blur-xl flex flex-col items-center z-10 space-y-5">
         {/* Game Title Heading */}
         <div className="flex justify-center items-center gap-3 w-full pb-1 select-none">
-          {isRace ? (
-            <>
-              <h2 className="text-3xl sm:text-4xl text-violet-400 font-black tracking-wider">ARROW</h2>
-              <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">RACE</h2>
-            </>
-          ) : isC4 ? (
+          {isC4 ? (
             <>
               <h2 className="text-3xl sm:text-4xl text-amber-400 font-black tracking-wider">CONNECT</h2>
               <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">FOUR</h2>
@@ -371,7 +343,7 @@ export const Start = () => {
           </div>
 
           {/* AI Difficulty Selector */}
-          {(effectiveMode === "pve" || (isRace && mode !== "online" && mode !== "quick")) && (
+          {effectiveMode === "pve" && (
             <div className="flex flex-col items-center gap-1.5 w-full pt-1">
               <span className="text-xs text-zinc-400 font-medium">Difficulty Level</span>
               <div

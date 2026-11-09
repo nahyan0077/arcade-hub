@@ -58,22 +58,6 @@ export const ConnectFourPreview: React.FC = () => {
   );
 };
 
-export const ArrowRacePreview: React.FC = () => {
-  return (
-    <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border border-violet-500/30 bg-violet-950/20 p-2 shadow-[0_0_30px_rgba(139,92,246,0.15)]">
-      <div className="flex flex-col items-center justify-center gap-2">
-        <span className="text-4xl text-violet-400 animate-pulse font-black">
-          ▲
-        </span>
-        <div className="flex items-center gap-1.5 text-[11px] font-black text-violet-300 uppercase tracking-widest bg-violet-500/20 px-2 py-0.5 rounded-full border border-violet-500/40">
-          <span>SLIDE</span>
-          <span>→</span>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export const DirectionRushPreview: React.FC = () => {
   return (
     <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-2 shadow-[0_0_30px_rgba(16,185,129,0.15)]">

@@ -56,21 +56,6 @@ const GAMES: GameCard[] = [
     tags: ["Gravity Drop", "Smart AI", "Online Room"],
   },
   {
-    id: "arrow-race",
-    title: "ARROW RACE",
-    category: "SPEED REFLEX",
-    tagline: "Follow the slide, not the point! A lightning reaction sprint against AI or players online.",
-    mark: "▲",
-    markColor: "text-violet-400",
-    glowColor: "group-hover:shadow-[0_0_30px_rgba(139,92,246,0.22)]",
-    borderHover: "hover:border-violet-500/70",
-    buttonBg: "border-violet-500/80 bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 hover:border-violet-400 hover:shadow-violet-500/25",
-    buttonHover: "focus-visible:ring-violet-400",
-    playable: true,
-    playerBadge: "1-2 Players",
-    tags: ["Reflex Test", "Speed Duel", "Voice Chat"],
-  },
-  {
     id: "direction-rush",
     title: "DIRECTION RUSH",
     category: "COGNITIVE RUSH",
@@ -84,21 +69,6 @@ const GAMES: GameCard[] = [
     playable: true,
     playerBadge: "Solo Rush",
     tags: ["Cognitive Switch", "60s Timer", "Survival"],
-  },
-  {
-    id: "dots-and-boxes",
-    title: "DOTS & BOXES",
-    category: "TERRITORY PUZZLE",
-    tagline: "Connect the grid dots, close complete boxes, and dominate the tactical territory.",
-    mark: "■",
-    markColor: "text-zinc-500",
-    glowColor: "",
-    borderHover: "hover:border-zinc-700",
-    buttonBg: "",
-    buttonHover: "",
-    playable: false,
-    playerBadge: "In Development",
-    tags: ["Grid Strategy", "Turn-Based", "In Dev"],
   },
 ];
 
@@ -176,7 +146,7 @@ export const Hub: React.FC = () => {
             <div className="flex flex-wrap items-center justify-center gap-2.5">
               <div className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-900/90 px-3.5 py-1 text-xs font-semibold text-zinc-300 shadow-inner backdrop-blur-md">
                 <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>ARCADE PLATFORM • 4 GAMES LIVE</span>
+                <span>ARCADE PLATFORM • 3 GAMES LIVE</span>
               </div>
 
               <button
@@ -218,7 +188,7 @@ export const Hub: React.FC = () => {
                 All Games
               </span>
               <span className="text-[10px] font-bold text-zinc-400 bg-zinc-900 px-2 py-0.5 rounded-full border border-zinc-800">
-                5 Total
+                3 Total
               </span>
             </div>
             <span className="text-[11px] text-zinc-400 hidden sm:inline font-medium">

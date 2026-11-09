@@ -20,12 +20,6 @@
   --game-glow: rgba(251, 191, 36, 0.3);
 }
 
-[data-game="arrow"] {
-  --game-primary: #a78bfa; /* violet-400 */
-  --game-secondary: #14b8a6; /* teal-500 */
-  --game-glow: rgba(167, 139, 250, 0.3);
-}
-
 [data-game="rush"] {
   --game-primary: #34d399; /* emerald-400 */
   --game-secondary: #ec4899; /* pink-500 */
@@ -39,9 +33,4 @@
 
 .animate-blink-red {
   animation: blink-red 0.5s ease-in-out infinite;
-}
-
-@keyframes race-slide {
-  from { transform: translateX(0) translateY(0); }
-  to { transform: var(--race-slide, translateY(-20px)); }
 }
