@@ -7,12 +7,12 @@ import { ChatPanel } from '../../components/ChatPanel';
 import { QuickEmoji } from '../../components/QuickEmoji';
 import { EmojiBurstLayer, type EmojiBurst } from '../../components/EmojiBurstLayer';
 import { useArrowRace } from '../../hooks/useArrowRace';
-import { isMuted, playEffect, setMuted } from '../../sound/audio';
+import { isMuted, setMuted } from '../../sound/audio';
 import { RACE_AI_PERSONALITIES, RACE_DIFFICULTIES } from '../../engine/arrow-race';
 import type { ArrowDirection, RaceDifficulty } from '../../engine/arrow-race';
 import { useOnlineSessionSnapshot } from '../../net/OnlineSessionContext';
 import { isArrowRaceSession } from '../../net/RoomSession';
-import { useSettings } from '../../settings/SettingsContext';
+import { GameShell } from '../../components/GameShell';
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? '';
 
@@ -45,7 +45,6 @@ interface NavState {
 export const ArrowRace: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { openSettings } = useSettings();
   const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
   const session = isArrowRaceSession(anySession) ? anySession : null;
   const online = session !== null;
@@ -199,49 +198,23 @@ export const ArrowRace: React.FC = () => {
   const stimulus = state.stimulus;
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-4 py-2 sm:py-4">
-      {state.result?.type === 'win' && perspectiveWin !== 'You lose!' && <Confetti />}
-
-      {/* Top Header Bar */}
-      <header className="flex w-full max-w-sm sm:max-w-md items-center justify-between px-1">
-        <button
-          type="button"
-          onClick={online ? handleLeave : () => navigate('/')}
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
-          aria-label="Back to hub"
-        >
-          <span>← Hub</span>
-        </button>
-
+    <GameShell
+      game="arrow"
+      title={
         <h1 className="select-none text-2xl font-black tracking-wider sm:text-3xl md:text-4xl">
           <span className="text-violet-500">ARROW</span>{' '}
           <span className="text-gray-100">RACE</span>
         </h1>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              playEffect('click');
-              openSettings();
-            }}
-            aria-label="Open settings"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-          >
-            ⚙️
-          </button>
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-pressed={!soundOn}
-            aria-label={soundOn ? 'Mute sound' : 'Unmute sound'}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
-          >
-            {soundOn ? '🔊' : '🔇'}
-          </button>
-        </div>
-      </header>
-
+      }
+      onBack={online ? handleLeave : () => navigate('/')}
+      soundOn={soundOn}
+      onToggleSound={toggleSound}
+      confetti={
+        state.result?.type === 'win' && perspectiveWin !== 'You lose!' ? (
+          <Confetti />
+        ) : undefined
+      }
+    >
       <div className="flex items-center gap-3 sm:gap-4">
         <ScoreBox
           label={playerNames.X}
@@ -470,6 +443,6 @@ export const ArrowRace: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </GameShell>
   );
 };

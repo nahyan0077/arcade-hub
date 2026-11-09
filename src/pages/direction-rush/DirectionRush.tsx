@@ -4,7 +4,7 @@ import { useDirectionRush } from '../../hooks/useDirectionRush';
 import { LeafField } from './LeafField';
 import type { RushDifficulty, RushConfig, RushDirection } from '../../engine/direction-rush';
 import { isMuted, playEffect, setMuted, triggerHaptic } from '../../sound/audio';
-import { useSettings } from '../../settings/SettingsContext';
+import { GameShell } from '../../components/GameShell';
 
 type Mode = 'quick' | 'practice' | 'survival';
 
@@ -45,7 +45,6 @@ const DirectionRush: React.FC = () => {
     : { mode: 'quick' as Mode, difficulty: 'beginner' as RushDifficulty };
 
   const { state, startGame, submitAnswer, pause, resume, restart } = useDirectionRush();
-  const { openSettings } = useSettings();
 
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [showResults, setShowResults] = useState(false);
@@ -273,58 +272,37 @@ const DirectionRush: React.FC = () => {
   const score = state.history.filter((r) => r.correct).length * 100 + (streak > 3 ? streak * 20 : 0);
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-between gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-3 sm:px-4 py-2.5 sm:py-4 text-gray-100">
-      {/* Top Header */}
-      <header className="flex w-full max-w-lg items-center justify-between">
+    <GameShell
+      game="rush"
+      title={
+        <h1 className="select-none text-xl sm:text-2xl font-black tracking-wider">
+          <span className="text-emerald-400">DIRECTION</span>{' '}
+          <span className="text-gray-100">RUSH</span>
+        </h1>
+      }
+      subtitle={
+        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+          {navMode.toUpperCase()} MODE
+        </span>
+      }
+      onBack={handleExit}
+      backAriaLabel="Exit game"
+      soundOn={soundOn}
+      onToggleSound={toggleSound}
+      soundAriaLabel={{ mute: 'Mute audio', unmute: 'Unmute audio' }}
+      headerMaxWidth="max-w-lg"
+      headerRightExtra={
         <button
           type="button"
-          onClick={handleExit}
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-          aria-label="Exit game"
+          onClick={finishGame}
+          className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:bg-zinc-700"
+          aria-label="View results"
         >
-          <span>← Hub</span>
+          End
         </button>
-
-        <div className="text-center">
-          <h1 className="select-none text-xl sm:text-2xl font-black tracking-wider">
-            <span className="text-emerald-400">DIRECTION</span>{' '}
-            <span className="text-gray-100">RUSH</span>
-          </h1>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-            {navMode.toUpperCase()} MODE
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              playEffect('click');
-              openSettings();
-            }}
-            aria-label="Open settings"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-          >
-            ⚙️
-          </button>
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-label={soundOn ? 'Mute audio' : 'Unmute audio'}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:bg-zinc-700"
-          >
-            {soundOn ? '🔊' : '🔇'}
-          </button>
-          <button
-            type="button"
-            onClick={finishGame}
-            className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:bg-zinc-700"
-            aria-label="View results"
-          >
-            End
-          </button>
-        </div>
-      </header>
+      }
+      className="flex min-h-[100dvh] flex-col items-center justify-between gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-3 sm:px-4 py-2.5 sm:py-4 text-gray-100"
+    >
 
       {/* HUD Stats */}
       <div className="flex w-full max-w-lg items-center justify-around gap-2 rounded-2xl border border-zinc-800 bg-zinc-800/50 p-2 sm:p-3 shadow-md backdrop-blur-sm">
@@ -518,7 +496,7 @@ const DirectionRush: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </GameShell>
   );
 };
 

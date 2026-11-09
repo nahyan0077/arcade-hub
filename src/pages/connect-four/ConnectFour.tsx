@@ -16,7 +16,7 @@ import { useOnlineSessionSnapshot } from "../../net/OnlineSessionContext";
 import { isConnectFourSession } from "../../net/RoomSession";
 import { TURN_TIMEOUT_GRACE_MS } from "../../net/protocol";
 import { useTimeoutToast } from "../../hooks/useTimeoutToast";
-import { useSettings } from "../../settings/SettingsContext";
+import { GameShell } from "../../components/GameShell";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -32,7 +32,6 @@ interface NavState {
 export const ConnectFour: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { openSettings } = useSettings();
   const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
   const session = isConnectFourSession(anySession) ? anySession : null;
   const online = session !== null;
@@ -209,49 +208,23 @@ export const ConnectFour: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-4 py-2 sm:py-4">
-      {state.result?.type === "win" && perspectiveWin !== "You lose!" && <Confetti />}
-
-      {/* Top Header Bar */}
-      <header className="flex w-full max-w-sm sm:max-w-md items-center justify-between px-1">
-        <button
-          type="button"
-          onClick={online ? handleLeave : () => navigate("/")}
-          className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-1.5 text-xs font-bold text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
-          aria-label="Back to hub"
-        >
-          <span>← Hub</span>
-        </button>
-
+    <GameShell
+      game="c4"
+      title={
         <h1 className="select-none text-2xl font-black tracking-wider sm:text-3xl md:text-4xl">
           <span className="text-yellow-500">CONNECT</span>{" "}
           <span className="text-gray-100">FOUR</span>
         </h1>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => {
-              playEffect('click');
-              openSettings();
-            }}
-            aria-label="Open settings"
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-cyan-400 hover:text-cyan-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
-          >
-            ⚙️
-          </button>
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-pressed={!soundOn}
-            aria-label={soundOn ? "Mute sound" : "Unmute sound"}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-800/80 text-sm text-zinc-300 transition-all hover:border-zinc-500 hover:bg-zinc-700 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
-          >
-            {soundOn ? "🔊" : "🔇"}
-          </button>
-        </div>
-      </header>
-
+      }
+      onBack={online ? handleLeave : () => navigate("/")}
+      soundOn={soundOn}
+      onToggleSound={toggleSound}
+      confetti={
+        state.result?.type === "win" && perspectiveWin !== "You lose!" ? (
+          <Confetti />
+        ) : undefined
+      }
+    >
       <div className="flex items-center gap-3 sm:gap-4">
         <ScoreBox
           label={playerNames.X}
@@ -460,6 +433,6 @@ export const ConnectFour: React.FC = () => {
           </div>
         ))}
       </div>
-    </div>
+    </GameShell>
   );
 };

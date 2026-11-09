@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --game-primary: #38bdf8; /* cyan-400 */
+  --game-secondary: #8b5cf6; /* violet-500 */
+  --game-glow: rgba(56, 189, 248, 0.3);
+}
+
+[data-game="ttt"] {
+  --game-primary: #38bdf8; /* cyan-400 */
+  --game-secondary: #8b5cf6; /* violet-500 */
+  --game-glow: rgba(56, 189, 248, 0.3);
+}
+
+[data-game="c4"] {
+  --game-primary: #fbbf24; /* amber-400 */
+  --game-secondary: #ef4444; /* red-500 */
+  --game-glow: rgba(251, 191, 36, 0.3);
+}
+
+[data-game="arrow"] {
+  --game-primary: #a78bfa; /* violet-400 */
+  --game-secondary: #14b8a6; /* teal-500 */
+  --game-glow: rgba(167, 139, 250, 0.3);
+}
+
+[data-game="rush"] {
+  --game-primary: #34d399; /* emerald-400 */
+  --game-secondary: #ec4899; /* pink-500 */
+  --game-glow: rgba(52, 211, 153, 0.3);
+}
+
 @keyframes blink-red {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
