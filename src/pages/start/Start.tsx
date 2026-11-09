@@ -115,7 +115,7 @@ export const Start = () => {
   const showPvpButton = true;
 
   return (
-    <main className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-950 px-3 sm:px-4 py-4 overflow-hidden text-gray-100">
+    <main className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-950 px-3 sm:px-4 py-2 sm:py-4 overflow-hidden text-gray-100">
       {/* Dynamic ambient background glow */}
       <div
         className={`pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full ${
@@ -127,7 +127,7 @@ export const Start = () => {
       />
 
       {/* Top Bar with Hub Exit & Settings */}
-      <div className="w-full max-w-xl flex items-center justify-between mb-3 z-10 px-1">
+      <div className="w-full max-w-xl flex items-center justify-between mb-2 sm:mb-3 z-10 px-1">
         <button
           type="button"
           onClick={() => navigate("/")}
@@ -159,56 +159,32 @@ export const Start = () => {
       </div>
 
       {/* Main Glassmorphism Card */}
-      <div className="w-full max-w-xl rounded-3xl border border-zinc-800/80 bg-zinc-900/90 p-5 sm:p-7 shadow-2xl backdrop-blur-xl flex flex-col items-center z-10 space-y-5">
+      <div className="w-full max-w-xl rounded-3xl border border-zinc-800/80 bg-zinc-900/90 p-3.5 sm:p-6 shadow-2xl backdrop-blur-xl flex flex-col items-center z-10 space-y-2.5 sm:space-y-4">
         {/* Game Title Heading */}
-        <div className="flex justify-center items-center gap-3 w-full pb-1 select-none">
+        <div className="flex justify-center items-center gap-3 w-full pb-0.5 select-none">
           {isC4 ? (
             <>
-              <h2 className="text-3xl sm:text-4xl text-amber-400 font-black tracking-wider">CONNECT</h2>
-              <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">FOUR</h2>
+              <h2 className="text-2xl sm:text-3xl text-amber-400 font-black tracking-wider">CONNECT</h2>
+              <h2 className="text-2xl sm:text-3xl text-white font-black tracking-wider">FOUR</h2>
             </>
           ) : (
             <>
-              <h2 className="text-3xl sm:text-4xl text-blue-400 font-black tracking-wider">TIC</h2>
-              <h2 className="text-3xl sm:text-4xl text-white font-black tracking-wider">TAC</h2>
-              <h2 className="text-3xl sm:text-4xl text-red-500 font-black tracking-wider">TOE</h2>
+              <h2 className="text-2xl sm:text-3xl text-blue-400 font-black tracking-wider">TIC</h2>
+              <h2 className="text-2xl sm:text-3xl text-white font-black tracking-wider">TAC</h2>
+              <h2 className="text-2xl sm:text-3xl text-red-500 font-black tracking-wider">TOE</h2>
             </>
           )}
-        </div>
-
-        {/* 3-Step Progress Indicator */}
-        <div className="w-full flex items-center justify-between px-2 text-[11px] font-bold text-zinc-400 border-y border-zinc-800/80 py-2.5">
-          <div className="flex items-center gap-1.5 text-cyan-400">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/20 text-[10px] font-black border border-cyan-500/40">
-              1
-            </span>
-            <span>Game Mode</span>
-          </div>
-          <div className="h-[1px] w-8 sm:w-16 bg-zinc-800" />
-          <div className="flex items-center gap-1.5 text-zinc-300">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-black border border-zinc-700">
-              2
-            </span>
-            <span>Customize</span>
-          </div>
-          <div className="h-[1px] w-8 sm:w-16 bg-zinc-800" />
-          <div className="flex items-center gap-1.5 text-zinc-400">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-800 text-[10px] font-black border border-zinc-700">
-              3
-            </span>
-            <span>Launch</span>
-          </div>
         </div>
 
         <Toaster />
 
         {/* STEP 1: Game Mode Cards */}
-        <div className="w-full flex flex-col gap-2">
+        <div className="w-full flex flex-col gap-1.5">
           <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1">
             Step 1: Choose How to Play
           </div>
           <div
-            className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 w-full"
             role="group"
             aria-label="Game mode"
           >
@@ -218,13 +194,13 @@ export const Start = () => {
                 aria-label="2 Players"
                 aria-pressed={mode === "pvp"}
                 onClick={() => setMode("pvp")}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                   mode === "pvp"
                     ? "border-blue-500 bg-blue-500/20 text-white shadow-[0_0_15px_rgba(59,130,246,0.25)] ring-1 ring-blue-400/50 scale-[1.02]"
                     : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
                 }`}
               >
-                <span aria-hidden="true" className="text-xl mb-1 select-none">👥</span>
+                <span aria-hidden="true" className="text-base sm:text-xl mb-0.5 sm:mb-1 select-none">👥</span>
                 <span className="text-xs font-black">2 Players</span>
                 <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Pass & Play</span>
               </button>
@@ -235,13 +211,13 @@ export const Start = () => {
               aria-label="vs AI"
               aria-pressed={effectiveMode === "pve"}
               onClick={() => setMode("pve")}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+              className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                 effectiveMode === "pve"
                   ? "border-purple-500 bg-purple-500/20 text-white shadow-[0_0_15px_rgba(168,85,247,0.25)] ring-1 ring-purple-400/50 scale-[1.02]"
                   : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
               }`}
             >
-              <span aria-hidden="true" className="text-xl mb-1 select-none">🤖</span>
+              <span aria-hidden="true" className="text-base sm:text-xl mb-0.5 sm:mb-1 select-none">🤖</span>
               <span className="text-xs font-black">vs AI</span>
               <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Solo Match</span>
             </button>
@@ -251,13 +227,13 @@ export const Start = () => {
               aria-label="Online"
               aria-pressed={mode === "online"}
               onClick={() => setMode("online")}
-              className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+              className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                 mode === "online"
                   ? "border-emerald-500 bg-emerald-500/20 text-white shadow-[0_0_15px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/50 scale-[1.02]"
                   : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
               }`}
             >
-              <span aria-hidden="true" className="text-xl mb-1 select-none">🌐</span>
+              <span aria-hidden="true" className="text-base sm:text-xl mb-0.5 sm:mb-1 select-none">🌐</span>
               <span className="text-xs font-black">Online</span>
               <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Host or Join</span>
             </button>
@@ -268,13 +244,13 @@ export const Start = () => {
                 aria-label="Quick Play"
                 aria-pressed={mode === "quick"}
                 onClick={() => setMode("quick")}
-                className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
+                className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 transition-all text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 ${
                   mode === "quick"
                     ? "border-amber-500 bg-amber-500/20 text-white shadow-[0_0_15px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/50 scale-[1.02]"
                     : "border-zinc-800 bg-zinc-800/40 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200 hover:bg-zinc-800/70"
                 }`}
               >
-                <span aria-hidden="true" className="text-xl mb-1 select-none">⚡</span>
+                <span aria-hidden="true" className="text-base sm:text-xl mb-0.5 sm:mb-1 select-none">⚡</span>
                 <span className="text-xs font-black">Quick Play</span>
                 <span aria-hidden="true" className="text-[10px] text-zinc-400 font-medium hidden sm:inline">Fast Queue</span>
               </button>
@@ -283,21 +259,21 @@ export const Start = () => {
         </div>
 
         {/* STEP 2: Player & Match Customization */}
-        <div className="w-full flex flex-col gap-3 pt-1">
+        <div className="w-full flex flex-col gap-2 pt-0.5">
           <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 px-1">
             Step 2: Player Setup
           </div>
 
           {/* Mark Selection for Tic-Tac-Toe */}
           {showMarkPicker && (
-            <div className="flex flex-col items-center gap-1.5 w-full">
+            <div className="flex flex-col items-center gap-1 w-full">
               <span className="text-xs text-zinc-400 font-medium">Pick Your Symbol</span>
-              <div className="flex gap-4">
+              <div className="flex gap-3">
                 <button
                   type="button"
                   aria-label="Play as X"
                   aria-pressed={playerType === "X"}
-                  className={`box-content h-16 w-16 sm:h-18 sm:w-18 p-2 border-2 text-center rounded-2xl text-4xl sm:text-5xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
+                  className={`box-content h-11 w-11 sm:h-14 sm:w-14 p-1.5 sm:p-2 border-2 text-center rounded-xl sm:rounded-2xl text-2xl sm:text-4xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 ${
                     playerType === "X"
                       ? "border-blue-500 bg-blue-500/20 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] ring-2 ring-blue-500/40"
                       : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-blue-400 hover:bg-zinc-800"
@@ -311,7 +287,7 @@ export const Start = () => {
                   type="button"
                   aria-label="Play as O"
                   aria-pressed={playerType === "O"}
-                  className={`box-content h-16 w-16 sm:h-18 sm:w-18 p-2 border-2 text-center rounded-2xl text-4xl sm:text-5xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
+                  className={`box-content h-11 w-11 sm:h-14 sm:w-14 p-1.5 sm:p-2 border-2 text-center rounded-xl sm:rounded-2xl text-2xl sm:text-4xl font-black cursor-pointer transition-all hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-red-400 ${
                     playerType === "O"
                       ? "border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.35)] ring-2 ring-red-500/40"
                       : "border-zinc-700 bg-zinc-800/80 text-zinc-500 hover:border-zinc-500 hover:text-red-400 hover:bg-zinc-800"
@@ -327,11 +303,11 @@ export const Start = () => {
           {/* Name Input Field */}
           <div className="flex items-center justify-center w-full">
             <div className="relative w-full max-w-sm">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg select-none">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base select-none">
                 {settings.avatar || "👤"}
               </span>
               <input
-                className="h-12 w-full pl-10 pr-4 border-2 border-zinc-700 text-center rounded-xl bg-zinc-800/90 hover:border-zinc-500 text-lg sm:text-xl font-bold tracking-wider text-gray-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
+                className="h-10 sm:h-12 w-full pl-9 pr-3 sm:pl-10 sm:pr-4 border-2 border-zinc-700 text-center rounded-xl bg-zinc-800/90 hover:border-zinc-500 text-base sm:text-xl font-bold tracking-wider text-gray-100 placeholder:text-zinc-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
                 placeholder="Enter your name"
                 maxLength={24}
                 style={{ textTransform: "uppercase" }}
@@ -420,10 +396,10 @@ export const Start = () => {
         </div>
 
         {/* STEP 3: Launch Action */}
-        <div className="w-full pt-2 flex flex-col items-center">
+        <div className="w-full pt-1 sm:pt-2 flex flex-col items-center">
           <button
             type="button"
-            className="w-full max-w-sm rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 px-8 py-3.5 text-base sm:text-lg font-black text-white shadow-xl shadow-blue-500/25 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400"
+            className="w-full max-w-sm rounded-xl sm:rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 px-6 sm:px-8 py-2.5 sm:py-3.5 text-base sm:text-lg font-black text-white shadow-xl shadow-blue-500/25 transition-all hover:scale-[1.02] hover:brightness-110 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-cyan-400"
             onClick={handleStart}
           >
             Start Game
