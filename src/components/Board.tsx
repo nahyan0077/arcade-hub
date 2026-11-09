@@ -2,10 +2,6 @@ import React from "react";
 import type { Board as BoardData, WinLine } from "../engine";
 import { getWinningLineIndices } from "../engine";
 
-const CELL_PX = 144;
-const GAP_PX = 16;
-const BOARD_PX = CELL_PX * 3 + GAP_PX * 2;
-
 const CELL_SIZE = "min(26vw, 16vh, 140px)";
 
 interface BoardProps {
@@ -20,8 +16,8 @@ function cellCenter(index: number): { x: number; y: number } {
   const col = index % 3;
   const row = Math.floor(index / 3);
   return {
-    x: col * (CELL_PX + GAP_PX) + CELL_PX / 2,
-    y: row * (CELL_PX + GAP_PX) + CELL_PX / 2,
+    x: col * 100 + 50,
+    y: row * 100 + 50,
   };
 }
 
@@ -29,7 +25,7 @@ const WinLineOverlay: React.FC<{ line: WinLine }> = ({ line }) => {
   const indices = getWinningLineIndices(line);
   const start = cellCenter(indices[0]);
   const end = cellCenter(indices[2]);
-  const shorten = 28;
+  const shorten = 20;
 
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -39,8 +35,8 @@ const WinLineOverlay: React.FC<{ line: WinLine }> = ({ line }) => {
 
   return (
     <svg
-      className="pointer-events-none absolute inset-0"
-      viewBox={`0 0 ${BOARD_PX} ${BOARD_PX}`}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      viewBox="0 0 300 300"
       aria-hidden="true"
     >
       <line
@@ -49,7 +45,7 @@ const WinLineOverlay: React.FC<{ line: WinLine }> = ({ line }) => {
         x2={end.x - ux * shorten}
         y2={end.y - uy * shorten}
         stroke="#facc15"
-        strokeWidth={8}
+        strokeWidth={6}
         strokeLinecap="round"
         pathLength={1}
         strokeDasharray={1}

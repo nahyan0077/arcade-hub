@@ -35,6 +35,12 @@ const SLIDE: Record<ArrowDirection, string> = {
   left: 'translateX(-28px)',
   right: 'translateX(28px)',
 };
+const KEY_HINT: Record<ArrowDirection, string> = {
+  up: 'W / ↑',
+  down: 'S / ↓',
+  left: 'A / ←',
+  right: 'D / →',
+};
 
 interface NavState {
   name?: string;
@@ -206,6 +212,11 @@ export const ArrowRace: React.FC = () => {
           <span className="text-gray-100">RACE</span>
         </h1>
       }
+      subtitle={
+        <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400/90">
+          Target: 5 Points
+        </span>
+      }
       onBack={online ? handleLeave : () => navigate('/')}
       soundOn={soundOn}
       onToggleSound={toggleSound}
@@ -318,9 +329,12 @@ export const ArrowRace: React.FC = () => {
             aria-label={`Answer ${dir}`}
             disabled={!liveRound || disconnected}
             onClick={() => onAnswer(dir)}
-            className="h-14 w-20 rounded-xl border-2 border-zinc-700 bg-zinc-800/90 text-3xl font-extrabold text-gray-100 shadow-md transition-all hover:border-violet-400 hover:bg-zinc-700 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-40 sm:h-16 sm:w-24 sm:text-4xl"
+            className="flex flex-col items-center justify-center h-14 w-20 rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-2xl font-extrabold text-gray-100 shadow-md transition-all hover:border-violet-400 hover:bg-zinc-700 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 disabled:opacity-40 sm:h-16 sm:w-24 sm:text-3xl"
           >
-            {GLYPH[dir]}
+            <span>{GLYPH[dir]}</span>
+            <span aria-hidden="true" className="text-[9px] font-bold text-zinc-400 uppercase -mt-0.5">
+              {KEY_HINT[dir]}
+            </span>
           </button>
         ))}
       </div>

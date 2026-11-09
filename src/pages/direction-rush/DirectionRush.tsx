@@ -351,6 +351,14 @@ const DirectionRush: React.FC = () => {
             <span className="text-sm font-bold text-purple-400 uppercase">Infinite</span>
           </div>
         )}
+
+        {/* Difficulty Badge */}
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Level</span>
+          <span className="text-xs font-black uppercase text-emerald-400">
+            {difficulty}
+          </span>
+        </div>
       </div>
 
       {/* Prominent Active Instruction Banner */}
@@ -399,6 +407,24 @@ const DirectionRush: React.FC = () => {
         )}
         {feedbackFlash === 'incorrect' && (
           <div className="absolute inset-0 bg-red-500/20 pointer-events-none animate-ping" />
+        )}
+      </div>
+
+      {/* Per-Answer RT Flash */}
+      <div className="flex items-center justify-center h-5">
+        {state.reactionTimes.length > 0 && state.history.length > 0 && (
+          <div className="text-xs font-mono font-bold text-zinc-400 flex items-center gap-1.5">
+            <span>⚡ Last:</span>
+            <span
+              className={
+                state.history[state.history.length - 1].correct
+                  ? "text-emerald-400 font-black"
+                  : "text-red-400 font-black"
+              }
+            >
+              {Math.round(state.reactionTimes[state.reactionTimes.length - 1])}ms
+            </span>
+          </div>
         )}
       </div>
 

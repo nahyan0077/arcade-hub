@@ -36,10 +36,36 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
   const rowsTopDown = Array.from({ length: C4_ROWS }, (_, i) => C4_ROWS - 1 - i);
 
   return (
-    <div
-      className="grid grid-cols-7 gap-[calc(var(--c4cell)/8)] rounded-2xl border-2 border-blue-500/40 bg-zinc-800/90 p-[calc(var(--c4cell)/8)] shadow-[0_0_30px_rgba(37,99,235,0.2)] backdrop-blur-sm"
-      style={{ "--c4cell": CELL_SIZE } as React.CSSProperties}
-    >
+    <div className="flex flex-col items-center">
+      {/* Column Hover Down Arrows */}
+      <div
+        className="grid grid-cols-7 gap-[calc(var(--c4cell)/8)] w-full px-[calc(var(--c4cell)/8)] mb-1"
+        style={{ "--c4cell": CELL_SIZE } as React.CSSProperties}
+        aria-hidden="true"
+      >
+        {columns.map((col) => {
+          const isHovered = hoverCol === col && interactionEnabled && openRow(board, col) !== null;
+          return (
+            <div
+              key={col}
+              className={`flex h-5 items-center justify-center text-sm font-black transition-all ${
+                isHovered
+                  ? currentMark === "X"
+                    ? "text-blue-400 -translate-y-1 opacity-100"
+                    : "text-red-400 -translate-y-1 opacity-100"
+                  : "opacity-0"
+              }`}
+            >
+              ↓
+            </div>
+          );
+        })}
+      </div>
+
+      <div
+        className="grid grid-cols-7 gap-[calc(var(--c4cell)/8)] rounded-3xl border-4 border-blue-600/80 bg-gradient-to-b from-blue-900/90 to-blue-950/95 p-[calc(var(--c4cell)/8)] shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(37,99,235,0.3)] backdrop-blur-md"
+        style={{ "--c4cell": CELL_SIZE } as React.CSSProperties}
+      >
       {columns.map((col) => {
         const colOpen = openRow(board, col) !== null;
         return (
@@ -91,6 +117,7 @@ export const ConnectFourBoard: React.FC<ConnectFourBoardProps> = ({
           </button>
         );
       })}
+      </div>
     </div>
   );
 };
