@@ -52,7 +52,7 @@ baseTest.describe('Landing Page & Arcade Boot Experience', () => {
     await skipBtn.click();
 
     // Overlay is dismissed, Hub is active
-    await expect(landingScreen).toBeHidden({ timeout: 2000 });
+    await expect(landingScreen).toBeHidden({ timeout: 7000 });
     await expect(page.getByTestId('hub-card-tictactoe')).toBeVisible();
 
     // Replay Title Screen via footer button

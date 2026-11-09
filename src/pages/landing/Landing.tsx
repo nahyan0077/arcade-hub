@@ -24,6 +24,19 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, autoRedirect = true }
   const [progress, setProgress] = useState(15);
   const [isEntering, setIsEntering] = useState(false);
 
+  const handleSkip = useCallback(() => {
+    try {
+      window.sessionStorage.setItem("arcade_has_booted", "true");
+    } catch {
+      // ignore
+    }
+    if (onEnter) {
+      onEnter();
+    } else {
+      navigate("/", { replace: true });
+    }
+  }, [onEnter, navigate]);
+
   const handleEnter = useCallback(() => {
     if (isEntering) return;
     setIsEntering(true);
@@ -39,7 +52,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, autoRedirect = true }
       } else {
         navigate("/", { replace: true });
       }
-    }, 450);
+    }, 200);
   }, [isEntering, onEnter, navigate]);
 
   // Boot sequence animation
@@ -133,7 +146,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, autoRedirect = true }
 
           <button
             type="button"
-            onClick={handleEnter}
+            onClick={handleSkip}
             className="flex items-center gap-1.5 rounded-lg border border-cyan-500/50 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-300 transition-all hover:bg-cyan-500/20 hover:border-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
             aria-label="Skip to games"
           >

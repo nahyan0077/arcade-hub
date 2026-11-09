@@ -10,7 +10,7 @@ export default {
         pop: {
           '0%': { transform: 'scale(0)', opacity: '0' },
           '60%': { transform: 'scale(1.18)', opacity: '1' },
-          '100%': { transform: 'scale(1)' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
         shake: {
           '0%, 100%': { transform: 'translateX(0)' },
