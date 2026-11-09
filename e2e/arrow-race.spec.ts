@@ -13,14 +13,11 @@ async function startArrowRace(
   options: { name?: string; mode?: 'pve' | 'online'; difficulty?: string } = {},
 ): Promise<void> {
   const { name = 'Alice', mode = 'pve', difficulty = 'medium' } = options;
-  await page.goto('/');
-  await page
-    .getByTestId('hub-card-arrow-race')
-    .getByRole('button', { name: 'Play' })
-    .click();
-  await expect(page).toHaveURL(/\/start/);
+  await page.goto('/start?game=arrow-race');
   await expect(page.getByText('ARROW')).toBeVisible();
-  await page.getByPlaceholder('Enter your name').fill(name);
+  const nameInput = page.getByPlaceholder('Enter your name');
+  await nameInput.fill(name);
+  await nameInput.blur();
   if (mode === 'pve') {
     await page.getByRole('button', { name: difficulty.toUpperCase() }).click();
   } else {

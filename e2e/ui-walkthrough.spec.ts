@@ -171,7 +171,7 @@ test.describe('UI walkthrough', () => {
     await context.close();
   });
 
-  test('online arrow-race: wrong host answer scores guest', async ({ browser }) => {
+  test('online arrow-race: wrong host answer scores guest', async ({ browser }, testInfo) => {
     const context = await newMutedContext(browser);
     const host = await context.newPage();
     const guest = await context.newPage();
@@ -190,7 +190,7 @@ test.describe('UI walkthrough', () => {
 
     await expect(host.getByTestId('score-o')).toHaveText(/1/);
     await expect(guest.getByTestId('score-o')).toHaveText(/1/);
-    await host.screenshot({ path: shots('desktop', 'walk-race-online-wrong') });
+    await host.screenshot({ path: shots(testInfo.project.name, 'walk-race-online-wrong') });
     await context.close();
   });
 });

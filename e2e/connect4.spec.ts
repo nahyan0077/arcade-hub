@@ -14,14 +14,11 @@ async function startConnectFour(
   options: { name?: string; mode?: 'pvp' | 'pve'; difficulty?: string } = {},
 ): Promise<void> {
   const { name = 'Alice', mode = 'pvp', difficulty = 'medium' } = options;
-  await page.goto('/');
-  await page
-    .getByTestId('hub-card-connect-four')
-    .getByRole('button', { name: 'Play' })
-    .click();
-  await expect(page).toHaveURL(/\/start/);
+  await page.goto('/start?game=connect-four');
   await expect(page.getByText('CONNECT')).toBeVisible();
-  await page.getByPlaceholder('Enter your name').fill(name);
+  const nameInput = page.getByPlaceholder('Enter your name');
+  await nameInput.fill(name);
+  await nameInput.blur();
   if (mode === 'pve') {
     await page.getByRole('button', { name: 'vs AI' }).click();
     await page.getByRole('button', { name: difficulty.toUpperCase() }).click();

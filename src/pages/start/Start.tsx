@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "./start.css";
 import toast, { Toaster } from "react-hot-toast";
 import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
@@ -31,9 +31,13 @@ const optionClass = (active: boolean): string =>
 export const Start = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { openRoom } = useOnlineSession();
 
-  const rawGame = (location.state as { game?: string } | null)?.game;
+  const paramGame = searchParams.get("game");
+  const rawGame =
+    ((location.state as { game?: string } | null)?.game) ??
+    paramGame;
   const game: StartGame =
     rawGame === "connect-four"
       ? "connect-four"

@@ -448,4 +448,19 @@ describe('Start screen for arrow-race', () => {
     const state = JSON.parse(screen.getByTestId('race-state').textContent ?? 'null');
     expect(state).toMatchObject({ name: 'Zed', mode: 'pve', difficulty: 'hard' });
   });
+
+  it('recognizes game from query parameters', () => {
+    render(
+      <OnlineSessionProvider>
+        <MemoryRouter initialEntries={['/?game=connect-four']}>
+          <Routes>
+            <Route path="/" element={<Start />} />
+          </Routes>
+        </MemoryRouter>
+      </OnlineSessionProvider>,
+    );
+    expect(screen.getByText('CONNECT')).toBeInTheDocument();
+    expect(screen.getByText('FOUR')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Play as X')).not.toBeInTheDocument();
+  });
 });

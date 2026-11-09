@@ -35,16 +35,9 @@ async function openStartForGame(
   page: Page,
   game: 'tictactoe' | 'connect-four' | 'arrow-race',
 ) {
-  if (game === 'tictactoe') {
-    await page.goto('/start');
-    return;
-  }
-  await page.goto('/');
-  await page
-    .getByTestId(`hub-card-${game}`)
-    .getByRole('button', { name: 'Play' })
-    .click();
-  await expect(page).toHaveURL(/\/start/);
+  const url = game === 'tictactoe' ? '/start' : `/start?game=${game}`;
+  await page.goto(url);
+  await expect(page).toHaveURL(new RegExp(`/start(\\?game=${game})?`));
 }
 
 export async function createRoom(
@@ -53,7 +46,9 @@ export async function createRoom(
   game: 'tictactoe' | 'connect-four' | 'arrow-race' = 'tictactoe',
 ): Promise<string> {
   await openStartForGame(page, game);
-  await page.getByPlaceholder('Enter your name').fill(name);
+  const nameInput = page.getByPlaceholder('Enter your name');
+  await nameInput.fill(name);
+  await nameInput.blur();
   await page.getByRole('button', { name: 'Online' }).click();
   await page.getByRole('button', { name: 'Create Room' }).click();
   await page.getByRole('button', { name: 'Start Game' }).click();
@@ -72,10 +67,14 @@ export async function joinRoom(
   game: 'tictactoe' | 'connect-four' | 'arrow-race' = 'tictactoe',
 ): Promise<void> {
   await openStartForGame(page, game);
-  await page.getByPlaceholder('Enter your name').fill(name);
+  const nameInput = page.getByPlaceholder('Enter your name');
+  await nameInput.fill(name);
+  await nameInput.blur();
   await page.getByRole('button', { name: 'Online' }).click();
   await page.getByRole('button', { name: 'Join Room' }).click();
-  await page.getByRole('textbox', { name: 'Room code' }).fill(code);
+  const codeInput = page.getByRole('textbox', { name: 'Room code' });
+  await codeInput.fill(code);
+  await codeInput.blur();
   await page.getByRole('button', { name: 'Start Game' }).click();
   // Connected so fast the lobby may already be replaced by the room.
   await expect(page).toHaveURL(/\/(lobby|room)/);

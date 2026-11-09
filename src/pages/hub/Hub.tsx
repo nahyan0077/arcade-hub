@@ -112,6 +112,10 @@ export const Hub: React.FC = () => {
     }
   });
 
+  const hasHover =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(hover: hover)").matches;
+
   const handleToggleSound = () => {
     const next = !soundOn;
     setMuted(!next);
@@ -202,7 +206,7 @@ export const Hub: React.FC = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
-              whileHover={game.playable ? { y: -6 } : undefined}
+              whileHover={game.playable && hasHover ? { y: -6 } : undefined}
               className={`group relative flex w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm flex-col justify-between rounded-2xl border-2 p-6 transition-all duration-300 backdrop-blur-md ${
                 game.playable
                   ? `border-zinc-800/90 bg-gradient-to-b from-zinc-900/95 to-zinc-950/95 shadow-xl ${game.borderHover} ${game.glowColor}`
@@ -259,7 +263,7 @@ export const Hub: React.FC = () => {
                     onClick={() =>
                       game.id === "direction-rush"
                         ? navigate("/direction-rush")
-                        : navigate("/start", { state: { game: game.id } })
+                        : navigate(`/start?game=${game.id}`, { state: { game: game.id } })
                     }
                     className={`flex w-full items-center justify-center gap-2 rounded-xl border-2 py-2.5 text-sm font-extrabold shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 ${game.buttonBg} ${game.buttonHover}`}
                   >
