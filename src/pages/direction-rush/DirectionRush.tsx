@@ -20,8 +20,6 @@ interface ResultStats {
   movingAcc: number;
 }
 
-const DIRECTIONS: readonly RushDirection[] = ['up', 'down', 'left', 'right'];
-
 const GLYPH: Record<RushDirection, string> = {
   up: '↑',
   down: '↓',
@@ -301,22 +299,22 @@ const DirectionRush: React.FC = () => {
           End
         </button>
       }
-      className="flex min-h-[100dvh] flex-col items-center justify-between gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-3 sm:px-4 py-2.5 sm:py-4 text-gray-100"
+      className="flex h-[100dvh] max-h-[100dvh] flex-col items-center justify-between gap-1 sm:gap-2 overflow-hidden bg-zinc-900 px-3 sm:px-4 py-2 sm:py-3 text-gray-100"
     >
 
       {/* HUD Stats */}
-      <div className="flex w-full max-w-lg items-center justify-around gap-2 rounded-2xl border border-zinc-800 bg-zinc-800/50 p-2 sm:p-3 shadow-md backdrop-blur-sm">
+      <div className="flex w-full max-w-lg items-center justify-around gap-1 sm:gap-2 rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-800/50 px-2 py-1 sm:p-2.5 shadow-md backdrop-blur-sm shrink-0">
         {/* Score */}
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Score</span>
-          <span className="text-2xl font-black text-emerald-400">{score}</span>
+          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Score</span>
+          <span className="text-lg sm:text-2xl font-black text-emerald-400">{score}</span>
         </div>
 
         {/* Streak */}
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Streak</span>
-          <span className="flex items-center gap-1 text-2xl font-black text-amber-400">
-            {streak > 2 && <span className="text-base animate-bounce">🔥</span>}
+          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Streak</span>
+          <span className="flex items-center gap-0.5 sm:gap-1 text-lg sm:text-2xl font-black text-amber-400">
+            {streak > 2 && <span className="text-sm sm:text-base animate-bounce">🔥</span>}
             {streak}
           </span>
         </div>
@@ -324,9 +322,9 @@ const DirectionRush: React.FC = () => {
         {/* Timer or Lives */}
         {navMode === 'quick' && (
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Time</span>
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Time</span>
             <span
-              className={`text-2xl font-black ${
+              className={`text-lg sm:text-2xl font-black ${
                 secondsRemaining <= 10 ? 'text-red-400 animate-pulse' : 'text-blue-400'
               }`}
             >
@@ -337,8 +335,8 @@ const DirectionRush: React.FC = () => {
 
         {navMode === 'survival' && (
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Lives</span>
-            <span className="text-xl tracking-widest text-red-400">
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Lives</span>
+            <span className="text-base sm:text-xl tracking-widest text-red-400">
               {'❤️'.repeat(Math.max(0, lives))}
               {'🖤'.repeat(Math.max(0, 3 - lives))}
             </span>
@@ -347,59 +345,99 @@ const DirectionRush: React.FC = () => {
 
         {navMode === 'practice' && (
           <div className="flex flex-col items-center">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Mode</span>
-            <span className="text-sm font-bold text-purple-400 uppercase">Infinite</span>
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Mode</span>
+            <span className="text-xs sm:text-sm font-bold text-purple-400 uppercase">Infinite</span>
           </div>
         )}
 
         {/* Difficulty Badge */}
         <div className="flex flex-col items-center">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Level</span>
-          <span className="text-xs font-black uppercase text-emerald-400">
+          <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Level</span>
+          <span className="text-[10px] sm:text-xs font-black uppercase text-emerald-400">
             {difficulty}
           </span>
         </div>
       </div>
 
       {/* Prominent Active Instruction Banner */}
-      <div className="relative flex flex-col items-center justify-center w-full max-w-lg min-h-[52px]">
+      <div className="relative flex flex-col items-center justify-center w-full max-w-lg min-h-[28px] shrink-0">
         {switchAlert ? (
-          <div className="animate-bounce flex items-center gap-2 rounded-full border-2 border-yellow-400 bg-yellow-500/25 px-6 py-2 shadow-xl shadow-yellow-500/20">
-            <span className="text-xs font-black uppercase tracking-wider text-yellow-300">
+          <div className="animate-bounce flex items-center gap-1.5 rounded-full border border-yellow-400 bg-yellow-500/25 px-3.5 py-0.5 shadow-md shadow-yellow-500/20">
+            <span className="text-[10px] font-black uppercase tracking-wider text-yellow-300">
               ⚡ SWITCH! NOW:
             </span>
-            <span className="text-lg font-black tracking-widest text-white">{switchAlert}</span>
+            <span className="text-xs sm:text-sm font-black tracking-widest text-white">{switchAlert}</span>
           </div>
         ) : instruction === 'pointing' ? (
-          <div className="flex items-center gap-3 rounded-full border-2 border-amber-500/60 bg-amber-500/15 px-6 py-2 shadow-lg shadow-amber-500/10">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Follow:</span>
-            <span className="text-lg sm:text-xl font-black tracking-widest text-amber-300">
+          <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-amber-500/60 bg-amber-500/15 px-3 py-0.5 shadow-sm shadow-amber-500/10">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Rule:</span>
+            <span className="text-xs sm:text-sm font-black tracking-widest text-amber-300">
               POINTING
             </span>
-            <span className="text-xs text-amber-400/80 hidden sm:inline">(where leaf tips point)</span>
+            <span className="text-[10px] text-amber-400/80 hidden sm:inline">(leaf tip direction)</span>
           </div>
         ) : (
-          <div className="flex items-center gap-3 rounded-full border-2 border-emerald-500/60 bg-emerald-500/15 px-6 py-2 shadow-lg shadow-emerald-500/10">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Follow:</span>
-            <span className="text-lg sm:text-xl font-black tracking-widest text-emerald-300">
+          <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-500/60 bg-emerald-500/15 px-3 py-0.5 shadow-sm shadow-emerald-500/10">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Rule:</span>
+            <span className="text-xs sm:text-sm font-black tracking-widest text-emerald-300">
               MOVING
             </span>
-            <span className="text-xs text-emerald-400/80 hidden sm:inline">(where leaves drift)</span>
+            <span className="text-[10px] text-emerald-400/80 hidden sm:inline">(drift flight direction)</span>
           </div>
         )}
       </div>
 
-      {/* Main Game Arena */}
+      {/* Main Game Arena with In-Movement Visual Indicator & Switch Flash */}
       <div
-        className={`relative w-full max-w-lg h-52 sm:h-64 md:h-72 rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
+        className={`relative w-full max-w-lg flex-1 min-h-[140px] max-h-[230px] rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
           feedbackFlash === 'correct'
-            ? 'border-emerald-400 shadow-[0_0_30px_rgba(34,197,94,0.35)]'
+            ? 'border-emerald-400 shadow-[0_0_35px_rgba(34,197,94,0.45)]'
             : feedbackFlash === 'incorrect'
-              ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.35)]'
-              : 'border-zinc-700/80 hover:border-zinc-600'
+              ? 'border-red-500 shadow-[0_0_35px_rgba(239,68,68,0.45)]'
+              : switchAlert
+                ? 'border-yellow-400 shadow-[0_0_30px_rgba(250,204,21,0.4)] animate-pulse'
+                : instruction === 'pointing'
+                  ? 'border-amber-500/60 shadow-[0_0_25px_rgba(245,158,11,0.2)]'
+                  : 'border-emerald-500/60 shadow-[0_0_25px_rgba(16,185,129,0.2)]'
         }`}
       >
         <LeafField stimulus={stimulus} leafCount={7} />
+
+        {/* IN-MOVEMENT INDICATOR: directly inside the arena so eyes never have to look away */}
+        <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-0.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 select-none bg-zinc-950/85">
+          {instruction === 'pointing' ? (
+            <div className="flex items-center gap-1.5 text-amber-300">
+              <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase">
+                🎯 FOLLOW TIP: <span className="text-amber-200 underline decoration-amber-400 font-extrabold">POINTING</span>
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-emerald-300">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase">
+                💨 FOLLOW DRIFT: <span className="text-emerald-200 underline decoration-emerald-400 font-extrabold">MOVING</span>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* IN-ARENA SWITCH FLASH: unmissable big alert inside the arena when mode changes */}
+        {switchAlert && (
+          <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-[2px] animate-fade-in select-none">
+            <div className="flex flex-col items-center gap-1 rounded-2xl border-2 border-yellow-400 bg-zinc-950/95 px-5 py-2.5 shadow-[0_0_40px_rgba(250,204,21,0.7)] animate-bounce">
+              <span className="text-[10px] font-black uppercase tracking-widest text-yellow-300">
+                ⚡ RULE SWITCH!
+              </span>
+              <span className="text-xl sm:text-2xl font-black tracking-wider text-white">
+                FOLLOW {switchAlert}
+              </span>
+              <span className="text-[9px] font-bold text-zinc-400">
+                {switchAlert === 'POINTING' ? '(Where leaf tip points)' : '(Where leaves drift across)'}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Feedback flash overlay */}
         {feedbackFlash === 'correct' && (
@@ -411,9 +449,9 @@ const DirectionRush: React.FC = () => {
       </div>
 
       {/* Per-Answer RT Flash */}
-      <div className="flex items-center justify-center h-5">
+      <div className="flex items-center justify-center h-3.5 shrink-0">
         {state.reactionTimes.length > 0 && state.history.length > 0 && (
-          <div className="text-xs font-mono font-bold text-zinc-400 flex items-center gap-1.5">
+          <div className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1">
             <span>⚡ Last:</span>
             <span
               className={
@@ -428,29 +466,101 @@ const DirectionRush: React.FC = () => {
         )}
       </div>
 
-      {/* Direction Input Controls */}
+      {/* Direction Cross D-Pad with Integrated Center Movement Mode Indicator */}
       <div
         role="grid"
         aria-label="Direction pad"
-        className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3 w-full max-w-lg"
+        className="grid grid-cols-3 grid-rows-3 gap-1 sm:gap-1.5 w-full max-w-[270px] sm:max-w-[300px] mx-auto select-none items-center justify-items-center shrink-0 mb-1"
       >
-        {DIRECTIONS.map((dir) => (
+        {/* ROW 1: UP (Center Column) */}
+        <div className="col-start-2 row-start-1 w-full flex justify-center">
           <button
-            key={dir}
             type="button"
             role="gridcell"
-            data-testid={`btn-${dir}`}
-            aria-label={`Answer ${dir}`}
-            onClick={() => handleAnswer(dir)}
-            className="flex flex-col items-center justify-center h-16 sm:h-20 rounded-xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-lg transition-all hover:scale-[1.03] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+            data-testid="btn-up"
+            aria-label="Answer up"
+            onClick={() => handleAnswer("up")}
+            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
           >
-            <span className="text-2xl sm:text-3xl font-black leading-none">{GLYPH[dir]}</span>
-            <span className="mt-1 text-[11px] font-bold uppercase tracking-wider text-zinc-300">
-              {dir}
-            </span>
-            <span className="text-[9px] font-semibold text-zinc-500 uppercase">{HINT[dir]}</span>
+            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.up}</span>
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">UP</span>
+            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.up}</span>
           </button>
-        ))}
+        </div>
+
+        {/* ROW 2: LEFT (Left Column) */}
+        <div className="col-start-1 row-start-2 w-full flex justify-center">
+          <button
+            type="button"
+            role="gridcell"
+            data-testid="btn-left"
+            aria-label="Answer left"
+            onClick={() => handleAnswer("left")}
+            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+          >
+            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.left}</span>
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">LEFT</span>
+            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.left}</span>
+          </button>
+        </div>
+
+        {/* ROW 2: CENTER RULE INDICATOR (Directly inside the movement controls!) */}
+        <div className="col-start-2 row-start-2 w-full flex justify-center select-none pointer-events-none">
+          {switchAlert ? (
+            <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-yellow-400 bg-yellow-500/25 p-0.5 text-center shadow-[0_0_20px_rgba(250,204,21,0.5)] animate-pulse">
+              <span className="text-[8px] sm:text-[9px] font-black text-yellow-300 uppercase leading-none">⚡ SWITCH</span>
+              <span className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider">{switchAlert}</span>
+            </div>
+          ) : instruction === 'pointing' ? (
+            <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(245,158,11,0.25)] transition-all">
+              <span className="text-xs sm:text-sm animate-pulse" aria-hidden="true">🎯</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-amber-300 leading-none">
+                POINTING
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-bold text-amber-400/80 mt-0.5">LEAF TIP</span>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-emerald-500/70 bg-gradient-to-b from-emerald-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(16,185,129,0.25)] transition-all">
+              <span className="text-xs sm:text-sm animate-pulse" aria-hidden="true">💨</span>
+              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-300 leading-none">
+                MOVING
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-bold text-emerald-400/80 mt-0.5">DRIFT FLOW</span>
+            </div>
+          )}
+        </div>
+
+        {/* ROW 2: RIGHT (Right Column) */}
+        <div className="col-start-3 row-start-2 w-full flex justify-center">
+          <button
+            type="button"
+            role="gridcell"
+            data-testid="btn-right"
+            aria-label="Answer right"
+            onClick={() => handleAnswer("right")}
+            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+          >
+            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.right}</span>
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">RIGHT</span>
+            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.right}</span>
+          </button>
+        </div>
+
+        {/* ROW 3: DOWN (Center Column) */}
+        <div className="col-start-2 row-start-3 w-full flex justify-center">
+          <button
+            type="button"
+            role="gridcell"
+            data-testid="btn-down"
+            aria-label="Answer down"
+            onClick={() => handleAnswer("down")}
+            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+          >
+            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.down}</span>
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">DOWN</span>
+            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.down}</span>
+          </button>
+        </div>
       </div>
 
       {/* Results Dialog */}

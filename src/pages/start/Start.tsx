@@ -9,6 +9,7 @@ import type { C4Difficulty } from "../../engine/connect-four/types";
 import { useOnlineSession } from "../../net/OnlineSessionContext";
 import { useSettings } from "../../settings/SettingsContext";
 import { playEffect } from "../../sound/audio";
+import { RetroGrid } from "../../components/RetroGrid";
 import {
   generateRoomCode,
   isValidRoomCode,
@@ -116,15 +117,8 @@ export const Start = () => {
 
   return (
     <main className="relative flex flex-col mx-auto min-h-[100dvh] justify-center items-center bg-zinc-950 px-3 sm:px-4 py-2 sm:py-4 overflow-hidden text-gray-100">
-      {/* Dynamic ambient background glow */}
-      <div
-        className={`pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-96 w-96 rounded-full ${
-          isC4
-            ? "bg-amber-500/15"
-            : "bg-blue-600/15"
-        } blur-3xl`}
-        aria-hidden="true"
-      />
+      {/* Dynamic ambient retro grid */}
+      <RetroGrid variant={isC4 ? "c4" : "ttt"} />
 
       {/* Top Bar with Hub Exit & Settings */}
       <div className="w-full max-w-xl flex items-center justify-between mb-2 sm:mb-3 z-10 px-1">
@@ -184,7 +178,11 @@ export const Start = () => {
             Step 1: Choose How to Play
           </div>
           <div
-            className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 w-full"
+            className={`${
+              quickPlayEnabled()
+                ? "grid grid-cols-2 sm:grid-cols-4"
+                : "grid grid-cols-3"
+            } gap-2 sm:gap-2.5 w-full justify-center items-stretch`}
             role="group"
             aria-label="Game mode"
           >

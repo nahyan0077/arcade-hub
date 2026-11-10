@@ -71,6 +71,9 @@ export const Leaf: React.FC<LeafProps> = ({
           strokeLinecap="round"
           opacity="0.8"
         />
+
+        {/* High-visibility leaf tip beacon */}
+        <circle cx="0" cy="-19" r="2.2" fill="#fde047" stroke="#ca8a04" strokeWidth="0.8" />
       </svg>
     </div>
   );

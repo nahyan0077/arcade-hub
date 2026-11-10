@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { isMuted, setMuted, playEffect } from "../../sound/audio";
 import { MatrixBackground } from "../../components/MatrixBackground";
+import { RetroGrid } from "../../components/RetroGrid";
 import { Landing } from "../landing/Landing";
 import { useSettings } from "../../settings/SettingsContext";
 import { GameHeroCard } from "../../components/hub/GameHeroCard";
@@ -127,6 +128,7 @@ export const Hub: React.FC = () => {
 
         {/* Cyber Matrix Trail Background */}
         {settings.matrixRain && <MatrixBackground opacity={settings.matrixOpacity} />}
+        <RetroGrid variant="hub" intensity="subtle" />
 
         {/* Ambient background glow accents */}
         <div className="pointer-events-none fixed -top-40 left-1/2 h-[450px] w-[700px] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[130px]" />

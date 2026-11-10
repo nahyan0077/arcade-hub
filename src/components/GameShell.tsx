@@ -1,6 +1,7 @@
 import React, { ReactNode, useEffect } from "react";
 import { useSettings } from "../settings/SettingsContext";
 import { playEffect } from "../sound/audio";
+import { RetroGrid } from "./RetroGrid";
 
 export type GameId = "ttt" | "c4" | "rush";
 
@@ -49,11 +50,12 @@ export const GameShell: React.FC<GameShellProps> = ({
   }, [game]);
 
   return (
-    <main className={className} data-game={game}>
+    <main className={`relative ${className}`} data-game={game}>
+      <RetroGrid variant={game} />
       {confetti}
 
       {/* Top Header Bar */}
-      <header className={`flex w-full ${headerMaxWidth} items-center justify-between px-1`}>
+      <header className={`relative z-10 flex w-full ${headerMaxWidth} items-center justify-between px-1`}>
         <button
           type="button"
           onClick={onBack}
