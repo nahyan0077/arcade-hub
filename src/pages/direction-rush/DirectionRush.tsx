@@ -359,37 +359,9 @@ const DirectionRush: React.FC = () => {
         </div>
       </div>
 
-      {/* Prominent Active Instruction Banner */}
-      <div className="relative flex flex-col items-center justify-center w-full max-w-lg min-h-[28px] shrink-0">
-        {switchAlert ? (
-          <div className="animate-bounce flex items-center gap-1.5 rounded-full border border-yellow-400 bg-yellow-500/25 px-3.5 py-0.5 shadow-md shadow-yellow-500/20">
-            <span className="text-[10px] font-black uppercase tracking-wider text-yellow-300">
-              ⚡ SWITCH! NOW:
-            </span>
-            <span className="text-xs sm:text-sm font-black tracking-widest text-white">{switchAlert}</span>
-          </div>
-        ) : instruction === 'pointing' ? (
-          <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-amber-500/60 bg-amber-500/15 px-3 py-0.5 shadow-sm shadow-amber-500/10">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400">Rule:</span>
-            <span className="text-xs sm:text-sm font-black tracking-widest text-amber-300">
-              POINTING
-            </span>
-            <span className="text-[10px] text-amber-400/80 hidden sm:inline">(leaf tip direction)</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-500/60 bg-emerald-500/15 px-3 py-0.5 shadow-sm shadow-emerald-500/10">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Rule:</span>
-            <span className="text-xs sm:text-sm font-black tracking-widest text-emerald-300">
-              MOVING
-            </span>
-            <span className="text-[10px] text-emerald-400/80 hidden sm:inline">(drift flight direction)</span>
-          </div>
-        )}
-      </div>
-
       {/* Main Game Arena with In-Movement Visual Indicator & Switch Flash */}
       <div
-        className={`relative w-full max-w-lg flex-1 min-h-[140px] max-h-[230px] rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
+        className={`relative w-full max-w-lg flex-1 min-h-[160px] max-h-[260px] rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
           feedbackFlash === 'correct'
             ? 'border-emerald-400 shadow-[0_0_35px_rgba(34,197,94,0.45)]'
             : feedbackFlash === 'incorrect'
@@ -403,37 +375,34 @@ const DirectionRush: React.FC = () => {
       >
         <LeafField stimulus={stimulus} leafCount={7} />
 
-        {/* IN-MOVEMENT INDICATOR: directly inside the arena so eyes never have to look away */}
-        <div className="pointer-events-none absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-0.5 rounded-full border shadow-lg backdrop-blur-md transition-all duration-300 select-none bg-zinc-950/85">
+        {/* IN-MOVEMENT INDICATOR: positioned below inside the arena with clean, minimal text */}
+        <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center transition-all duration-300 select-none">
           {instruction === 'pointing' ? (
-            <div className="flex items-center gap-1.5 text-amber-300">
-              <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-              <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase">
-                🎯 FOLLOW TIP: <span className="text-amber-200 underline decoration-amber-400 font-extrabold">POINTING</span>
+            <div className="flex items-center gap-2 px-4 py-1 rounded-full border border-amber-400/80 bg-zinc-950/90 shadow-[0_0_15px_rgba(245,158,11,0.35)] backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+              <span className="text-xs sm:text-sm font-black tracking-widest uppercase text-amber-300">
+                POINTING
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 text-emerald-300">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-[10px] sm:text-xs font-black tracking-wider uppercase">
-                💨 FOLLOW DRIFT: <span className="text-emerald-200 underline decoration-emerald-400 font-extrabold">MOVING</span>
+            <div className="flex items-center gap-2 px-4 py-1 rounded-full border border-emerald-400/80 bg-zinc-950/90 shadow-[0_0_15px_rgba(16,185,129,0.35)] backdrop-blur-md">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping" />
+              <span className="text-xs sm:text-sm font-black tracking-widest uppercase text-emerald-300">
+                MOVING
               </span>
             </div>
           )}
         </div>
 
-        {/* IN-ARENA SWITCH FLASH: unmissable big alert inside the arena when mode changes */}
+        {/* IN-ARENA SWITCH FLASH: unmissable alert inside the arena when mode changes */}
         {switchAlert && (
           <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-[2px] animate-fade-in select-none">
             <div className="flex flex-col items-center gap-1 rounded-2xl border-2 border-yellow-400 bg-zinc-950/95 px-5 py-2.5 shadow-[0_0_40px_rgba(250,204,21,0.7)] animate-bounce">
               <span className="text-[10px] font-black uppercase tracking-widest text-yellow-300">
-                ⚡ RULE SWITCH!
+                ⚡ SWITCH!
               </span>
               <span className="text-xl sm:text-2xl font-black tracking-wider text-white">
-                FOLLOW {switchAlert}
-              </span>
-              <span className="text-[9px] font-bold text-zinc-400">
-                {switchAlert === 'POINTING' ? '(Where leaf tip points)' : '(Where leaves drift across)'}
+                {switchAlert}
               </span>
             </div>
           </div>
@@ -508,24 +477,19 @@ const DirectionRush: React.FC = () => {
         <div className="col-start-2 row-start-2 w-full flex justify-center select-none pointer-events-none">
           {switchAlert ? (
             <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-yellow-400 bg-yellow-500/25 p-0.5 text-center shadow-[0_0_20px_rgba(250,204,21,0.5)] animate-pulse">
-              <span className="text-[8px] sm:text-[9px] font-black text-yellow-300 uppercase leading-none">⚡ SWITCH</span>
               <span className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider">{switchAlert}</span>
             </div>
           ) : instruction === 'pointing' ? (
             <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(245,158,11,0.25)] transition-all">
-              <span className="text-xs sm:text-sm animate-pulse" aria-hidden="true">🎯</span>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-amber-300 leading-none">
+              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-300 leading-none">
                 POINTING
               </span>
-              <span className="text-[7px] sm:text-[8px] font-bold text-amber-400/80 mt-0.5">LEAF TIP</span>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-emerald-500/70 bg-gradient-to-b from-emerald-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(16,185,129,0.25)] transition-all">
-              <span className="text-xs sm:text-sm animate-pulse" aria-hidden="true">💨</span>
-              <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wider text-emerald-300 leading-none">
+              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-emerald-300 leading-none">
                 MOVING
               </span>
-              <span className="text-[7px] sm:text-[8px] font-bold text-emerald-400/80 mt-0.5">DRIFT FLOW</span>
             </div>
           )}
         </div>

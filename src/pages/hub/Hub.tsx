@@ -7,7 +7,6 @@ import { MatrixBackground } from "../../components/MatrixBackground";
 import { RetroGrid } from "../../components/RetroGrid";
 import { Landing } from "../landing/Landing";
 import { useSettings } from "../../settings/SettingsContext";
-import { GameHeroCard } from "../../components/hub/GameHeroCard";
 
 interface GameCard {
   id: string;
@@ -76,7 +75,6 @@ const GAMES: GameCard[] = [
 export const Hub: React.FC = () => {
   const navigate = useNavigate();
   const { settings, openSettings } = useSettings();
-  const [selectedGameId, setSelectedGameId] = useState("tictactoe");
   const [soundOn, setSoundOn] = useState(!isMuted());
   const [showLanding, setShowLanding] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -86,8 +84,6 @@ export const Hub: React.FC = () => {
       return false;
     }
   });
-
-  const selectedGame = GAMES.find((g) => g.id === selectedGameId) || GAMES[0];
 
   const hasHover =
     typeof window !== "undefined" &&
@@ -180,10 +176,7 @@ export const Hub: React.FC = () => {
             </p>
           </motion.header>
 
-          {/* Cinematic Featured Game Showcase */}
-          <GameHeroCard game={selectedGame} onPlay={handleLaunchGame} />
-
-          {/* Section Heading & Selector */}
+          {/* Section Heading */}
           <div className="w-full flex items-center justify-between border-b border-zinc-800/80 pb-3">
             <div className="flex items-center gap-2">
               <span className="text-xs font-black uppercase tracking-wider text-zinc-300">
@@ -194,7 +187,7 @@ export const Hub: React.FC = () => {
               </span>
             </div>
             <span className="text-[11px] text-zinc-400 hidden sm:inline font-medium">
-              Click any game card to preview or play
+              Click any game card to play
             </span>
           </div>
 
@@ -204,7 +197,6 @@ export const Hub: React.FC = () => {
             className="flex flex-wrap justify-center gap-5 sm:gap-6 w-full"
           >
             {GAMES.map((game, index) => {
-              const isSelected = game.id === selectedGameId;
               return (
                 <motion.div
                   key={game.id}
@@ -213,13 +205,11 @@ export const Hub: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
                   whileHover={game.playable && hasHover ? { y: -6 } : undefined}
-                  onClick={() => setSelectedGameId(game.id)}
+                  onClick={() => handleLaunchGame(game.id)}
                   className={`group relative flex w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] max-w-sm flex-col justify-between rounded-3xl border-2 p-6 transition-all duration-300 backdrop-blur-md cursor-pointer ${
-                    isSelected
-                      ? "ring-2 ring-cyan-500/60 border-cyan-500/80 bg-zinc-900/95 shadow-[0_0_25px_rgba(6,182,212,0.2)]"
-                      : game.playable
-                        ? `border-zinc-800/90 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-xl ${game.borderHover} ${game.glowColor}`
-                        : "border-zinc-800/60 bg-zinc-950/40 opacity-60 cursor-not-allowed"
+                    game.playable
+                      ? `border-zinc-800/90 bg-gradient-to-b from-zinc-900/90 to-zinc-950/90 shadow-xl ${game.borderHover} ${game.glowColor}`
+                      : "border-zinc-800/60 bg-zinc-950/40 opacity-60 cursor-not-allowed"
                   }`}
                 >
                   {/* Card Header: Category & Mode Badge */}
