@@ -44,3 +44,44 @@ test('direction rush hub appears and game fits viewport', async ({ page }) => {
   await page.getByTestId('btn-up').click();
   await page.waitForTimeout(300);
 });
+
+test('direction rush is responsive and fits short tablet landscape viewports', async ({ page }) => {
+  // Test short landscape viewport like 800x550 (similar to user screenshot)
+  await page.setViewportSize({ width: 800, height: 550 });
+  await page.goto('/direction-rush');
+  await expect(page.locator('#root')).toBeVisible({ timeout: 10000 });
+
+  await expect(page.getByTestId('btn-up')).toBeVisible();
+  await expect(page.getByTestId('btn-down')).toBeVisible();
+
+  const isScrollable = await page.evaluate(
+    () => document.documentElement.scrollHeight > window.innerHeight + 1,
+  );
+  expect(isScrollable).toBe(false);
+
+  const viewportHeight = await page.evaluate(() => window.innerHeight);
+  const downBox = await page.getByTestId('btn-down').boundingBox();
+  expect(downBox).not.toBeNull();
+  if (downBox) {
+    expect(downBox.y + downBox.height).toBeLessThanOrEqual(viewportHeight);
+  }
+});
+
+test('direction rush expands game arena on large desktop viewports', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/direction-rush');
+  await expect(page.locator('#root')).toBeVisible({ timeout: 10000 });
+
+  await expect(page.getByTestId('btn-down')).toBeVisible();
+
+  const isScrollable = await page.evaluate(
+    () => document.documentElement.scrollHeight > window.innerHeight + 1,
+  );
+  expect(isScrollable).toBe(false);
+
+  const downBox = await page.getByTestId('btn-down').boundingBox();
+  expect(downBox).not.toBeNull();
+  if (downBox) {
+    expect(downBox.y + downBox.height).toBeLessThanOrEqual(900);
+  }
+});

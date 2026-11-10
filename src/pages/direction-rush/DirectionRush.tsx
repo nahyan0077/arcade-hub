@@ -288,7 +288,7 @@ const DirectionRush: React.FC = () => {
       soundOn={soundOn}
       onToggleSound={toggleSound}
       soundAriaLabel={{ mute: 'Mute audio', unmute: 'Unmute audio' }}
-      headerMaxWidth="max-w-lg"
+      headerMaxWidth="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl"
       headerRightExtra={
         <button
           type="button"
@@ -299,11 +299,11 @@ const DirectionRush: React.FC = () => {
           End
         </button>
       }
-      className="flex h-[100dvh] max-h-[100dvh] flex-col items-center justify-between gap-1 sm:gap-2 overflow-hidden bg-zinc-900 px-3 sm:px-4 py-2 sm:py-3 text-gray-100"
+      className="flex h-[100dvh] max-h-[100dvh] flex-col items-center justify-between gap-1.5 sm:gap-2 overflow-hidden bg-zinc-900 px-3 sm:px-6 py-1.5 sm:py-2.5 text-gray-100"
     >
 
       {/* HUD Stats */}
-      <div className="flex w-full max-w-lg items-center justify-around gap-1 sm:gap-2 rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-800/50 px-2 py-1 sm:p-2.5 shadow-md backdrop-blur-sm shrink-0">
+      <div className="flex w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl items-center justify-around gap-1 sm:gap-2 rounded-xl sm:rounded-2xl border border-zinc-800 bg-zinc-800/50 px-2 py-1 sm:p-2.5 shadow-md backdrop-blur-sm shrink-0">
         {/* Score */}
         <div className="flex flex-col items-center">
           <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-zinc-400">Score</span>
@@ -361,7 +361,7 @@ const DirectionRush: React.FC = () => {
 
       {/* Main Game Arena with In-Movement Visual Indicator & Switch Flash */}
       <div
-        className={`relative w-full max-w-lg flex-1 min-h-[160px] max-h-[260px] rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
+        className={`relative w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl flex-1 min-h-0 rounded-2xl border-2 bg-zinc-950/90 shadow-2xl overflow-hidden transition-all duration-200 ${
           feedbackFlash === 'correct'
             ? 'border-emerald-400 shadow-[0_0_35px_rgba(34,197,94,0.45)]'
             : feedbackFlash === 'incorrect'
@@ -417,113 +417,116 @@ const DirectionRush: React.FC = () => {
         )}
       </div>
 
-      {/* Per-Answer RT Flash */}
-      <div className="flex items-center justify-center h-3.5 shrink-0">
-        {state.reactionTimes.length > 0 && state.history.length > 0 && (
-          <div className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1">
-            <span>⚡ Last:</span>
-            <span
-              className={
-                state.history[state.history.length - 1].correct
-                  ? "text-emerald-400 font-black"
-                  : "text-red-400 font-black"
-              }
-            >
-              {Math.round(state.reactionTimes[state.reactionTimes.length - 1])}ms
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Direction Cross D-Pad with Integrated Center Movement Mode Indicator */}
-      <div
-        role="grid"
-        aria-label="Direction pad"
-        className="grid grid-cols-3 grid-rows-3 gap-1 sm:gap-1.5 w-full max-w-[270px] sm:max-w-[300px] mx-auto select-none items-center justify-items-center shrink-0 mb-1"
-      >
-        {/* ROW 1: UP (Center Column) */}
-        <div className="col-start-2 row-start-1 w-full flex justify-center">
-          <button
-            type="button"
-            role="gridcell"
-            data-testid="btn-up"
-            aria-label="Answer up"
-            onClick={() => handleAnswer("up")}
-            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
-          >
-            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.up}</span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">UP</span>
-            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.up}</span>
-          </button>
-        </div>
-
-        {/* ROW 2: LEFT (Left Column) */}
-        <div className="col-start-1 row-start-2 w-full flex justify-center">
-          <button
-            type="button"
-            role="gridcell"
-            data-testid="btn-left"
-            aria-label="Answer left"
-            onClick={() => handleAnswer("left")}
-            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
-          >
-            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.left}</span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">LEFT</span>
-            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.left}</span>
-          </button>
-        </div>
-
-        {/* ROW 2: CENTER RULE INDICATOR (Directly inside the movement controls!) */}
-        <div className="col-start-2 row-start-2 w-full flex justify-center select-none pointer-events-none">
-          {switchAlert ? (
-            <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-yellow-400 bg-yellow-500/25 p-0.5 text-center shadow-[0_0_20px_rgba(250,204,21,0.5)] animate-pulse">
-              <span className="text-[11px] sm:text-xs font-black text-white uppercase tracking-wider">{switchAlert}</span>
-            </div>
-          ) : instruction === 'pointing' ? (
-            <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(245,158,11,0.25)] transition-all">
-              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-300 leading-none">
-                POINTING
-              </span>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-emerald-500/70 bg-gradient-to-b from-emerald-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(16,185,129,0.25)] transition-all">
-              <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-emerald-300 leading-none">
-                MOVING
+      {/* Bottom Controls Area */}
+      <div className="w-full max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-5xl flex flex-col items-center gap-1 shrink-0 pb-1">
+        {/* Per-Answer RT Flash */}
+        <div className="flex items-center justify-center h-3.5">
+          {state.reactionTimes.length > 0 && state.history.length > 0 && (
+            <div className="text-[11px] font-mono font-bold text-zinc-400 flex items-center gap-1">
+              <span>⚡ Last:</span>
+              <span
+                className={
+                  state.history[state.history.length - 1].correct
+                    ? "text-emerald-400 font-black"
+                    : "text-red-400 font-black"
+                }
+              >
+                {Math.round(state.reactionTimes[state.reactionTimes.length - 1])}ms
               </span>
             </div>
           )}
         </div>
 
-        {/* ROW 2: RIGHT (Right Column) */}
-        <div className="col-start-3 row-start-2 w-full flex justify-center">
-          <button
-            type="button"
-            role="gridcell"
-            data-testid="btn-right"
-            aria-label="Answer right"
-            onClick={() => handleAnswer("right")}
-            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
-          >
-            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.right}</span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">RIGHT</span>
-            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.right}</span>
-          </button>
-        </div>
+        {/* Direction Cross D-Pad with Integrated Center Movement Mode Indicator */}
+        <div
+          role="grid"
+          aria-label="Direction pad"
+          className="grid grid-cols-3 grid-rows-3 gap-1 sm:gap-1.5 w-full max-w-[260px] sm:max-w-[290px] mx-auto select-none items-center justify-items-center"
+        >
+          {/* ROW 1: UP (Center Column) */}
+          <div className="col-start-2 row-start-1 w-full flex justify-center">
+            <button
+              type="button"
+              role="gridcell"
+              data-testid="btn-up"
+              aria-label="Answer up"
+              onClick={() => handleAnswer("up")}
+              className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+            >
+              <span className="text-base sm:text-lg font-black leading-none">{GLYPH.up}</span>
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">UP</span>
+              <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.up}</span>
+            </button>
+          </div>
 
-        {/* ROW 3: DOWN (Center Column) */}
-        <div className="col-start-2 row-start-3 w-full flex justify-center">
-          <button
-            type="button"
-            role="gridcell"
-            data-testid="btn-down"
-            aria-label="Answer down"
-            onClick={() => handleAnswer("down")}
-            className="flex flex-col items-center justify-center w-20 h-11 sm:w-24 sm:h-12 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
-          >
-            <span className="text-lg sm:text-xl font-black leading-none">{GLYPH.down}</span>
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">DOWN</span>
-            <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.down}</span>
-          </button>
+          {/* ROW 2: LEFT (Left Column) */}
+          <div className="col-start-1 row-start-2 w-full flex justify-center">
+            <button
+              type="button"
+              role="gridcell"
+              data-testid="btn-left"
+              aria-label="Answer left"
+              onClick={() => handleAnswer("left")}
+              className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+            >
+              <span className="text-base sm:text-lg font-black leading-none">{GLYPH.left}</span>
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">LEFT</span>
+              <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.left}</span>
+            </button>
+          </div>
+
+          {/* ROW 2: CENTER RULE INDICATOR (Directly inside the movement controls!) */}
+          <div className="col-start-2 row-start-2 w-full flex justify-center select-none pointer-events-none">
+            {switchAlert ? (
+              <div className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-yellow-400 bg-yellow-500/25 p-0.5 text-center shadow-[0_0_20px_rgba(250,204,21,0.5)] animate-pulse">
+                <span className="text-[10px] sm:text-xs font-black text-white uppercase tracking-wider">{switchAlert}</span>
+              </div>
+            ) : instruction === 'pointing' ? (
+              <div className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(245,158,11,0.25)] transition-all">
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-amber-300 leading-none">
+                  POINTING
+                </span>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-emerald-500/70 bg-gradient-to-b from-emerald-500/20 to-zinc-900/90 p-0.5 text-center shadow-[0_0_15px_rgba(16,185,129,0.25)] transition-all">
+                <span className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-emerald-300 leading-none">
+                  MOVING
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* ROW 2: RIGHT (Right Column) */}
+          <div className="col-start-3 row-start-2 w-full flex justify-center">
+            <button
+              type="button"
+              role="gridcell"
+              data-testid="btn-right"
+              aria-label="Answer right"
+              onClick={() => handleAnswer("right")}
+              className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+            >
+              <span className="text-base sm:text-lg font-black leading-none">{GLYPH.right}</span>
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">RIGHT</span>
+              <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.right}</span>
+            </button>
+          </div>
+
+          {/* ROW 3: DOWN (Center Column) */}
+          <div className="col-start-2 row-start-3 w-full flex justify-center">
+            <button
+              type="button"
+              role="gridcell"
+              data-testid="btn-down"
+              aria-label="Answer down"
+              onClick={() => handleAnswer("down")}
+              className="flex flex-col items-center justify-center w-[74px] h-10 sm:w-20 sm:h-11 rounded-xl sm:rounded-2xl border-2 border-zinc-700 bg-zinc-800/90 text-gray-100 shadow-md transition-all hover:scale-[1.04] hover:border-emerald-400 hover:bg-zinc-700/90 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 cursor-pointer"
+            >
+              <span className="text-base sm:text-lg font-black leading-none">{GLYPH.down}</span>
+              <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-zinc-300">DOWN</span>
+              <span className="text-[7px] sm:text-[8px] font-semibold text-zinc-500 uppercase">{HINT.down}</span>
+            </button>
+          </div>
         </div>
       </div>
 
