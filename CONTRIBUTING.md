@@ -28,6 +28,12 @@ npx playwright test         # E2E over BroadcastChannel (desktop + mobile)
 npm run test:e2e:ws         # E2E over the Node WebSocket relay
 ```
 
+### Documentation synchronization rule
+Whenever any major updates happen (new games, engine logic changes, UI/UX overhauls, network or flow modifications):
+- Update `README.md` to reflect new user-facing features, setup, and game descriptions.
+- Update `docs/ARCHITECTURE.md` with system diagrams, module breakdowns, and design invariants.
+- Documentation drift is strictly prohibited and treated as a breaking bug. Both documents must be updated and kept current in the same pull request / commit.
+
 Run locally as needed (not in CI):
 
 ```bash

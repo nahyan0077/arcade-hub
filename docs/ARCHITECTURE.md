@@ -9,6 +9,15 @@ low-level design (LLD), data flows, invariants, and how to extend it.
 2. [High-level design (HLD)](#2-high-level-design-hld)
 3. [Data flows](#3-data-flows)
 4. [Low-level design (LLD)](#4-low-level-design-lld)
+   - [4.1 Protocol](#41-protocol-srcnetprotocolts)
+   - [4.2 RoomSession state machine](#42-roomsession-state-machine-srcnetroomsessions)
+   - [4.3 Transports](#43-transports-srcnettransportts-wstransportts-createroomtransportts)
+   - [4.4 Node relay](#44-node-relay-serverrelayts)
+   - [4.5 Cloudflare relay](#45-cloudflare-relay-cloudflarerelayts)
+   - [4.6 Voice](#46-voice-srcnetvoicetokents-voicesessionts-livekitvoiceroomts)
+   - [4.7 Engine](#47-engine-srcengine)
+   - [4.8 UI Shell & Viewport Architecture](#48-ui-shell--viewport-architecture)
+   - [4.9 Direction Rush Design](#49-direction-rush-design)
 5. [Invariants and failure modes](#5-invariants-and-failure-modes)
 6. [Testing architecture](#6-testing-architecture)
 7. [Security posture](#7-security-posture)
@@ -50,12 +59,14 @@ flowchart TB
 flowchart TB
     subgraph Client["Browser — React SPA"]
         direction TB
-        Pages["pages<br/>hub · start · queue · lobby · home · connect-four"]
-        UseGame["hooks/useGame · useConnectFour<br/>engine wiring · AI turns · sounds · scores"]
+        Pages["pages<br/>hub · start · queue · lobby · home · connect-four · direction-rush · landing"]
+        Shell["UI Shell<br/>GameShell · RetroGrid · ErrorBoundary"]
+        UseGame["hooks/useGame · useConnectFour · useDirectionRush<br/>engine wiring · AI turns · sounds · scores"]
         OSession["OnlineSessionContext<br/>openRoom → RoomSession<br/>MatchmakerClient · VoiceSession"]
-        Engine["engine/<br/>pure TS state machine"]
+        Engine["engine/<br/>pure TS state machine (tictactoe · connect-four · direction-rush)"]
         Transport["RoomTransport<br/>BroadcastChannel | WebSocket"]
 
+        Pages --> Shell
         Pages --> UseGame --> Engine
         Pages --> OSession --> Transport
     end
@@ -312,10 +323,43 @@ scores, move history), wired to the UI through a `GameEngine` bundle:
 |------|--------|-------|
 | tic-tac-toe | `engine/tictactoe/` | 3×3; `index` = cell; AI depths 0 (random) / 2 / 4 / full minimax (NEMESIS) |
 | connect-four | `engine/connect-four/` | 7×6 gravity; `index` = column 0–6; AI easy/medium/hard only, hard capped at depth 4 |
+| direction-rush | `engine/direction-rush/` | Inhibitory control / Stroop reflex loop; vectors for leaf flight vs orientation; streak multipliers, reaction times |
 
 The AI is deterministic under an injected `rng`, which is what lets tests prove seeded
 properties ("NEMESIS never loses over 100 games"). A terminal move scores `WIN_SCORE = 10_000`
 so an immediate win/loss always dominates the eval heuristic (evals stay below that).
+
+### 4.8 UI Shell & Viewport Architecture
+
+To provide an arcade-grade experience across mobile, tablet, and desktop without scrollbars,
+all games leverage a centralized shell system:
+
+1. **`GameShell` (`src/components/GameShell.tsx`)**:
+   - Single source of truth for header bar navigation (`← Hub`, audio mute toggle, settings modal trigger, title/subtitle).
+   - Injects the game theme into the document (`document.body.dataset.game = game`) to coordinate global accents and ambient horizons.
+   - Houses the `RetroGrid` background behind content.
+
+2. **`RetroGrid` (`src/components/RetroGrid.tsx`)**:
+   - High-performance, GPU-accelerated CSS perspective grid (`transform: perspective(600px) rotateX(60deg)`) with infinite scrolling vertical scanlines.
+   - Distinct colorways per game mode:
+     - `ttt` — Neon Cyan (`#38bdf8`)
+     - `c4` — Golden Amber (`#fbbf24`)
+     - `rush` — Cyber Emerald (`#34d399`)
+     - `hub` — Violet / Pink (`#818cf8`)
+
+3. **Flexbox Budgeting & Zero-Scroll Guarantee**:
+   - Main containers enforce `h-[100dvh] max-h-[100dvh] overflow-hidden flex flex-col justify-between`.
+   - Headers, HUDs, and control pads are marked `shrink-0` with fixed ergonomic heights.
+   - Interactive game boards and arenas use `flex-1 min-h-0`. This lets the playing section expand dynamically on high-resolution displays (e.g. `max-w-5xl` arenas on desktop) while shrinking safely on short viewports (such as tablet landscape `800x550`), guaranteeing 0px of vertical scrolling or control clipping.
+
+### 4.9 Direction Rush Design
+
+`DirectionRush` tests cognitive flexibility and inhibitory control:
+
+- **Stimulus Model**: Each stimulus pair contains two independent attributes: `pointing` (where the leaf apex points: up/down/left/right) and `moving` (the drift trajectory vector across the screen).
+- **Rule Switching**: Periodic rule switches (`POINTING` vs `MOVING`) force players to inhibit automated reactions.
+- **Ergonomic Cross D-Pad**: Controls are laid out in a 3×3 physical arcade cross (`UP` on row 1, `LEFT` / `CENTER` / `RIGHT` on row 2, `DOWN` on row 3). The center cell displays the active rule directly within the thumb/finger focus zone.
+- **In-Arena Beacons**: Leaves carry pulsating apex beacons (`(0, -19)` yellow dots) for instantaneous orientation reading. A streamlined floating HUD badge (`POINTING` or `MOVING`) sits at the bottom inside the arena without cluttering the drift field.
 
 ## 5. Invariants and failure modes
 
@@ -338,7 +382,7 @@ so an immediate win/loss always dominates the eval heuristic (evals stay below t
 | Net units | Vitest + fake transports/sockets | handshake, heartbeats, rematch, game scoping, matchmaker parsing |
 | Relay integration | Vitest (node env, real `ws` server on an ephemeral port) | fan-out, queue pairing, voice token minting |
 | UI integration | Vitest + jsdom + Testing Library | Start/Hub/Home flows, perspective copy, mute, dialogs |
-| E2E | Playwright — desktop Chromium + iPhone WebKit | full products: BroadcastChannel, Node relay, CF relay (wrangler dev), voice (docker LiveKit) |
+| E2E | Playwright — desktop Chromium + iPhone WebKit | full products: BroadcastChannel, Node relay, CF relay (wrangler dev), voice (docker LiveKit), multi-viewport responsive fitting (mobile, tablet landscape, desktop) |
 
 CI ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml)) runs lint → build →
 type-check → unit → BroadcastChannel E2E → ws E2E. The voice and CF suites need heavier

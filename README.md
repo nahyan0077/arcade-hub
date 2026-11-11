@@ -3,10 +3,10 @@
 [![CI](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A browser **arcade game app** that ships a polished **tic-tac-toe** and **Connect Four** on
-one shared stack — with more games planned. Play local hot-seat, face an AI opponent, or go
-online with room codes, Quick Play matchmaking, in-game chat, and live voice chat.
-Built test-first, phase by phase, on a game-scoped networking layer.
+A browser **arcade game platform** featuring **Tic-Tac-Toe**, **Connect Four**, and **Direction Rush** on
+one shared stack. Play local hot-seat, face adaptive AI opponents, train reflexes with cognitive speed runs,
+or go online with room codes, Quick Play matchmaking, in-game chat, and live voice chat.
+Built test-first, phase by phase, on a game-scoped networking and responsive UI layer.
 
 <p align="center">
   <img src="docs/images/desktop-hub.png" alt="Game hub" width="380">
@@ -17,6 +17,7 @@ Built test-first, phase by phase, on a game-scoped networking layer.
 ## Contents
 
 - [Features](#features)
+- [Games](#games)
 - [Quick start](#quick-start)
 - [Scripts](#scripts)
 - [Architecture](#architecture)
@@ -28,34 +29,43 @@ Built test-first, phase by phase, on a game-scoped networking layer.
 
 ## Features
 
-- **Game hub** — the landing page is an arcade picker; more games are planned on the same stack
-- **2-Player local** — hot-seat play with persistent X/O/draw scores
-- **vs AI** — difficulty tiers with personalities (tic-tac-toe adds a full-minimax tier):
+- **Retro Cyber Aesthetics** — animated 3D perspective cyber grids (`RetroGrid`) themed per game (cyan, amber, emerald, purple) with ambient glowing horizons.
+- **Unified GameShell** — consistent arcade navigation header, persistent audio controls, settings drawer, and zero-scroll layout budgeting across all games.
+- **Responsive Viewport Fitting** — engineered to fit any screen without scrolling or button clipping (mobile portrait, short tablet landscape `800x550`, desktop `1440x900+`).
+- **2-Player local** — hot-seat play with persistent X/O/draw and win-count scores.
+- **Online rooms & Quick Play** — create/join with 6-character codes over WebSocket or BroadcastChannel, plus instant 1v1 matchmaking.
+- **Live Voice Chat** — LiveKit-powered per-room audio behind icon controls (🎧 join, 🎤 mute, participant count badge), listen-only until you unmute.
+- **Perspective results & Celebrations** — context-aware "You win!" / "You lose!" labeling with physics-based particle confetti on the winner's viewport.
+- **In-game chat & emoji reactions** — slide-up chat drawer plus quick-reaction emoji bursts (🎉🔥😂👏💯😅🤔👀) synchronized across both clients.
+- **Synthesized Web Audio** — programmatic sounds (placements, wins, errors, streaks, clicks) generated via the Web Audio API with zero external audio assets.
 
+## Games
+
+### 1. Tic-Tac-Toe
+- Classic 3×3 duel with local 2P, smart AI bot personalities, and online room/voice play.
+- **Coach hints** — mathematically best cell highlighted on request.
+- **AI Tiers**:
   | Difficulty | Personality | Behavior |
   |-----------|-------------|----------|
-  | Easy | GLITCH | random moves (seeded RNG) |
-  | Medium | SCOUT | takes wins, blocks threats, prefers center |
-  | Hard | VANGUARD | lookahead minimax (depth 4) |
-  | Impossible | NEMESIS | full minimax + alpha-beta — proven unbeatable (tic-tac-toe only) |
+  | Easy | GLITCH | Random moves (seeded RNG) |
+  | Medium | SCOUT | Takes wins, blocks threats, prefers center |
+  | Hard | VANGUARD | Minimax lookahead (depth 4) |
+  | Impossible | NEMESIS | Unbeatable full minimax + alpha-beta pruning |
 
-- **Connect Four** — 7×6 gravity board, local hot-seat, vs AI (easy/medium/hard), and online
-  rooms + Quick Play on the same game-scoped networking as tic-tac-toe; online moves carry
-  the column index, so gravity stays deterministic on both clients
-- **Online rooms** — create/join with 6-character codes over WebSocket, or **Quick Play**
-  matchmaking
-- **Perspective results** — endings read "You win!" / "You lose!" against online opponents
-  and the AI personalities, with confetti only on the winner's side
-- **In-game chat & emoji** — a slide-up chat panel plus a standalone quick-reactions bar
-  (🎉🔥😂👏💯😅🤔👀) with floating bursts on both sides; works over every transport
-  including BroadcastChannel
-- **Voice chat** — LiveKit-powered per-room audio behind icon controls (🎧 join, 🎤 mute,
-  participant count badge), listen-only until you unmute
-- **Coach hints** — pulsing highlight on the mathematically best cell (tic-tac-toe)
-- **Synthesized sounds** — place/win/lose/draw/invalid effects via the Web Audio API (no
-  audio assets); mute persists across reloads
-- **Responsive & accessible** — fits any viewport without scrolling; keyboard-navigable
-  cells, ARIA labels, live status region
+### 2. Connect Four
+- 7×6 gravity board with column hover indicators and winning 4-in-a-row highlight lines.
+- Local 2P, vs AI (Easy, Medium, Hard), and online multiplayer.
+- Moves transfer deterministic column indices across WebSocket and BroadcastChannel transports.
+
+### 3. Direction Rush
+- Fast-paced cognitive reflex & inhibitory control game testing dual-rule switching speed.
+- Dynamic stimuli: floating leaves that either point in one direction or drift in another.
+- **In-Arena Rule Beacons** — high-visibility live badges (`POINTING` or `MOVING`) at the bottom of the arena with pulsing leaf tip beacons for instant readability.
+- **Ergonomic Cross D-Pad** — standardized arcade cross layout (`UP` on top, `LEFT` / `CENTER` / `RIGHT` in the middle, `DOWN` at the bottom) supporting keyboard (`WASD` / arrow keys) and touch/mouse input.
+- **Game Modes**:
+  - **Quick Rush**: 60-second speed sprint.
+  - **Survival**: 3 lives with penalty on incorrect answers.
+  - **Infinite**: Zen practice without time limits.
 
 ## Quick start
 
@@ -130,17 +140,18 @@ Full diagrams, HLD/LLD, data flows, and invariants: **[docs/ARCHITECTURE.md](doc
 ```text
 src/
   engine/        pure game logic — rules, minimax AI, personalities
-    connect-four/  7×6 gravity engine + depth-limited AI (easy/medium/hard)
+    connect-four/   7×6 gravity engine + depth-limited AI (easy/medium/hard)
+    direction-rush/ inhibitory control state machine, vector drifts, streaks
   net/           protocol · transports · RoomSession · matchmaker · voice
-  hooks/         useGame · useConnectFour — engine wiring, AI, sounds, scores
-  pages/         hub · start · queue · lobby · home · connect-four
-  components/    Board · ConnectFourBoard · ScoreBox · Confetti · VoiceControls · ChatPanel · QuickEmoji · EmojiBurstLayer
+  hooks/         useGame · useConnectFour · useDirectionRush — engine wiring, AI, sounds, scores
+  pages/         hub · start · queue · lobby · home · connect-four · direction-rush · landing
+  components/    RetroGrid · GameShell · Board · ConnectFourBoard · ScoreBox · Confetti · VoiceControls · ChatPanel · QuickEmoji · EmojiBurstLayer
   sound/         Web Audio synth effects + persisted mute
   storage/       validated localStorage score persistence (per game key)
 server/relay.ts  Node ws relay — room fan-out, /matchmake, /voice/token
 cloudflare/      Worker + RoomRelay and Matchmaker Durable Objects
 scripts/         LiveKit config + voice E2E orchestration
-e2e/             Playwright specs (desktop Chromium + iPhone WebKit)
+e2e/             Playwright specs (desktop Chromium + iPhone WebKit across mobile, tablet & desktop)
 docs/            architecture guide + README images
 ```
 
@@ -255,6 +266,8 @@ npx wrangler secret put LIVEKIT_API_SECRET
 | 7a — Game hub landing page | ✅ |
 | 7b — Game-scoped networking (`<game>:<code>`) | ✅ |
 | 7c — Second game on the shared stack (Connect Four) | ✅ |
+| 8 — Direction Rush: Cognitive reflex game & cross D-Pad | ✅ |
+| 9 — UI overhaul: RetroGrid cyber aesthetic, unified GameShell & responsive viewport fitting | ✅ |
 | Deployment (Cloudflare worker + SPA) | ✅ |
 | Hosted voice (LiveKit Cloud secrets) | ✅ |
 | Continuous deployment (wrangler on push) | ✅ |
