@@ -162,7 +162,7 @@ export const Start = () => {
       </div>
 
       {/* Main Glassmorphism Card */}
-      <div className="w-full max-w-xl rounded-3xl border border-zinc-800/80 bg-zinc-900/90 p-3.5 sm:p-6 shadow-2xl backdrop-blur-xl flex flex-col items-center z-10 space-y-2.5 sm:space-y-4">
+      <div className="w-full max-w-xl rounded-3xl border border-zinc-800/50 bg-zinc-950/25 p-3.5 sm:p-6 shadow-[0_0_50px_rgba(0,0,0,0.4)] backdrop-blur-[2px] flex flex-col items-center z-10 space-y-2.5 sm:space-y-4">
         {/* Game Title Heading */}
         <div className="flex justify-center items-center gap-3 w-full pb-0.5 select-none">
           {isC4 ? (

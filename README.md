@@ -33,9 +33,13 @@ A modern, responsive browser **arcade game platform** featuring **Tic-Tac-Toe**,
 
 ## Features
 
-- **Retro Cyber Aesthetics** — animated 3D perspective cyber grids (`RetroGrid`) themed per game (cyan, amber, emerald, purple) with ambient glowing horizons.
+- **Retro Cyber Aesthetics** — animated 3D perspective cyber grids (`RetroGrid`) themed per game (cyan, amber, emerald, purple) with ambient glowing horizons and translucent glassmorphism containers.
 - **Unified GameShell** — consistent arcade navigation header, persistent audio controls, settings drawer, and zero-scroll layout budgeting across all games.
 - **Responsive Viewport Fitting** — engineered to fit any screen without scrolling or button clipping (mobile portrait, short tablet landscape `800x550`, desktop `1440x900+`).
+- **Unobstructed Board Visibility & Results** — post-match result dialogs sit docked at the bottom of the viewport without opaque screen-blocking overlays, allowing full view of winning moves and glowing connections, complete with a collapsible "👁️ View Board" toggle.
+- **In-Game AI Difficulty Switcher** — interactive bot badge pill in solo PvE matches allowing on-the-fly difficulty switching with accessible confirmation dialogs to prevent accidental match resets.
+- **Game-Specific Configuration** — tailored settings sections in Settings for Tic-Tac-Toe, Connect Four, Direction Rush, and Online Multiplayer (AI tiers, hints, durations, win lines, turn timers).
+- **Persistent First-Time Title Screen** — cinematic boot sequence shown on cold start and safely memorized in `localStorage` so returning players jump directly to the arcade catalog.
 - **Profile & Handle Synchronization** — custom player handles set in Profile Settings seamlessly propagate across start screens, lobby matchmaking, and live game scoreboards (`(YOU)` badge clarity).
 - **2-Player local** — hot-seat play with persistent X/O/draw and win-count scores.
 - **Online rooms & Quick Play** — create/join with 6-character codes over WebSocket or BroadcastChannel, plus instant 1v1 matchmaking, auto-reconnect resilience, and move self-healing.

@@ -8,7 +8,7 @@ import {
   startGame,
   isValidMove,
 } from '../engine';
-import type { GameConfig, GameState, Player } from '../engine';
+import type { GameConfig, GameState, Player, AIDifficulty } from '../engine';
 import { loadScores, saveScores } from '../storage/scores';
 import { playEffect } from '../sound/audio';
 import type { RoomSession } from '../net/RoomSession';
@@ -174,5 +174,24 @@ export function useGame(
     setState(next);
   }, [session]);
 
-  return { state, playMove, rematch, resetMatch };
+  const changeDifficulty = useCallback((newDifficulty: AIDifficulty) => {
+    setState((prev) => {
+      const next = { ...prev, aiDifficulty: newDifficulty };
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const restartWithDifficulty = useCallback((newDifficulty: AIDifficulty) => {
+    setState((prev) => {
+      const next = startGame({
+        ...newGame(prev),
+        aiDifficulty: newDifficulty,
+      });
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
+
+  return { state, playMove, rematch, resetMatch, changeDifficulty, restartWithDifficulty };
 }

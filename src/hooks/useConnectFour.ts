@@ -8,7 +8,7 @@ import {
   c4StartGame,
   createC4InitialState,
 } from '../engine/connect-four/core';
-import type { C4GameConfig, C4GameState } from '../engine/connect-four/types';
+import type { C4Difficulty, C4GameConfig, C4GameState } from '../engine/connect-four/types';
 import { C4_SCORES_KEY, loadScores, saveScores } from '../storage/scores';
 import { playEffect } from '../sound/audio';
 import type { Player } from '../engine';
@@ -171,5 +171,24 @@ export function useConnectFour(
     setState(next);
   }, [session]);
 
-  return { state, playMove, rematch, resetMatch };
+  const changeDifficulty = useCallback((newDifficulty: C4Difficulty) => {
+    setState((prev) => {
+      const next = { ...prev, aiDifficulty: newDifficulty };
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const restartWithDifficulty = useCallback((newDifficulty: C4Difficulty) => {
+    setState((prev) => {
+      const next = c4StartGame({
+        ...c4NewGame(prev),
+        aiDifficulty: newDifficulty,
+      });
+      stateRef.current = next;
+      return next;
+    });
+  }, []);
+
+  return { state, playMove, rematch, resetMatch, changeDifficulty, restartWithDifficulty };
 }

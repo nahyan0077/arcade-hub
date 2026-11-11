@@ -34,7 +34,7 @@ interface NavState {
 export const ConnectFour: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
   const session = isConnectFourSession(anySession) ? anySession : null;
   const online = session !== null;
@@ -43,8 +43,19 @@ export const ConnectFour: React.FC = () => {
   const playerName = navState?.name?.trim().toUpperCase() || "PLAYER 1";
   const humanMark: Player = navState?.playerType === "O" ? "O" : "X";
   const isPve = navState?.mode === "pve";
-  const difficulty: C4Difficulty =
-    C4_DIFFICULTIES.find((level) => level === navState?.difficulty) ?? "medium";
+  const [difficulty, setDifficulty] = useState<C4Difficulty>(() => {
+    return (
+      C4_DIFFICULTIES.find((level) => level === navState?.difficulty) ??
+      settings.c4Difficulty ??
+      (settings.defaultDifficulty === "impossible" ? "hard" : settings.defaultDifficulty) ??
+      "medium"
+    );
+  });
+  const [pendingDifficulty, setPendingDifficulty] = useState<C4Difficulty | null>(null);
+  const [showDifficultyDialog, setShowDifficultyDialog] = useState(false);
+  const [isDifficultyMenuOpen, setIsDifficultyMenuOpen] = useState(false);
+  const [viewBoardMinimized, setViewBoardMinimized] = useState(false);
+
   const aiName = C4_PERSONALITIES[difficulty].name;
   const opponentLabel = isPve ? aiName : "PLAYER 2";
   const defaultP1 = humanMark === "X" ? playerName : opponentLabel;
@@ -62,7 +73,7 @@ export const ConnectFour: React.FC = () => {
     : "PLAYER 2";
   const onlineFallbackNames = { X: hostName, O: guestName };
 
-  const { state, playMove, rematch, resetMatch } = useConnectFour(
+  const { state, playMove, rematch, resetMatch, changeDifficulty, restartWithDifficulty } = useConnectFour(
     {
       playerNames: online ? onlineFallbackNames : localNames,
       mode: online ? "online" : isPve ? "pve" : "pvp",
@@ -70,6 +81,23 @@ export const ConnectFour: React.FC = () => {
     },
     { aiDelayMs: AI_DELAY_MS, session, humanMark },
   );
+
+  const handleSelectDifficulty = (newDiff: C4Difficulty) => {
+    setIsDifficultyMenuOpen(false);
+    if (newDiff === difficulty) return;
+    if (state.phase === "playing" && state.moveHistory.length > 0) {
+      setPendingDifficulty(newDiff);
+      setShowDifficultyDialog(true);
+    } else {
+      setDifficulty(newDiff);
+      changeDifficulty(newDiff);
+      updateSettings({ c4Difficulty: newDiff });
+      toast.success(`Connect Four AI: ${newDiff.toUpperCase()} (${C4_PERSONALITIES[newDiff].name})`, {
+        id: "diff-switched",
+        duration: 1800,
+      });
+    }
+  };
 
   // After connect, session state carries both real names set atomically.
   const playerNames =
@@ -261,7 +289,7 @@ export const ConnectFour: React.FC = () => {
         />
       </div>
 
-      <div className="relative flex items-center justify-center h-7">
+      <div className="relative flex flex-col items-center justify-center gap-1.5 min-h-7">
         <div className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700/80 bg-zinc-800/90 px-3 py-0.5 shadow-md backdrop-blur-sm transition-all">
           {state.phase === "playing" && (
             <span
@@ -295,6 +323,51 @@ export const ConnectFour: React.FC = () => {
             {statusText}
           </p>
         </div>
+
+        {isPve && (
+          <div className="relative inline-flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setIsDifficultyMenuOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={isDifficultyMenuOpen}
+              aria-label="Change AI Difficulty"
+              className="flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-950/40 hover:bg-amber-900/60 hover:border-amber-400 px-3 py-0.5 text-[11px] font-bold text-amber-200 transition backdrop-blur-md shadow-sm"
+            >
+              <span aria-hidden="true">🤖</span>
+              <span>BOT: {C4_PERSONALITIES[difficulty].name.toUpperCase()}</span>
+              <span className="text-[10px] text-amber-300 uppercase tracking-wide">({difficulty})</span>
+              <span className="text-[10px] opacity-70">▾</span>
+            </button>
+            {isDifficultyMenuOpen && (
+              <div
+                role="listbox"
+                aria-label="Select AI Difficulty"
+                className="absolute top-full mt-1.5 z-30 flex flex-col gap-1 rounded-xl border border-zinc-700 bg-zinc-900/95 p-1.5 shadow-2xl backdrop-blur-md min-w-[160px]"
+              >
+                {C4_DIFFICULTIES.map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    role="option"
+                    aria-selected={difficulty === level}
+                    onClick={() => handleSelectDifficulty(level)}
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                      difficulty === level
+                        ? "bg-amber-600 text-white"
+                        : "text-zinc-300 hover:bg-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    <span className="capitalize">{level}</span>
+                    <span className="text-[10px] opacity-75 font-normal">
+                      {C4_PERSONALITIES[level].name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <ConnectFourBoard
@@ -375,32 +448,48 @@ export const ConnectFour: React.FC = () => {
         <div
           role="dialog"
           aria-label="Game result"
-          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+          className="pointer-events-none fixed inset-0 z-40 flex flex-col justify-end items-center p-3 sm:p-5 pb-4 sm:pb-8"
         >
-          <div className="animate-pop mx-4 w-full max-w-sm rounded-2xl bg-zinc-800 p-8 text-center shadow-2xl">
-            <p className="mb-1 text-sm font-semibold uppercase tracking-widest text-zinc-400">
-              {state.result?.type === "draw" || perspectiveWin ? "Match Over" : "Winner"}
-            </p>
-            <p
-              className={`${
-                showWinnerName ? "mb-2" : "mb-6"
-              } text-4xl font-extrabold text-gray-100`}
-            >
-              {state.result?.type === "win"
-                ? perspectiveWin ?? playerNames[state.result.player]
-                : "Draw"}
-            </p>
-            {state.result?.type === "win" && showWinnerName && (
-              <p className="mb-6 text-sm font-semibold uppercase tracking-widest text-zinc-400">
-                {playerNames[state.result.player]} wins
-              </p>
+          <div className="pointer-events-auto animate-pop mx-auto w-full max-w-sm rounded-2xl border border-zinc-700/80 bg-zinc-900/95 p-4 sm:p-6 text-center shadow-2xl backdrop-blur-xl ring-1 ring-white/10">
+            <div className="flex items-center justify-between pb-1 mb-1">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-400">
+                {state.result?.type === "draw" || perspectiveWin ? "Match Over" : "Winner"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setViewBoardMinimized((v) => !v)}
+                className="text-[11px] font-semibold text-amber-400 hover:text-amber-300 transition flex items-center gap-1"
+                aria-label={viewBoardMinimized ? "Show dialog" : "View board"}
+              >
+                <span>{viewBoardMinimized ? "📋 Expand" : "👁️ View Board"}</span>
+              </button>
+            </div>
+
+            {!viewBoardMinimized && (
+              <>
+                <p
+                  className={`${
+                    showWinnerName ? "mb-1" : "mb-4"
+                  } text-3xl sm:text-4xl font-extrabold text-gray-100`}
+                >
+                  {state.result?.type === "win"
+                    ? perspectiveWin ?? playerNames[state.result.player]
+                    : "Draw"}
+                </p>
+                {state.result?.type === "win" && showWinnerName && (
+                  <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+                    {playerNames[state.result.player]} wins
+                  </p>
+                )}
+              </>
             )}
-            <div className="flex justify-center gap-3">
+
+            <div className="flex justify-center gap-2.5 sm:gap-3">
               <button
                 type="button"
                 onClick={rematch}
                 disabled={rematchWaiting}
-                className="rounded-xl bg-blue-600 px-6 py-3 font-bold text-white transition-colors hover:bg-blue-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:opacity-50"
+                className="rounded-xl bg-blue-600 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-white transition-all hover:bg-blue-500 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-400 disabled:opacity-50"
               >
                 {rematchWaiting ? "Waiting…" : "Rematch"}
               </button>
@@ -408,7 +497,7 @@ export const ConnectFour: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleLeave}
-                  className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+                  className="rounded-xl bg-zinc-800 border border-zinc-700 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-gray-200 transition-all hover:bg-zinc-700 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
                 >
                   Leave Room
                 </button>
@@ -416,11 +505,59 @@ export const ConnectFour: React.FC = () => {
                 <button
                   type="button"
                   onClick={resetMatch}
-                  className="rounded-xl bg-zinc-700 px-6 py-3 font-bold text-gray-200 transition-colors hover:bg-zinc-600 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
+                  className="rounded-xl bg-zinc-800 border border-zinc-700 px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-gray-200 transition-all hover:bg-zinc-700 hover:scale-105 active:scale-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-zinc-500"
                 >
                   New Game
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDifficultyDialog && pendingDifficulty && (
+        <div
+          role="dialog"
+          aria-label="Restart with new difficulty"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-700 bg-zinc-900 p-6 text-center shadow-2xl text-zinc-100">
+            <div className="text-3xl mb-2">🤖 ⚙️</div>
+            <h3 className="text-lg font-bold text-white mb-2">
+              Change AI Difficulty?
+            </h3>
+            <p className="text-xs text-zinc-300 mb-6 leading-relaxed">
+              Switching difficulty to <span className="font-bold text-amber-400 capitalize">{pendingDifficulty} ({C4_PERSONALITIES[pendingDifficulty].name})</span> will restart the current match. Do you want to proceed?
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingDifficulty(null);
+                  setShowDifficultyDialog(false);
+                }}
+                className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-xs font-bold text-zinc-300 hover:bg-zinc-700 hover:text-white transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const newDiff = pendingDifficulty;
+                  setPendingDifficulty(null);
+                  setShowDifficultyDialog(false);
+                  setDifficulty(newDiff);
+                  restartWithDifficulty(newDiff);
+                  updateSettings({ c4Difficulty: newDiff });
+                  toast.success(`Restarted match with ${newDiff.toUpperCase()} AI`, {
+                    id: "diff-restarted",
+                    duration: 1800,
+                  });
+                }}
+                className="rounded-xl bg-amber-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-amber-500 shadow-lg shadow-amber-500/25 transition"
+              >
+                Restart Game
+              </button>
             </div>
           </div>
         </div>

@@ -367,6 +367,23 @@ all games leverage a centralized shell system:
 - **Ergonomic Cross D-Pad**: Controls are laid out in a 3×3 physical arcade cross (`UP` on row 1, `LEFT` / `CENTER` / `RIGHT` on row 2, `DOWN` on row 3). The center cell displays the active rule directly within the thumb/finger focus zone.
 - **In-Arena Beacons**: Leaves carry pulsating apex beacons (`(0, -19)` yellow dots) for instantaneous orientation reading. A streamlined floating HUD badge (`POINTING` or `MOVING`) sits at the bottom inside the arena without cluttering the drift field.
 
+### 4.10 Board Viewport & Non-Obstructing Result Dialogs
+
+In competitive board games (Tic-Tac-Toe, Connect Four), players need immediate visual confirmation of the final move, winning sequence, and board configuration.
+- **Floating Bottom Drawer Layout**: Result modals are rendered within a non-blocking pointer container (`pointer-events-none fixed inset-0 z-40 flex flex-col justify-end items-center p-3 sm:p-5 pb-4 sm:pb-8`) without darkening full-screen veils (`bg-black/60` removed).
+- **Interactive Card**: The card itself (`pointer-events-auto`) sits at the bottom edge beneath the board, preserving 100% board visibility.
+- **Collapsible Board View Toggle**: An accessible "👁️ View Board" / "📋 Expand" toggle collapses the card into a minimal floating dock pill for screenshotting or inspecting details.
+- **Quality Gate Parity**: Accessible DOM markers (`role="dialog"`, `aria-label="Game result"`, button labels `Rematch`, `New Game`, `Leave Room`) are strictly maintained for 100% compatibility across automated E2E and unit test suites.
+
+### 4.11 In-Game PvE Difficulty Switcher & Game-Specific Settings
+
+- **Dynamic Bot Adjustment**: Solo matches vs AI feature an in-game bot pill badge (e.g. `[ 🤖 BOT: SCOUT (medium) ▾ ]`). Players can switch bot models directly from the game screen without losing their match context.
+- **State-Guarded Confirmation**:
+  - If a match is in progress (`phase === 'playing' && moveHistory.length > 0`), selecting a different difficulty opens an accessible confirmation modal (`role="dialog" aria-label="Restart with new difficulty"`) to prevent accidental forfeiture.
+  - If between rounds (`phase === 'finished'` or before move 1), difficulty switches seamlessly with an immediate reactive toast notification.
+- **Granular Settings Schema**: `GlobalSettings` houses modular sections for `tttDifficulty`, `tttShowHints`, `c4Difficulty`, `c4HighlightWinningLine`, `rushDifficulty`, and `rushDuration`, safely serialized in `localStorage`.
+- **First-Time Boot Persistence**: Cold-boot title screen flags are cached across both `localStorage` and `sessionStorage` (`arcade_has_booted: 'true'`) so subsequent visits enter directly into the catalog.
+
 ## 5. Invariants and failure modes
 
 | Invariant / behavior | Enforced by |

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSettings } from '../settings/SettingsContext';
 import { playEffect, triggerHaptic } from '../sound/audio';
-import type { ArcadeTheme, AIDifficultySetting } from '../settings/types';
+import type { ArcadeTheme, AIDifficultySetting, C4DifficultySetting, RushDifficultySetting } from '../settings/types';
 
 const AVATARS = ['🎮', '🤖', '👾', '⚡', '🚀', '👑', '🔥', '🐱', '⭐', '🎯'];
 
@@ -403,81 +403,247 @@ export const SettingsModal: React.FC = () => {
 
           {/* GAMEPLAY TAB */}
           {activeTab === 'gameplay' && (
-            <div className="space-y-5 animate-fade-in">
-              {/* Default AI Difficulty */}
-              <div>
-                <label className="block text-sm font-semibold text-zinc-200 mb-2">
-                  Default AI Difficulty
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {(['easy', 'medium', 'hard', 'impossible'] as AIDifficultySetting[]).map((diff) => (
-                    <button
-                      key={diff}
-                      onClick={() => {
-                        playEffect('click');
-                        updateSettings({ defaultDifficulty: diff });
-                      }}
-                      className={`py-2.5 px-2 rounded-xl border text-xs font-semibold capitalize transition ${
-                        settings.defaultDifficulty === diff
-                          ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 ring-1 ring-cyan-400'
-                          : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      {diff}
-                    </button>
-                  ))}
+            <div className="space-y-6 animate-fade-in divide-y divide-zinc-800/80">
+              {/* Tic-Tac-Toe Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-blue-400 font-bold text-sm">✕</span>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-blue-300">
+                    Tic-Tac-Toe
+                  </h3>
                 </div>
-              </div>
 
-              {/* Turn Timer Duration */}
-              <div>
-                <label className="block text-sm font-semibold text-zinc-200 mb-2">
-                  Online Turn Timer Duration
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {([15, 20, 30, 60] as const).map((secs) => (
-                    <button
-                      key={secs}
-                      onClick={() => {
-                        playEffect('click');
-                        updateSettings({ turnTimerDuration: secs });
-                      }}
-                      className={`py-2 px-1 rounded-xl border text-xs font-semibold transition ${
-                        settings.turnTimerDuration === secs
-                          ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 ring-1 ring-cyan-400'
-                          : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      {secs}s {secs === 15 ? '⚡ Blitz' : secs === 30 ? '♟️ Std' : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mobile Haptics */}
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-zinc-800/50 border border-zinc-700/50">
                 <div>
-                  <div className="font-semibold text-sm text-zinc-200">Mobile Haptic Feedback</div>
-                  <div className="text-xs text-zinc-400">Vibrate on tap and game events (Mobile devices)</div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Default AI Difficulty
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {(['easy', 'medium', 'hard', 'impossible'] as AIDifficultySetting[]).map((diff) => (
+                      <button
+                        key={diff}
+                        type="button"
+                        onClick={() => {
+                          playEffect('click');
+                          updateSettings({ tttDifficulty: diff, defaultDifficulty: diff });
+                        }}
+                        className={`py-2 px-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                          (settings.tttDifficulty ?? settings.defaultDifficulty) === diff
+                            ? 'border-blue-400 bg-blue-950/60 text-blue-300 ring-1 ring-blue-400'
+                            : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  onClick={() => {
-                    playEffect('click');
-                    triggerHaptic('medium');
-                    updateSettings({ hapticsEnabled: !settings.hapticsEnabled });
-                  }}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    settings.hapticsEnabled ? 'bg-cyan-600' : 'bg-zinc-700'
-                  }`}
-                  aria-pressed={settings.hapticsEnabled}
-                  aria-label="Toggle mobile haptic feedback"
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      settings.hapticsEnabled ? 'translate-x-6' : 'translate-x-1'
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-700/40">
+                  <div>
+                    <div className="font-semibold text-xs text-zinc-200">Hint Assist Button</div>
+                    <div className="text-[11px] text-zinc-400">Show optimal move hint during local games</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playEffect('click');
+                      updateSettings({ tttShowHints: !settings.tttShowHints });
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      settings.tttShowHints ? 'bg-blue-600' : 'bg-zinc-700'
                     }`}
-                  />
-                </button>
+                    aria-pressed={settings.tttShowHints}
+                    aria-label="Toggle hint assist"
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                        settings.tttShowHints ? 'translate-x-4' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Connect Four Section */}
+              <div className="pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-400 font-bold text-sm">●</span>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-amber-300">
+                    Connect Four
+                  </h3>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Connect Four AI Difficulty
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(['easy', 'medium', 'hard'] as C4DifficultySetting[]).map((diff) => (
+                      <button
+                        key={diff}
+                        type="button"
+                        onClick={() => {
+                          playEffect('click');
+                          updateSettings({ c4Difficulty: diff });
+                        }}
+                        className={`py-2 px-2 rounded-xl border text-xs font-semibold capitalize transition ${
+                          settings.c4Difficulty === diff
+                            ? 'border-amber-400 bg-amber-950/60 text-amber-300 ring-1 ring-amber-400'
+                            : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-700/40">
+                  <div>
+                    <div className="font-semibold text-xs text-zinc-200">Highlight Winning Discs</div>
+                    <div className="text-[11px] text-zinc-400">Glow and pulse the 4 winning discs upon match completion</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playEffect('click');
+                      updateSettings({ c4HighlightWinningLine: !settings.c4HighlightWinningLine });
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      settings.c4HighlightWinningLine ? 'bg-amber-600' : 'bg-zinc-700'
+                    }`}
+                    aria-pressed={settings.c4HighlightWinningLine}
+                    aria-label="Toggle connect four winning line highlight"
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                        settings.c4HighlightWinningLine ? 'translate-x-4' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Direction Rush Section */}
+              <div className="pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-400 font-bold text-sm">🍃</span>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-emerald-300">
+                    Direction Rush
+                  </h3>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Default Speed / Mode
+                  </label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
+                    {(['beginner', 'easy', 'medium', 'hard', 'expert'] as RushDifficultySetting[]).map((diff) => (
+                      <button
+                        key={diff}
+                        type="button"
+                        onClick={() => {
+                          playEffect('click');
+                          updateSettings({ rushDifficulty: diff });
+                        }}
+                        className={`py-2 px-1 rounded-xl border text-[11px] font-semibold capitalize transition ${
+                          settings.rushDifficulty === diff
+                            ? 'border-emerald-400 bg-emerald-950/60 text-emerald-300 ring-1 ring-emerald-400'
+                            : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {diff}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Quick Mode Duration
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {([30, 45, 60, 90] as const).map((secs) => (
+                      <button
+                        key={secs}
+                        type="button"
+                        onClick={() => {
+                          playEffect('click');
+                          updateSettings({ rushDuration: secs });
+                        }}
+                        className={`py-1.5 px-1 rounded-xl border text-xs font-semibold transition ${
+                          settings.rushDuration === secs
+                            ? 'border-emerald-400 bg-emerald-950/60 text-emerald-300 ring-1 ring-emerald-400'
+                            : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {secs}s
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Online Multiplayer Section */}
+              <div className="pt-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-cyan-400 font-bold text-sm">🌐</span>
+                  <h3 className="text-xs font-black uppercase tracking-wider text-cyan-300">
+                    Online Multiplayer
+                  </h3>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                    Turn Timer Duration
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {([15, 20, 30, 60] as const).map((secs) => (
+                      <button
+                        key={secs}
+                        type="button"
+                        onClick={() => {
+                          playEffect('click');
+                          updateSettings({ turnTimerDuration: secs });
+                        }}
+                        className={`py-2 px-1 rounded-xl border text-xs font-semibold transition ${
+                          settings.turnTimerDuration === secs
+                            ? 'border-cyan-400 bg-cyan-950/60 text-cyan-300 ring-1 ring-cyan-400'
+                            : 'border-zinc-700/60 bg-zinc-800/40 text-zinc-400 hover:text-zinc-200'
+                        }`}
+                      >
+                        {secs}s {secs === 15 ? '⚡' : secs === 30 ? '♟️' : ''}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Mobile Haptics */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-zinc-800/40 border border-zinc-700/40">
+                  <div>
+                    <div className="font-semibold text-xs text-zinc-200">Mobile Haptic Feedback</div>
+                    <div className="text-[11px] text-zinc-400">Vibrate on tap and game events</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playEffect('click');
+                      triggerHaptic('medium');
+                      updateSettings({ hapticsEnabled: !settings.hapticsEnabled });
+                    }}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                      settings.hapticsEnabled ? 'bg-cyan-600' : 'bg-zinc-700'
+                    }`}
+                    aria-pressed={settings.hapticsEnabled}
+                    aria-label="Toggle mobile haptic feedback"
+                  >
+                    <span
+                      className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                        settings.hapticsEnabled ? 'translate-x-4' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
             </div>
           )}

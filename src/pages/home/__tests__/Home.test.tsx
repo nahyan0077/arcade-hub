@@ -327,6 +327,62 @@ describe('Home game screen', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByTestId('score-o')).toHaveTextContent('1');
   });
+
+  it('switches difficulty directly before moves are made', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    const diffButton = screen.getByRole('button', { name: 'Change AI Difficulty' });
+    expect(diffButton).toHaveTextContent('SCOUT');
+
+    await user.click(diffButton);
+    const hardOption = screen.getByRole('option', { name: /hard/i });
+    await user.click(hardOption);
+
+    expect(screen.queryByRole('dialog', { name: 'Restart with new difficulty' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change AI Difficulty' })).toHaveTextContent('VANGUARD');
+  });
+
+  it('prompts confirmation when switching difficulty mid-game and cancels', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    await user.click(cell(0));
+    const diffButton = screen.getByRole('button', { name: 'Change AI Difficulty' });
+    await user.click(diffButton);
+
+    const easyOption = screen.getByRole('option', { name: /easy/i });
+    await user.click(easyOption);
+
+    const confirmDialog = screen.getByRole('dialog', { name: 'Restart with new difficulty' });
+    expect(confirmDialog).toBeInTheDocument();
+    expect(within(confirmDialog).getByText(/Switching difficulty to/i)).toBeInTheDocument();
+
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog', { name: 'Restart with new difficulty' })).not.toBeInTheDocument();
+    expect(cell(0)).toHaveTextContent('X');
+  });
+
+  it('prompts confirmation when switching difficulty mid-game and restarts on confirm', async () => {
+    const user = userEvent.setup();
+    renderPve();
+
+    await user.click(cell(0));
+    expect(cell(0)).toHaveTextContent('X');
+
+    const diffButton = screen.getByRole('button', { name: 'Change AI Difficulty' });
+    await user.click(diffButton);
+
+    const impossibleOption = screen.getByRole('option', { name: /impossible/i });
+    await user.click(impossibleOption);
+
+    const confirmDialog = screen.getByRole('dialog', { name: 'Restart with new difficulty' });
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Restart Game' }));
+
+    expect(screen.queryByRole('dialog', { name: 'Restart with new difficulty' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change AI Difficulty' })).toHaveTextContent('NEMESIS');
+    expect(cell(0)).toHaveTextContent('');
+  });
 });
 
 describe('coach hints', () => {

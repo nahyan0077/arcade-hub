@@ -79,7 +79,10 @@ export const Hub: React.FC = () => {
   const [showLanding, setShowLanding] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
-      return window.sessionStorage.getItem("arcade_has_booted") !== "true";
+      const booted =
+        window.localStorage.getItem("arcade_has_booted") === "true" ||
+        window.sessionStorage.getItem("arcade_has_booted") === "true";
+      return !booted;
     } catch {
       return false;
     }

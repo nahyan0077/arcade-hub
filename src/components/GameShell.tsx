@@ -38,7 +38,7 @@ export const GameShell: React.FC<GameShellProps> = ({
   confetti,
   children,
   overlayPanels,
-  className = "flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-900 px-4 py-2 sm:py-4",
+  className = "flex min-h-[100dvh] flex-col items-center justify-center gap-2 sm:gap-3 overflow-hidden bg-zinc-950 px-4 py-2 sm:py-4",
 }) => {
   const { openSettings } = useSettings();
 

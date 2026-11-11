@@ -165,4 +165,38 @@ describe('ConnectFour game screen', () => {
     await user.click(column(0));
     expect(screen.getByTestId('status')).toHaveTextContent('VANGUARD is thinking...');
   });
+
+  it('switches difficulty directly before moves are made', async () => {
+    const user = userEvent.setup();
+    renderPve({ difficulty: 'medium' });
+
+    const diffButton = screen.getByRole('button', { name: 'Change AI Difficulty' });
+    expect(diffButton).toHaveTextContent('SCOUT');
+
+    await user.click(diffButton);
+    const hardOption = screen.getByRole('option', { name: /hard/i });
+    await user.click(hardOption);
+
+    expect(screen.queryByRole('dialog', { name: 'Restart with new difficulty' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change AI Difficulty' })).toHaveTextContent('VANGUARD');
+  });
+
+  it('prompts confirmation when switching difficulty mid-game', async () => {
+    const user = userEvent.setup();
+    renderPve({ difficulty: 'medium' });
+
+    await user.click(column(0));
+    const diffButton = screen.getByRole('button', { name: 'Change AI Difficulty' });
+    await user.click(diffButton);
+
+    const easyOption = screen.getByRole('option', { name: /easy/i });
+    await user.click(easyOption);
+
+    const confirmDialog = screen.getByRole('dialog', { name: 'Restart with new difficulty' });
+    expect(confirmDialog).toBeInTheDocument();
+
+    await user.click(within(confirmDialog).getByRole('button', { name: 'Restart Game' }));
+    expect(screen.queryByRole('dialog', { name: 'Restart with new difficulty' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Change AI Difficulty' })).toHaveTextContent('GLITCH');
+  });
 });

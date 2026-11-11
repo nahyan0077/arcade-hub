@@ -26,6 +26,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, autoRedirect = true }
 
   const handleSkip = useCallback(() => {
     try {
+      window.localStorage.setItem("arcade_has_booted", "true");
       window.sessionStorage.setItem("arcade_has_booted", "true");
     } catch {
       // ignore
@@ -42,6 +43,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter, autoRedirect = true }
     setIsEntering(true);
     playEffect("start");
     try {
+      window.localStorage.setItem("arcade_has_booted", "true");
       window.sessionStorage.setItem("arcade_has_booted", "true");
     } catch {
       // ignore
