@@ -3,15 +3,19 @@
 [![CI](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/nahyan0077/arcade-hub/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A browser **arcade game platform** featuring **Tic-Tac-Toe**, **Connect Four**, and **Direction Rush** on
-one shared stack. Play local hot-seat, face adaptive AI opponents, train reflexes with cognitive speed runs,
-or go online with room codes, Quick Play matchmaking, in-game chat, and live voice chat.
-Built test-first, phase by phase, on a game-scoped networking and responsive UI layer.
+> 🎮 **Live Arcade**: [https://arcade-hub-relay.arcade-hub.workers.dev](https://arcade-hub-relay.arcade-hub.workers.dev)
+
+A modern, responsive browser **arcade game platform** featuring **Tic-Tac-Toe**, **Connect Four**, and **Direction Rush** on one shared stack. Play local hot-seat, face adaptive AI opponents, train reflexes with cognitive speed runs, or go online with private room codes, instant Quick Play matchmaking, in-game chat, and real-time voice chat. Built test-first on a game-scoped networking architecture and zero-scroll responsive UI design system.
 
 <p align="center">
-  <img src="docs/images/desktop-hub.png" alt="Game hub" width="380">
+  <img src="docs/images/desktop-hub.png" alt="Arcade Hub — Multi-Game Platform" width="48%">
   &nbsp;
-  <img src="docs/images/desktop-10-online-room.png" alt="Online room" width="380">
+  <img src="docs/images/desktop-direction-rush.png" alt="Direction Rush — Reflex Game" width="48%">
+</p>
+<p align="center">
+  <img src="docs/images/desktop-connect-four.png" alt="Connect Four — Strategy Grid" width="48%">
+  &nbsp;
+  <img src="docs/images/desktop-tictactoe.png" alt="Tic-Tac-Toe — Classic Duel" width="48%">
 </p>
 
 ## Contents
