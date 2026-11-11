@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import { ConnectFourBoard } from "../../components/ConnectFourBoard";
 import { ScoreBox } from "../../components/ScoreBox";
 import { Confetti } from "../../components/Confetti";
@@ -17,6 +18,7 @@ import { isConnectFourSession } from "../../net/RoomSession";
 import { TURN_TIMEOUT_GRACE_MS } from "../../net/protocol";
 import { useTimeoutToast } from "../../hooks/useTimeoutToast";
 import { GameShell } from "../../components/GameShell";
+import { useSettings } from "../../settings/SettingsContext";
 
 const WS_BASE = import.meta.env.VITE_WS_URL ?? "";
 
@@ -32,6 +34,7 @@ interface NavState {
 export const ConnectFour: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { settings } = useSettings();
   const { session: anySession, snapshot: onlineSnap, closeRoom } = useOnlineSessionSnapshot();
   const session = isConnectFourSession(anySession) ? anySession : null;
   const online = session !== null;
@@ -49,12 +52,12 @@ export const ConnectFour: React.FC = () => {
   const localNames = { X: defaultP1, O: defaultP2 };
   const hostName = onlineSnap
     ? onlineSnap.role === "host"
-      ? onlineSnap.myName
+      ? (onlineSnap.myName || settings.playerName?.trim().toUpperCase() || "PLAYER 1")
       : (onlineSnap.opponentName || "PLAYER 1")
-    : "PLAYER 1";
+    : (settings.playerName?.trim().toUpperCase() || "PLAYER 1");
   const guestName = onlineSnap
     ? onlineSnap.role === "guest"
-      ? onlineSnap.myName
+      ? (onlineSnap.myName || settings.playerName?.trim().toUpperCase() || "PLAYER 2")
       : (onlineSnap.opponentName || "PLAYER 2")
     : "PLAYER 2";
   const onlineFallbackNames = { X: hostName, O: guestName };
@@ -235,6 +238,7 @@ export const ConnectFour: React.FC = () => {
           turnRemaining={online && state.currentPlayer === "X" && state.phase === 'playing' ? localTurnRemaining : undefined}
           turnTimerMs={online && state.currentPlayer === "X" && state.phase === 'playing' ? displayTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "X" && state.phase === 'playing'}
+          isMe={online && onlineSnap?.myMark === "X"}
         />
         <div className="text-center">
           <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500 sm:text-xs">
@@ -253,6 +257,7 @@ export const ConnectFour: React.FC = () => {
           turnRemaining={online && state.currentPlayer === "O" && state.phase === 'playing' ? localTurnRemaining : undefined}
           turnTimerMs={online && state.currentPlayer === "O" && state.phase === 'playing' ? displayTimerMs : undefined}
           isMyTurn={online && state.currentPlayer === "O" && state.phase === 'playing'}
+          isMe={online && onlineSnap?.myMark === "O"}
         />
       </div>
 
@@ -295,7 +300,30 @@ export const ConnectFour: React.FC = () => {
       <ConnectFourBoard
         board={state.board}
         currentMark={state.currentPlayer}
-        onColumnClick={playMove}
+        onColumnClick={(col) => {
+          if (disconnected) {
+            toast.error("Opponent disconnected", { id: "disconnect-notice" });
+            return;
+          }
+          if (online && !myTurn) {
+            playEffect("invalid");
+            toast(`Waiting for ${playerNames[state.currentPlayer]}'s move...`, {
+              icon: "⏳",
+              id: "turn-notice",
+              duration: 1500,
+              style: {
+                borderRadius: "10px",
+                background: "#18181b",
+                color: "#f4f4f5",
+                border: "1px solid #3f3f46",
+                fontSize: "12px",
+                fontWeight: "bold",
+              },
+            });
+            return;
+          }
+          playMove(col);
+        }}
         winningLine={winningLine}
         interactionEnabled={!isFinished && !aiTurnPending && myTurn && !disconnected}
       />

@@ -9,7 +9,8 @@ export const ScoreBox: React.FC<{
   turnRemaining?: number;
   turnTimerMs?: number;
   isMyTurn?: boolean;
-}> = ({ label, score, active, accent, testId, turnRemaining, turnTimerMs }) => {
+  isMe?: boolean;
+}> = ({ label, score, active, accent, testId, turnRemaining, turnTimerMs, isMe }) => {
   const [pop, setPop] = useState(false);
 
   useEffect(() => {
@@ -53,8 +54,13 @@ export const ScoreBox: React.FC<{
           />
         </div>
       )}
-      <div className={`text-xs font-semibold uppercase tracking-wider ${accent} relative z-10`}>
-        {label}
+      <div className={`text-xs font-semibold uppercase tracking-wider ${accent} relative z-10 flex items-center justify-center gap-1.5`}>
+        <span className="truncate max-w-[110px]">{label}</span>
+        {isMe && (
+          <span className="rounded bg-cyan-950/90 px-1 py-0.5 text-[9px] font-black tracking-normal text-cyan-300 border border-cyan-500/40">
+            YOU
+          </span>
+        )}
       </div>
       <div
         className={`text-3xl font-extrabold text-gray-100 relative z-10 transition-transform duration-200 ${

@@ -262,6 +262,12 @@ stateDiagram-v2
 
 - Every outbound message is stamped with the session's `game`; inbound messages with a
   foreign `game` or room code are dropped before touching state.
+- **Dynamic Name Propagation**: In `onHello` and `onWelcome`, participant handles are extracted
+  and updated into session state immutably. If a guest re-announces with an updated handle,
+  session state reactively updates without dropping room connection.
+- **Phase Self-Healing**: When a session reaches `status: 'connected'`, any subsequent `playMove`
+  automatically validates that `state.phase === 'playing'`. If an edge case kept the board in
+  `'waiting'`, it auto-starts the active game phase so legal moves are never rejected.
 - Rematch: both sides send `rematch`; when the host has seen both, it emits `rematch-start`
   and restarts.
 - The session is generic over the game: `RoomSession<G>` drives a `GameEngine` bundle
@@ -274,7 +280,7 @@ stateDiagram-v2
 | Transport | Selected when | Notes |
 |-----------|---------------|-------|
 | BroadcastChannel `room:<game>:<code>` | `VITE_WS_URL` unset | same browser profile + origin only (incognito is a separate partition) |
-| WebSocket `<VITE_WS_URL>/room/<code>?game=…` | `VITE_WS_URL` set | posts buffer in an outbox until the socket opens |
+| WebSocket `<VITE_WS_URL>/room/<code>?game=…` | `VITE_WS_URL` set | features automatic exponential backoff reconnection, offline outbox buffering, and auto-flush upon reconnect |
 
 Missing `game` on the relay side means the default game, so older clients interop.
 

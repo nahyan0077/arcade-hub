@@ -41,7 +41,9 @@ export const Start = () => {
   const local2P = true;
 
   const [playerType, setPlayerType] = useState("");
-  const [name, setName] = useState("");
+  const [name, setName] = useState(() => {
+    return settings.playerName && settings.playerName !== "Player 1" ? settings.playerName : "";
+  });
   const [mode, setMode] = useState<GameMode>("pvp");
   const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty>(() => {
     if (isC4 && settings.defaultDifficulty === "impossible") return "hard";
@@ -50,6 +52,12 @@ export const Start = () => {
   const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
   const [joinCode, setJoinCode] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!name && settings.playerName && settings.playerName !== "Player 1") {
+      setName(settings.playerName);
+    }
+  }, [settings.playerName, name]);
 
   useEffect(() => {
     if (playerType && inputRef.current) {
@@ -69,11 +77,12 @@ export const Start = () => {
   };
 
   const handleStart = () => {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
+    const rawName = name.trim() || (settings.playerName && settings.playerName !== "Player 1" ? settings.playerName.trim() : "");
+    if (!rawName) {
       showToast("Please Enter your name");
       return;
     }
+    const trimmedName = rawName;
     updateSettings({ playerName: trimmedName });
     if (mode === "quick") {
       navigate("/queue", { state: { name: trimmedName, game } });

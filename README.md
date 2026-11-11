@@ -36,8 +36,10 @@ A modern, responsive browser **arcade game platform** featuring **Tic-Tac-Toe**,
 - **Retro Cyber Aesthetics** — animated 3D perspective cyber grids (`RetroGrid`) themed per game (cyan, amber, emerald, purple) with ambient glowing horizons.
 - **Unified GameShell** — consistent arcade navigation header, persistent audio controls, settings drawer, and zero-scroll layout budgeting across all games.
 - **Responsive Viewport Fitting** — engineered to fit any screen without scrolling or button clipping (mobile portrait, short tablet landscape `800x550`, desktop `1440x900+`).
+- **Profile & Handle Synchronization** — custom player handles set in Profile Settings seamlessly propagate across start screens, lobby matchmaking, and live game scoreboards (`(YOU)` badge clarity).
 - **2-Player local** — hot-seat play with persistent X/O/draw and win-count scores.
-- **Online rooms & Quick Play** — create/join with 6-character codes over WebSocket or BroadcastChannel, plus instant 1v1 matchmaking.
+- **Online rooms & Quick Play** — create/join with 6-character codes over WebSocket or BroadcastChannel, plus instant 1v1 matchmaking, auto-reconnect resilience, and move self-healing.
+- **Interactive Turn Feedback** — real-time turn guidance and tactile notifications (`⏳ Waiting for opponent's move...`) eliminating dead-click confusion.
 - **Live Voice Chat** — LiveKit-powered per-room audio behind icon controls (🎧 join, 🎤 mute, participant count badge), listen-only until you unmute.
 - **Perspective results & Celebrations** — context-aware "You win!" / "You lose!" labeling with physics-based particle confetti on the winner's viewport.
 - **In-game chat & emoji reactions** — slide-up chat drawer plus quick-reaction emoji bursts (🎉🔥😂👏💯😅🤔👀) synchronized across both clients.

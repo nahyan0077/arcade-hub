@@ -46,7 +46,7 @@ export function OnlineSessionProvider({
       role: options.role,
       roomCode: options.roomCode,
       myId: generatePlayerId(),
-      myName: options.name.trim().toUpperCase(),
+      myName: (options.name.trim() || 'PLAYER').toUpperCase(),
       game,
       transport: createRoomTransport(options.roomCode, game),
     });

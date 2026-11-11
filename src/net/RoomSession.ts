@@ -196,11 +196,16 @@ export class RoomSession<G extends GameId = GameId> {
       role: options.role,
       roomCode: options.roomCode,
       myId: options.myId,
-      myName: options.myName,
+      myName: (options.myName || 'PLAYER').trim().toUpperCase(),
       game,
       transport: options.transport,
     };
     this.engine = engineFor(game) as unknown as GameEngine<GameStateFor<G>>;
+
+    const initialNames: Record<Player, string> =
+      options.role === 'host'
+        ? { X: this.options.myName, O: 'PLAYER 2' }
+        : { X: 'PLAYER 1', O: this.options.myName };
 
     this.snapshot = {
       status: options.role === 'host' ? 'waiting' : 'connecting',
@@ -208,10 +213,10 @@ export class RoomSession<G extends GameId = GameId> {
       roomCode: options.roomCode,
       game: this.options.game,
       myId: options.myId,
-      myName: options.myName,
+      myName: this.options.myName,
       myMark: markForRole(options.role),
       opponentName: null,
-      state: this.engine.createInitialState({ mode: 'online' }),
+      state: this.engine.createInitialState({ mode: 'online', playerNames: initialNames }),
       rematchRequested: false,
       timeoutCounts: {},
       turnTimerMs: this.options.turnTimerMs,
@@ -308,7 +313,12 @@ export class RoomSession<G extends GameId = GameId> {
   playMove(index: number): boolean {
     if (this.options.game === 'arrow-race') return false;
     if (this.snapshot.status !== 'connected') return false;
-    const state = this.boardState();
+    let state = this.boardState();
+    if (state.phase === 'waiting') {
+      const activeState = this.engine.startGame(state as GameStateFor<G>);
+      this.update({ state: activeState });
+      state = this.boardState();
+    }
     if (state.currentPlayer !== this.snapshot.myMark) return false;
     if (!this.engine.isValidMove(state as GameStateFor<G>, index)) return false;
 
@@ -612,23 +622,36 @@ export class RoomSession<G extends GameId = GameId> {
       hostName: this.options.myName,
     });
 
-    if (firstJoin) {
+    const guestName = (message.name || '').trim().toUpperCase() || 'PLAYER 2';
+
+    if (firstJoin || this.snapshot.status !== 'connected' || this.snapshot.state.phase !== 'playing') {
       this.lastMoveAt = Date.now();
       this.update({
         status: 'connected',
-        opponentName: message.name,
-        state: this.createOnlineState(message.name),
+        opponentName: guestName,
+        state: this.createOnlineState(guestName),
         turnStartTime: this.lastMoveAt,
       });
       if (this.options.game === 'arrow-race') {
         this.startRaceRound();
       }
+    } else if (guestName && this.snapshot.opponentName !== guestName) {
+      this.update({
+        opponentName: guestName,
+        state: {
+          ...this.snapshot.state,
+          playerNames: {
+            ...('playerNames' in this.snapshot.state ? this.snapshot.state.playerNames : {}),
+            O: guestName,
+          },
+        } as GameStateFor<G>,
+      });
     }
   }
 
   private onWelcome(message: Extract<RoomMessage, { type: 'welcome' }>): void {
     if (this.options.role !== 'guest') return;
-    if (this.snapshot.status !== 'connecting') return;
+    if (this.snapshot.status !== 'connecting' && this.snapshot.status !== 'waiting') return;
     if (this.helloRetryTimer) {
       clearInterval(this.helloRetryTimer);
       this.helloRetryTimer = null;
@@ -638,12 +661,13 @@ export class RoomSession<G extends GameId = GameId> {
       this.helloDeadlineTimer = null;
     }
 
+    const hostName = (message.hostName || '').trim().toUpperCase() || 'PLAYER 1';
     this.hostId = message.hostId;
     this.lastMoveAt = Date.now();
     this.update({
       status: 'connected',
-      opponentName: message.hostName,
-      state: this.createOnlineState(message.hostName),
+      opponentName: hostName,
+      state: this.createOnlineState(hostName),
       turnStartTime: this.lastMoveAt,
     });
   }
