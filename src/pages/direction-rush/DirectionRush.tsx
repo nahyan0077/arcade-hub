@@ -5,6 +5,7 @@ import { LeafField } from './LeafField';
 import type { RushDifficulty, RushConfig, RushDirection } from '../../engine/direction-rush';
 import { isMuted, playEffect, setMuted, triggerHaptic } from '../../sound/audio';
 import { GameShell } from '../../components/GameShell';
+import { useSettings } from '../../settings/SettingsContext';
 
 type Mode = 'quick' | 'practice' | 'survival';
 
@@ -37,10 +38,13 @@ const HINT: Record<RushDirection, string> = {
 const DirectionRush: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings } = useSettings();
 
-  const { mode: navMode = 'quick', difficulty = 'beginner' } = location.state
+  const { mode: navMode = 'quick', difficulty = settings.rushDifficulty || 'beginner' } = location.state
     ? (location.state as { mode?: Mode; difficulty?: RushDifficulty })
-    : { mode: 'quick' as Mode, difficulty: 'beginner' as RushDifficulty };
+    : { mode: 'quick' as Mode, difficulty: (settings.rushDifficulty || 'beginner') as RushDifficulty };
+
+  const targetDuration = settings.rushDuration || 60;
 
   const { state, startGame, submitAnswer, pause, resume, restart } = useDirectionRush();
 
@@ -51,8 +55,8 @@ const DirectionRush: React.FC = () => {
   const [switchAlert, setSwitchAlert] = useState<string | null>(null);
   const prevInstructionRef = useRef<string | null>(null);
 
-  // Quick mode timer (60s countdown)
-  const [secondsRemaining, setSecondsRemaining] = useState(navMode === 'quick' ? 60 : 0);
+  // Quick mode timer countdown
+  const [secondsRemaining, setSecondsRemaining] = useState(navMode === 'quick' ? targetDuration : 0);
   const [lives, setLives] = useState(3);
 
   const config = useMemo<RushConfig>(() => {
@@ -255,7 +259,7 @@ const DirectionRush: React.FC = () => {
   const handlePlayAgain = () => {
     setShowResults(false);
     setResults(null);
-    setSecondsRemaining(navMode === 'quick' ? 60 : 0);
+    setSecondsRemaining(navMode === 'quick' ? targetDuration : 0);
     setLives(3);
     restart();
   };

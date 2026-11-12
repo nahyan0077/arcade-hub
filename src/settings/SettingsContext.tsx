@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { DEFAULT_SETTINGS, type GlobalSettings } from './types';
 import { setMasterVolume, setSfxVolume, setMuted, isMuted } from '../sound/audio';

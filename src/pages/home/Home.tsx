@@ -109,7 +109,7 @@ export const Home: React.FC = () => {
 
   const [shaking, setShaking] = useState(false);
   const [soundOn, setSoundOn] = useState(!isMuted());
-  const [hintOn, setHintOn] = useState(false);
+  const [hintOn, setHintOn] = useState(() => Boolean(settings.tttShowHints));
   const [emojiBursts, setEmojiBursts] = useState<EmojiBurst[]>([]);
 
   const { toasts, showTimeoutToast, showTimeoutLossToast } = useTimeoutToast();

@@ -192,7 +192,10 @@ export const ConnectFour: React.FC = () => {
   const aiTurnPending =
     isPve && !online && state.phase === "playing" && state.currentPlayer === "O";
   const isFinished = state.phase === "finished";
-  const winningLine = state.result?.type === "win" ? state.result.line : null;
+  const winningLine =
+    settings.c4HighlightWinningLine !== false && state.result?.type === "win"
+      ? state.result.line
+      : null;
 
   const perspectiveWin =
     state.result?.type !== "win"

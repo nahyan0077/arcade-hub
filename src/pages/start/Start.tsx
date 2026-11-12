@@ -4,7 +4,7 @@ import "./start.css";
 import toast, { Toaster } from "react-hot-toast";
 import { AIDIFFICULTIES, PERSONALITIES } from "../../engine";
 import type { AIDifficulty } from "../../engine";
-import { C4_DIFFICULTIES } from "../../engine/connect-four/types";
+import { C4_DIFFICULTIES, C4_PERSONALITIES } from "../../engine/connect-four/types";
 import type { C4Difficulty } from "../../engine/connect-four/types";
 import { useOnlineSession } from "../../net/OnlineSessionContext";
 import { useSettings } from "../../settings/SettingsContext";
@@ -46,8 +46,13 @@ export const Start = () => {
   });
   const [mode, setMode] = useState<GameMode>("pvp");
   const [difficulty, setDifficulty] = useState<AIDifficulty | C4Difficulty>(() => {
-    if (isC4 && settings.defaultDifficulty === "impossible") return "hard";
-    return settings.defaultDifficulty;
+    if (isC4) {
+      return (
+        settings.c4Difficulty ??
+        (settings.defaultDifficulty === "impossible" ? "hard" : settings.defaultDifficulty)
+      );
+    }
+    return settings.tttDifficulty ?? settings.defaultDifficulty;
   });
   const [onlineAction, setOnlineAction] = useState<OnlineAction>("create");
   const [joinCode, setJoinCode] = useState("");
@@ -118,6 +123,9 @@ export const Start = () => {
   const showMarkPicker = local2P && !isC4 && (mode === "pvp" || mode === "pve");
   const difficulties = isC4 ? C4_DIFFICULTIES : AIDIFFICULTIES;
   const personalityName = (level: string): string => {
+    if (isC4) {
+      return C4_PERSONALITIES[level as C4Difficulty]?.name ?? level;
+    }
     return PERSONALITIES[level as AIDifficulty]?.name ?? level;
   };
 
